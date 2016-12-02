@@ -1,0 +1,6 @@
+
+-cp vscode_debugadapter_haxe
+-cp src
+-main HLAdapter
+-lib hxnodejs
+-js bin/hl_adapter.js

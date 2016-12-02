@@ -1,0 +1,62 @@
+{
+	"name": "haxe-hl",
+	"displayName": "HashLink Debug Launcher",
+	"version": "0.0.1",
+	"publisher": "motion-twin",
+	"description": "Debugger for haxe",
+	"author": {
+		"name": "motion-twin"
+	},
+	"engines": {
+		 "vscode": "^1.4.0"
+	},
+	"icon": "images/icon.svg",
+	"categories": [
+		"Debuggers"
+	],
+	"private": true,
+	"dependencies": {
+		"vscode-debugprotocol": "1.8.0-pre.3",
+		"vscode-debugadapter": "1.8.0-pre.4"
+	},
+	"devDependencies": {
+	},
+	"scripts": {
+	},
+	"contributes": {
+		"debuggers": [
+			{
+				"type": "hl",
+				"label": "haxe: HashLink debug",
+
+				"enableBreakpointsFor": { "languageIds": [ "haxe"] },
+
+				"program": "./bin/hl_adapter.js",
+				"runtime": "node",
+
+				"configurationAttributes": {
+					"launch": {
+						"required": [ "program" ],
+						"properties": {
+							"program": {
+								"type": "string",
+								"description": "path to a hl file.",
+								"default": "${workspaceRoot}/bin/your.hl"
+							}
+							, "cwd": {
+								"type": "string",
+								"description": "working directory",
+								"default": "${workspaceRoot}"
+							}
+							, "request" : {
+								"type": "string"
+								, "description": "launch"
+								, "default" : "launch"
+							}
+						}
+					}
+				}
+			}
+		]
+	}
+}
