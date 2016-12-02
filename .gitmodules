@@ -1,0 +1,3 @@
+[submodule "vscode-debugadapter-extern"]
+	path = vscode-debugadapter-extern
+	url = https://github.com/vshaxe/vscode-debugadapter-extern.git

@@ -1,5 +1,5 @@
 
--cp vscode_debugadapter_haxe
+-cp vscode-debugadapter-extern
 -cp src
 -main HLAdapter
 -lib hxnodejs
