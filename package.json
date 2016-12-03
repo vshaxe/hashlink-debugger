@@ -38,20 +38,32 @@
 					"launch": {
 						"required": [ "program" ],
 						"properties": {
+							"request" : {
+								"type": "string",
+								"description": "launch",
+								"default" : "launch"
+							},
 							"program": {
 								"type": "string",
-								"description": "path to a hl file.",
+								"description": "Path to a .hl file.",
 								"default": "${workspaceRoot}/bin/your.hl"
-							}
-							, "cwd": {
+							},
+							"cwd": {
 								"type": "string",
-								"description": "working directory",
+								"description": "Working directory",
 								"default": "${workspaceRoot}"
-							}
-							, "request" : {
-								"type": "string"
-								, "description": "launch"
-								, "default" : "launch"
+							},
+							"args": {
+								"description": "Program arguments.",
+								"type": "array",
+								"default": [],
+								"items": {
+									"description": "Command-line arguments passed to HL program.",
+									"type": "array",
+									"items": {
+										"type": "string"
+									}
+								}
 							}
 						}
 					}
