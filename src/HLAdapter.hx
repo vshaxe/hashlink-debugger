@@ -29,6 +29,7 @@ class HLAdapter extends adapter.DebugSession {
     var buffer : Buffer;
     var waitingStackBuf : Array<StackTraceResponse>;
     var code : HLCode;
+    var functionNames : Array<String>;
 
     public function new() {
         super();
@@ -74,6 +75,24 @@ class HLAdapter extends adapter.DebugSession {
 
         var content = sys.io.File.getBytes(args.program);
         code = new HLReader(false).read( new haxe.io.BytesInput(content) );
+        functionNames = [];
+		for( t in code.types ){
+			switch( t ){
+				case HObj(obj):
+					for( f in obj.fields ){
+						switch( f.t ){
+							case HFun(_):
+								for( fun in code.functions )
+									if( fun.t == f.t )
+										functionNames[fun.findex] = obj.name+"."+f.name;
+							case _:
+						}
+					}
+					for( p in obj.proto )
+						functionNames[p.findex] = obj.name+"."+p.name;
+				case _:
+			}
+		}
 
         sendResponse( response );
     }
@@ -127,7 +146,7 @@ class HLAdapter extends adapter.DebugSession {
                     id: i,
                     line: line,
                     column: 1,
-                    name: "#"+f.findex,
+                    name: functionNames[f.findex],
                     source: {path: file}
                 });
             }
