@@ -3,4 +3,5 @@
 -cp src
 -main HLAdapter
 -lib hxnodejs
+-cp C:\Projects\haxeTools\hashlink\other\debugger
 -js bin/hl_adapter.js
