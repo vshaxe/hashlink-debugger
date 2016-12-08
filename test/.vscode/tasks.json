@@ -4,10 +4,9 @@
     "args": [],
     "tasks": [
         {
-            "taskName": "build",
+            "taskName": "build test",
             "suppressTaskName": true,
-            "isBuildCommand": true,
-            "args": ["build.hxml"],
+            "args": ["build.test.hxml"],
             "showOutput": "silent",
             "problemMatcher": {
                 "owner": "haxe",
