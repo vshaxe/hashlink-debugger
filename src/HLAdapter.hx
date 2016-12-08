@@ -4,28 +4,14 @@ import protocol.debug.Types;
 import adapter.DebugSession;
 import js.node.ChildProcess;
 import js.node.child_process.ChildProcess as ChildProcessObject;
-import js.node.net.Socket;
 import js.node.Buffer;
 import HLReader;
 
-@:enum abstract Command(Int) {
-	public var Run = 0;
-	public var Pause = 1;
-	public var Resume = 2;
-	public var Stop = 3;
-	public var Stack = 4;
-	public inline function new(v:Int) {
-		this = v;
-	}
-	public inline function toInt() : Int {
-		return this;
-	}
-}
-
 class HLAdapter extends adapter.DebugSession {
 
-    var proc : ChildProcessObject; 
-    var sock : Socket;
+    var proc : ChildProcessObject;
+    var dbgProc : ChildProcessObject;
+
     var buffer : Buffer;
     var waitingStackBuf : Array<StackTraceResponse>;
     var code : HLCode;
@@ -63,12 +49,20 @@ class HLAdapter extends adapter.DebugSession {
         proc.stderr.on('data', function(buf){
             sendEvent(new OutputEvent(buf.toString(), OutputEventCategory.stderr));
         } );
-        proc.on('close',function(code){
-            var exitedEvent:ExitedEvent = {type:MessageType.event, event:"exited", seq:0, body : { exitCode:code}}; 
-            sendEvent(exitedEvent);
-            sendEvent(new TerminatedEvent());
-        });
+        proc.on('close',onProcClose.bind(true));
 
+        dbgProc = ChildProcess.spawn("hl",[js.Node.__dirname+"/debugger.hl","-attach",""+proc.pid,"-port",""+port,args.program]);
+        dbgProc.stdout.on('data',onDebugData);
+        dbgProc.on('close',onProcClose.bind(false));
+
+        sendEvent( new InitializedEvent() );
+
+        // Wait for breakpointsRequest before run
+        js.Node.setTimeout(function(){
+            send('run');
+        },30);        
+
+        /* 
         sock = new js.node.net.Socket();
         sock.connect(port,onConnect);
         sock.on('data',onSockData);
@@ -93,23 +87,27 @@ class HLAdapter extends adapter.DebugSession {
 				case _:
 			}
 		}
+        */
 
         sendResponse( response );
     }
 
     override function continueRequest(response:ContinueResponse, args:ContinueArguments) {
-        sendEvent(new OutputEvent("continueRequest!", OutputEventCategory.console));
+        /*
         send(Resume);
         response.body = {
             allThreadsContinued : true
         };
         sendResponse(response);
+        */
     }
 
     override function pauseRequest(response:PauseResponse, args:PauseArguments) {
+        /*
         send(Pause);
         sendResponse(response);
         sendEvent(new StoppedEvent(StopReason.pause, 1));
+        */
     }
 
     override function threadsRequest(response:ThreadsResponse) {
@@ -120,10 +118,18 @@ class HLAdapter extends adapter.DebugSession {
     }
 
     override function stackTraceRequest(response:StackTraceResponse, args:StackTraceArguments) {
-        send(Stack);
+        send("backtrace");
         waitingStackBuf.push( response );
     }
 
+    override function setBreakPointsRequest(response:SetBreakpointsResponse, args:SetBreakpointsArguments) {
+        // TODO source.name or source.path?
+        for( line in args.lines )
+            send("break "+args.source.name+" "+line);
+        sendResponse(response);
+    }
+
+    /*
     function onSockData(buf:Buffer){
         buffer = Buffer.concat([buffer,buf],buffer.length+buf.length);
         while( waitingStackBuf.length > 0  && buffer.length > 4 ){
@@ -154,23 +160,58 @@ class HLAdapter extends adapter.DebugSession {
             buffer = buffer.slice(4+8*size);
         }
     }
+    */
 
     override function disconnectRequest(response:DisconnectResponse, args:DisconnectArguments) {
-        proc.kill("SIGINT");
+        clean();
         sendResponse(response);
     }
 
-    function sendToOutput(output:String, category:OutputEventCategory = OutputEventCategory.console) {
-        sendEvent(new OutputEvent(output + "\n", category));
+    function onProcClose( isMain : Bool, code : Int ){
+        if( isMain ){
+            if( proc == null ) return;
+            proc = null;
+        }else{
+            if( dbgProc == null ) return;
+            dbgProc = null;
+        }
+        clean();
+        var exitedEvent:ExitedEvent = {type:MessageType.event, event:"exited", seq:0, body : {exitCode:code}};
+        sendEvent(exitedEvent);
+        sendEvent(new TerminatedEvent());
     }
 
+    function clean(){
+        if( proc != null ){
+            proc.kill("SIGINT");
+            proc = null;
+        }
+        if( dbgProc != null ){
+            dbgProc.kill("SIGINT");
+            dbgProc = null;
+        }
+    }
+
+/*
     function onConnect(){
         send(Run);
         sendEvent( new InitializedEvent() );
     }
+    */
 
-    function send( cmd : Command ){
-        sock.write( String.fromCharCode(cmd.toInt()) );
+
+    function onDebugData(buf:Buffer){
+        sendEvent(new OutputEvent(buf.toString(), OutputEventCategory.console));
+    }
+
+
+    function send( cmd : String ){
+        dbgProc.stdin.write( cmd+"\n" );
+    }
+
+    function debug( v : Dynamic ){
+        trace( v );
+        sendEvent(new OutputEvent(Std.string(v), OutputEventCategory.console));
     }
 
     static function main() {
