@@ -3,6 +3,7 @@
 -cp src
 -main HLAdapter
 -lib hxnodejs
+-debug
 -js bin/hl_adapter.js
 
 --next
