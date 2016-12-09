@@ -3,12 +3,20 @@ class Main {
     // Note: debugger crash with "Uncaught exception: Failed to read memory" when test closes
     static function main(){
         while( true ){
-            Sys.println(Date.now());
+            doPrintDate();
+            Sys.sleep(2);
+            Sys.println('--');
             Sys.stdout().flush();
-            Sys.sleep(5);
+            Sys.sleep(2);
         }
+    }
 
-        
+    static function doPrintDate(){
+        printDate();
+    }
+
+    static function printDate(){
+        Sys.println(Date.now());
     }
     
 }

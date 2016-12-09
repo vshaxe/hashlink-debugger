@@ -5,22 +5,22 @@ import adapter.DebugSession;
 import js.node.ChildProcess;
 import js.node.child_process.ChildProcess as ChildProcessObject;
 import js.node.Buffer;
-import HLReader;
 
 class HLAdapter extends adapter.DebugSession {
 
+    var launchArgs : {cwd: String, program: String, ?args: Array<String>, ?port: Int}; 
     var proc : ChildProcessObject;
     var dbgProc : ChildProcessObject;
 
     var buffer : Buffer;
-    var waitingStackBuf : Array<StackTraceResponse>;
-    var code : HLCode;
-    var functionNames : Array<String>;
+    var waitingResp : Array<protocol.debug.Response<Dynamic>>;
+    var breakpoints : Map<String,Array<Int>>;
 
     public function new() {
         super();
         buffer = Buffer.alloc(0);
-        waitingStackBuf = [];
+        waitingResp = [];
+        breakpoints = new Map();
     }
 
     override function initializeRequest(response:InitializeResponse, args:InitializeRequestArguments) {
@@ -33,13 +33,13 @@ class HLAdapter extends adapter.DebugSession {
     }
 
     override function launchRequest(response:LaunchResponse, args:LaunchRequestArguments) {
-        var args:{cwd: String, program: String, ?args: Array<String>, ?port: Int} = cast args;
-        var port : Int = args.port == null ? 5001 : args.port;
-        var hlArgs = ["--debug",""+port,"--debug-wait",args.program];
-        if( args.args != null )
-            for( a in args.args ) hlArgs.push(a);
+        launchArgs = cast args;
+        var port : Int = launchArgs.port == null ? 5001 : launchArgs.port;
+        var hlArgs = ["--debug",""+port,"--debug-wait",launchArgs.program];
+        if( launchArgs.args != null )
+            for( a in launchArgs.args ) hlArgs.push(a);
 
-        proc = ChildProcess.spawn("hl", hlArgs, {env: {}, cwd: args.cwd});
+        proc = ChildProcess.spawn("hl", hlArgs, {env: {}, cwd: launchArgs.cwd});
 
         proc.stdout.setEncoding('utf8');
         proc.stdout.on('data', function(buf){
@@ -51,55 +51,26 @@ class HLAdapter extends adapter.DebugSession {
         } );
         proc.on('close',onProcClose.bind(true));
 
-        dbgProc = ChildProcess.spawn("hl",[js.Node.__dirname+"/debugger.hl","-attach",""+proc.pid,"-port",""+port,args.program]);
+        dbgProc = ChildProcess.spawn("hl",[js.Node.__dirname+"/debugger.hl","-attach",""+proc.pid,"-port",""+port,launchArgs.program]);
         dbgProc.stdout.on('data',onDebugData);
         dbgProc.on('close',onProcClose.bind(false));
 
         sendEvent( new InitializedEvent() );
 
-        // Wait for breakpointsRequest before run
-        js.Node.setTimeout(function(){
-            send('run');
-        },30);        
-
-        /* 
-        sock = new js.node.net.Socket();
-        sock.connect(port,onConnect);
-        sock.on('data',onSockData);
-
-        var content = sys.io.File.getBytes(args.program);
-        code = new HLReader(false).read( new haxe.io.BytesInput(content) );
-        functionNames = [];
-		for( t in code.types ){
-			switch( t ){
-				case HObj(obj):
-					for( f in obj.fields ){
-						switch( f.t ){
-							case HFun(_):
-								for( fun in code.functions )
-									if( fun.t == f.t )
-										functionNames[fun.findex] = obj.name+"."+f.name;
-							case _:
-						}
-					}
-					for( p in obj.proto )
-						functionNames[p.findex] = obj.name+"."+p.name;
-				case _:
-			}
-		}
-        */
-
         sendResponse( response );
     }
 
+    override function configurationDoneRequest(response:ConfigurationDoneResponse, args:ConfigurationDoneArguments){
+        send('run');
+        sendResponse(response);
+    }
+
     override function continueRequest(response:ContinueResponse, args:ContinueArguments) {
-        /*
-        send(Resume);
+        send("continue");
         response.body = {
             allThreadsContinued : true
         };
         sendResponse(response);
-        */
     }
 
     override function pauseRequest(response:PauseResponse, args:PauseArguments) {
@@ -109,7 +80,7 @@ class HLAdapter extends adapter.DebugSession {
         sendEvent(new StoppedEvent(StopReason.pause, 1));
         */
     }
-
+    
     override function threadsRequest(response:ThreadsResponse) {
         response.body = {
             threads: [new Thread(1, "thread 1")]
@@ -119,48 +90,26 @@ class HLAdapter extends adapter.DebugSession {
 
     override function stackTraceRequest(response:StackTraceResponse, args:StackTraceArguments) {
         send("backtrace");
-        waitingStackBuf.push( response );
+        waitingResp.push(response);
     }
 
     override function setBreakPointsRequest(response:SetBreakpointsResponse, args:SetBreakpointsArguments) {
-        // TODO source.name or source.path?
-        for( line in args.lines )
-            send("break "+args.source.name+" "+line);
+        var existing = breakpoints.get(args.source.path);
+        if( existing == null )
+            breakpoints.set(args.source.path,existing=[]);
+        var old = existing.copy();
+        for( b in args.breakpoints ){
+            if( old.remove(b.line) )
+                continue;
+            send("break "+args.source.name+" "+b.line);
+            existing.push(b.line);
+        }
+        for( line in old ){
+            send("clear "+args.source.name+" "+line);
+            existing.remove(line);
+        }
         sendResponse(response);
     }
-
-    /*
-    function onSockData(buf:Buffer){
-        buffer = Buffer.concat([buffer,buf],buffer.length+buf.length);
-        while( waitingStackBuf.length > 0  && buffer.length > 4 ){
-            var size = buffer.readInt32LE(0);
-            if( buffer.length < 4 + 8*size )
-                break;
-            var resp = waitingStackBuf.shift();
-            resp.body = {
-                totalFrames: size,
-                stackFrames: []
-            };
-            var cur = 1; 
-            for( i in 0...size ){
-                var fidx = buffer.readInt32LE((cur++)*4);
-                var fpos = buffer.readInt32LE((cur++)*4);
-                var f = code.functions[fidx];
-                var file = code.debugFiles[f.debug[fpos * 2]];
-                var line = f.debug[fpos * 2 + 1];
-                resp.body.stackFrames.push({
-                    id: i,
-                    line: line,
-                    column: 1,
-                    name: functionNames[f.findex],
-                    source: {path: file}
-                });
-            }
-            sendResponse(resp);
-            buffer = buffer.slice(4+8*size);
-        }
-    }
-    */
 
     override function disconnectRequest(response:DisconnectResponse, args:DisconnectArguments) {
         clean();
@@ -183,35 +132,75 @@ class HLAdapter extends adapter.DebugSession {
 
     function clean(){
         if( proc != null ){
-            proc.kill("SIGINT");
+            proc.kill("SIGTERM");
             proc = null;
         }
         if( dbgProc != null ){
-            dbgProc.kill("SIGINT");
+            dbgProc.kill("SIGTERM");
             dbgProc = null;
         }
     }
 
-/*
-    function onConnect(){
-        send(Run);
-        sendEvent( new InitializedEvent() );
-    }
-    */
-
-
     function onDebugData(buf:Buffer){
-        sendEvent(new OutputEvent(buf.toString(), OutputEventCategory.console));
+        buffer = buffer.length > 0 ? Buffer.concat([buffer,buf]) : buf;
+
+        if( buffer.length >= 2 && buffer.toString('utf8',buffer.length-2,buffer.length) == '> ' ){
+            if( buffer.length > 3 ){
+                // removes last \n
+                readData(buffer.toString('utf8',0,buffer.length-3));
+            }
+            buffer = new Buffer(0);
+        }
     }
 
+    function readData( d : String ){
+        if( ~/^Breakpoint set/.match(d) ){
+        }else if( ~/^No breakpoint set/.match(d) ){
+        }else if( ~/^([0-9]+) breakpoints removed/.match(d) ){
+        }else if( ~/^Thread ([0-9]+) paused/.match(d) ){
+            sendEvent(new StoppedEvent(StopReason.breakpoint, 1)); // TODO threadId
+        }else if( ~/^\*\*\* an error has occured, paused \*\*\*/.match(d) ){
+            sendEvent(new StoppedEvent(StopReason.exception, 1)); // TODO threadId
+        }else{
+            // Should be backtrace
+            var resp = waitingResp.shift();
+            if( resp == null )
+                return;
+            switch( resp.command ){
+            case "stackTrace":
+                var lines = d.split("\n");
+                resp.body = {
+                    totalFrames: lines.length,
+                    stackFrames: []
+                };
+                var idx = 0;
+                for( l in lines ){
+                    var p = l.lastIndexOf(':');
+                    var n = l.substr(0,p);
+                    resp.body.stackFrames.push({
+                        id: idx,
+                        line: Std.parseInt(l.substr(p+1)),
+                        column: 1,
+                        name: "??",
+                        source: {
+                            name: n,
+                            path: launchArgs.cwd+"/"+n // TODO 
+                        }
+                    });
+                    idx++;
+                }
+            }
+            sendResponse(resp);
+            
+        }
+    }
 
     function send( cmd : String ){
         dbgProc.stdin.write( cmd+"\n" );
     }
 
     function debug( v : Dynamic ){
-        trace( v );
-        sendEvent(new OutputEvent(Std.string(v), OutputEventCategory.console));
+        sendEvent(new OutputEvent(Std.string(v)+"\n", OutputEventCategory.console));
     }
 
     static function main() {
