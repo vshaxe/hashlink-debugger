@@ -5,8 +5,3 @@
 -lib hxnodejs
 -debug
 -js bin/hl_adapter.js
-
---next
--cp C:\Projects\haxeTools\hashlink\other\debugger
--main Debugger
--hl bin/debugger.hl
