@@ -60,56 +60,47 @@ class HLAdapter extends adapter.DebugSession {
         });
 
         dbg = new HLDebugger();
-        dbg.attach( proc.pid, launchArgs.program, port, this, function(d){
-            sendEvent( new InitializedEvent() );
-        } );
+        dbg.attach( proc.pid, launchArgs.program, port, port+1, this);
         
         sendResponse( response );
     }
 
     override function configurationDoneRequest(response:ConfigurationDoneResponse, args:ConfigurationDoneArguments){
-        dbg.send('run',onPause);
+        dbg.send('run');
         sendResponse(response);
     }
 
     override function continueRequest(response:ContinueResponse, args:ContinueArguments) {
-        dbg.send("continue",onPause);
+        dbg.send("continue");
         response.body = {
             allThreadsContinued : true
         };
         sendResponse(response);
     }
 
-   function onPause( d : String ){
-        // TODO threadId
-        if( ~/^Thread ([0-9]+) paused/.match(d) ){
-            sendEvent(new StoppedEvent(StopReason.breakpoint, 1));
-        }else if( ~/^\*\*\* an error has occured, paused \*\*\*/.match(d) ){
-            sendEvent(new StoppedEvent(StopReason.exception, 1));
-        }else{
-            // TODO ?
-            sendEvent(new StoppedEvent(StopReason.pause, 1));
-        }
-    }
-
     override function pauseRequest(response:PauseResponse, args:PauseArguments) {
-        /*
-        send(Pause);
+        dbg.send("pause");
         sendResponse(response);
-        sendEvent(new StoppedEvent(StopReason.pause, 1));
-        */
     }
 
     override function threadsRequest(response:ThreadsResponse) {
-        response.body = {
-            threads: [new Thread(1, "thread 1")]
-        };
-        sendResponse(response);
+        dbg.send("threads",function(r){
+            if( r.result == Threads ){
+                response.body = {
+                    threads: []
+                };
+                for( t in r.data )
+                    response.body.threads.push( new Thread(Std.parseInt(t), "thread "+t) );
+            }else{
+                response.success = false;
+            }
+            sendResponse(response);
+        });
     }
 
     override function stackTraceRequest(response:StackTraceResponse, args:StackTraceArguments) {
-        dbg.send("backtrace",function(d){
-            var lines = d.split("\n");
+        dbg.send("backtrace",function(r){
+            var lines = r.data;
             response.body = {
                 totalFrames: lines.length,
                 stackFrames: []
@@ -134,6 +125,16 @@ class HLAdapter extends adapter.DebugSession {
         });
     }
 
+    override function scopesRequest(response:ScopesResponse, args:ScopesArguments) {
+        dbg.send("frame "+args.frameId,function(r){
+            response.body = {
+                scopes: []
+            };
+            response.body.scopes.push(new Scope("test",0,false));
+            sendResponse(response);
+        });
+    } 
+
     override function setBreakPointsRequest(response:SetBreakpointsResponse, args:SetBreakpointsArguments) {
         var existing = breakpoints.get(args.source.path);
         if( existing == null )
@@ -141,11 +142,11 @@ class HLAdapter extends adapter.DebugSession {
         var old = existing.copy();
 
         var waiting = 0;
-        function btSend( cmd, ?onData : String -> Void ){
+        function btSend( cmd, ?onData : HLDebugger.Result -> Void ){
             waiting++;
             dbg.send(cmd,function(d){
                 if( onData != null )
-                    onData(d);
+                    onData(d.result);
                 waiting--;
                 if( waiting == 0 )
                     sendResponse(response);
@@ -159,8 +160,8 @@ class HLAdapter extends adapter.DebugSession {
             if( old.remove(b.line) )
                 continue;
             var b = b;
-            btSend("break "+args.source.name+" "+b.line,function(d){
-                if( ~/^Breakpoint set/.match(d) ){
+            btSend("break "+args.source.name+" "+b.line,function(r){
+                if( r == Ok ){
                     response.body.breakpoints.push({
                         line: b.line,
                         verified: true
@@ -172,9 +173,9 @@ class HLAdapter extends adapter.DebugSession {
             existing.push(b.line);
         }
         for( line in old ){
-            btSend("clear "+args.source.name+" "+line,function(d){
-                if( d != "1 breakpoints removed" )
-                    trace( d );
+            btSend("unbreak "+args.source.name+" "+line,function(r){
+                if( r != Ok )
+                    trace( "Failed to remove breakpoint" );
             });
             existing.remove(line);
         }
