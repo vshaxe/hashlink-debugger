@@ -5,3 +5,6 @@
 -lib hxnodejs
 -debug
 -js bin/hl_adapter.js
+
+--next
+build.debugger.hxml

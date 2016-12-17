@@ -136,9 +136,10 @@ class HLAdapter extends adapter.DebugSession {
     } 
 
     override function setBreakPointsRequest(response:SetBreakpointsResponse, args:SetBreakpointsArguments) {
-        var existing = breakpoints.get(args.source.path);
+        var normPath = args.source.path.split("\\").join("/");
+        var existing = breakpoints.get(normPath);
         if( existing == null )
-            breakpoints.set(args.source.path,existing=[]);
+            breakpoints.set(normPath,existing=[]);
         var old = existing.copy();
 
         var waiting = 0;
@@ -159,25 +160,27 @@ class HLAdapter extends adapter.DebugSession {
         for( b in args.breakpoints ){
             if( old.remove(b.line) )
                 continue;
-            var b = b;
-            btSend("break "+args.source.name+" "+b.line,function(r){
+            var line = b.line;
+            btSend("break "+args.source.name+" "+line,function(r){
                 if( r == Ok ){
                     response.body.breakpoints.push({
-                        line: b.line,
+                        line: line,
                         verified: true
                     });
+                    existing.push(line);
                 }else{
-                    trace('Error setting breakpoint on '+args.source.name+' line '+b.line);
+                    trace('Error setting breakpoint on '+args.source.name+' line '+line);
                 }
             });
-            existing.push(b.line);
         }
         for( line in old ){
+            var line = line;
             btSend("unbreak "+args.source.name+" "+line,function(r){
-                if( r != Ok )
+                if( r == Ok )
+                    existing.remove(line);
+                else
                     trace( "Failed to remove breakpoint" );
             });
-            existing.remove(line);
         }
     }
 
