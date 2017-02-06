@@ -1,3 +1,4 @@
 -cp C:\Projects\haxeTools\hashlink\other\debugger
+-lib format
 -main Debugger
 -hl bin/debugger.hl
