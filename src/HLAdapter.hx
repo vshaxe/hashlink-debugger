@@ -107,16 +107,18 @@ class HLAdapter extends adapter.DebugSession {
             };
             var idx = 0;
             for( l in lines ){
-                var p = l.lastIndexOf(':');
-                var n = l.substr(0,p);
+                var a = l.split(":");
+                var name = a.pop();
+                var line = a.pop();
+                var file = a.join(":");
                 response.body.stackFrames.push({
                     id: idx,
-                    line: Std.parseInt(l.substr(p+1)),
+                    line: Std.parseInt(line),
                     column: 1,
-                    name: "??",
+                    name: name,
                     source: {
-                        name: n,
-                        path: launchArgs.cwd+"/"+n // TODO 
+                        name: file,
+                        path: launchArgs.cwd+"/"+file // TODO 
                     }
                 });
                 idx++;

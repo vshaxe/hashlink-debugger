@@ -2,6 +2,14 @@ class Main {
 
     // Note: debugger crash with "Uncaught exception: Failed to read memory" when test closes
     static function main(){
+        var o = new Main();
+        o.run();
+    }
+
+    function new(){
+    }
+
+    function run(){
         while( true ){
             doPrintDate();
             Sys.sleep(2);
@@ -11,7 +19,7 @@ class Main {
         }
     }
 
-    static function doPrintDate(){
+    function doPrintDate(){
         printDate();
     }
 
