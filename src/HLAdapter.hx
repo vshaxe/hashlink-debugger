@@ -7,11 +7,7 @@ import js.node.child_process.ChildProcess as ChildProcessObject;
 
 class HLAdapter extends adapter.DebugSession {
 
-    var proc : ChildProcessObject; 
-
-    public function new() {
-        super();
-    }
+    var proc : ChildProcessObject;
 
     override function initializeRequest(response:InitializeResponse, args:InitializeRequestArguments) {
         response.body.supportsConfigurationDoneRequest = true;
@@ -39,7 +35,7 @@ class HLAdapter extends adapter.DebugSession {
             sendEvent(new OutputEvent(buf.toString(), OutputEventCategory.stderr));
         } );
         proc.on('close',function(code){
-            var exitedEvent:ExitedEvent = {type:MessageType.event, event:"exited", seq:0, body : { exitCode:code}}; 
+            var exitedEvent:ExitedEvent = {type:MessageType.event, event:"exited", seq:0, body : { exitCode:code}};
             sendEvent(exitedEvent);
             sendEvent(new TerminatedEvent());
         });
