@@ -59,13 +59,7 @@
 								"description": "Program arguments.",
 								"type": "array",
 								"default": [],
-								"items": {
-									"description": "Command-line arguments passed to HL program.",
-									"type": "array",
-									"items": {
-										"type": "string"
-									}
-								}
+								"items": { "type": "string" }
 							}
 						}
 					}
