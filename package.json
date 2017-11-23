@@ -38,7 +38,7 @@
 				"runtime": "node",
 				"configurationAttributes": {
 					"launch": {
-						"required": [ "program" ],
+						"required": [ "hxml" ],
 						"properties": {
 							"request" : {
 								"type": "string",

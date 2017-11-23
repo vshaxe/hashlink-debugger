@@ -113,6 +113,8 @@ class HLAdapter extends adapter.DebugSession {
 			case "-hl":
 				program = value;
 			default:
+				if( StringTools.endsWith(arg, ".hxml") && value == "" )
+					hxArgs = sys.io.File.getContent(arg).split("\n").concat(hxArgs);
 			}
 		}
 
