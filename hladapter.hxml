@@ -1,5 +1,6 @@
+-lib hxnodejs
+-lib hldebug
 -cp src
 -cp vscode-debugadapter-extern/src
 -js hl_adapter.js
 -main HLAdapter
--lib hxnodejs

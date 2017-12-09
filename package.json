@@ -18,12 +18,12 @@
 	"private": true,
 	"dependencies": {
 		"vscode-debugprotocol": "1.24.0",
-		"vscode-debugadapter": "1.24.0"
+		"vscode-debugadapter": "1.24.0",
+		"deasync": "0.1.11",
+		"ffi": "2.2.0"
 	},
-	"devDependencies": {
-	},
-	"scripts": {
-	},
+	"devDependencies": {},
+	"scripts": {},
 	"contributes": {
 		"debuggers": [
 			{
@@ -38,12 +38,14 @@
 				"runtime": "node",
 				"configurationAttributes": {
 					"launch": {
-						"required": [ "hxml" ],
+						"required": [
+							"hxml"
+						],
 						"properties": {
-							"request" : {
+							"request": {
 								"type": "string",
 								"description": "launch",
-								"default" : "launch"
+								"default": "launch"
 							},
 							"hxml": {
 								"type": "string",
@@ -59,7 +61,9 @@
 								"description": "Program arguments.",
 								"type": "array",
 								"default": [],
-								"items": { "type": "string" }
+								"items": {
+									"type": "string"
+								}
 							}
 						}
 					}
@@ -67,10 +71,10 @@
 				"initialConfigurations": [
 					{
 						"name": "HashLink",
-						"request":"launch",
+						"request": "launch",
 						"type": "hl",
 						"hxml": "build.hxml",
-						"cwd":"${workspaceRoot}",
+						"cwd": "${workspaceRoot}",
 						"preLaunchTask": "Build"
 					}
 				]

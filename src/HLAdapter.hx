@@ -4,21 +4,35 @@ import js.node.ChildProcess;
 import js.node.Buffer;
 import js.node.child_process.ChildProcess as ChildProcessObject;
 
+enum VarValue {
+	VScope( k : Int );
+	VValue( v : hld.Value );
+}
+
 class HLAdapter extends adapter.DebugSession {
+
+	static var UID = 0;
 
     var proc : ChildProcessObject;
 	var workspaceDirectory : String;
 	var classPath : Array<String>;
 
 	var debugPort = 6112;
+	var doDebug = true;
+	var dbg : hld.Debugger;
+	var startTime = haxe.Timer.stamp();
+	var timer : haxe.Timer;
+
+	var varsValues : Map<Int,VarValue>;
 
     override function initializeRequest(response:InitializeResponse, args:InitializeRequestArguments) {
 
 		haxe.Log.trace = function(v:Dynamic, ?p:haxe.PosInfos) {
 			var str = haxe.Log.formatOutput(v, p);
-			sendEvent(new OutputEvent("> " + str));
+			sendEvent(new OutputEvent(Std.int((haxe.Timer.stamp() - startTime)*10) / 10 + "> " + str+"\n"));
 		};
 
+		debug("initialize");
 
         response.body.supportsConfigurationDoneRequest = true;
         response.body.supportsFunctionBreakpoints = false;
@@ -28,13 +42,22 @@ class HLAdapter extends adapter.DebugSession {
         sendResponse( response );
     }
 
+	function debug(v:Dynamic, ?pos:haxe.PosInfos) {
+		haxe.Log.trace(v, pos);
+	}
+
     override function launchRequest(response:LaunchResponse, args:LaunchRequestArguments) {
+
+		debug("launch");
+
 		workspaceDirectory = Reflect.field(args, "cwd");
 		Sys.setCwd(workspaceDirectory);
 
 		try {
-			launch(cast args);
+			var program = launch(cast args);
 			sendEvent( new InitializedEvent() );
+			if( doDebug )
+				startDebug(program, proc.pid);
 		} catch( e : Dynamic ) {
 			sendEvent(new OutputEvent("ERROR : " + e, OutputEventCategory.stderr));
 			sendEvent(new TerminatedEvent());
@@ -63,7 +86,7 @@ class HLAdapter extends adapter.DebugSession {
 		if( reg != null ) {
 			var file = reg.matched(1);
 			var path = getFilePath(file);
-			if( path != null ) {
+			if( path != null ) untyped {
 				e.body.source = {
 					name : file,
 					path : path,
@@ -75,10 +98,10 @@ class HLAdapter extends adapter.DebugSession {
 		sendEvent(e);
 	}
 
-	function launch( args : { cwd: String, hxml: String, ?args: Array<String> } ) {
+	function readHXML( hxml : String ) {
 		classPath = [];
 
-		var hxContent = try sys.io.File.getContent(args.hxml) catch( e : Dynamic ) throw "Missing HXML file '"+args.hxml+"'";
+		var hxContent = try sys.io.File.getContent(hxml) catch( e : Dynamic ) throw "Missing HXML file '"+hxml+"'";
 		var program = null;
 		var libs = [];
 
@@ -130,10 +153,22 @@ class HLAdapter extends adapter.DebugSession {
 			classPath[i] = c;
 		}
 
-		if( program == null )
-			throw args.hxml+" file does not contain -hl output";
+		return program;
+	}
 
-        var hlArgs = ["--debug",""+debugPort,program];
+	function launch( args : { cwd: String, hxml: String, ?args: Array<String> } ) {
+
+		var program = readHXML(args.hxml);
+		if( program == null )
+			throw args.hxml + " file does not contain -hl output";
+
+		var doDebug = true;
+        var hlArgs = ["--debug", "" + debugPort, program];
+
+		if( doDebug )
+			hlArgs.unshift("--debug-wait");
+
+		debug("start process");
 
         if( args.args != null ) hlArgs = hlArgs.concat(args.args);
         proc = ChildProcess.spawn("hl", hlArgs, {env: {}, cwd: args.cwd});
@@ -166,17 +201,321 @@ class HLAdapter extends adapter.DebugSession {
         proc.stderr.on('data', function(buf){
             sendEvent(new OutputEvent(buf.toString(), OutputEventCategory.stderr));
         } );
-        proc.on('close',function(code){
+        proc.on('close', function(code) {
             var exitedEvent:ExitedEvent = {type:MessageType.event, event:"exited", seq:0, body : { exitCode:code}};
+			debug("Exit code " + code);
             sendEvent(exitedEvent);
             sendEvent(new TerminatedEvent());
+			stopDebug();
         });
+
+		return program;
+	}
+
+
+	function startDebug( program : String, pid : Int ) {
+		dbg = new hld.Debugger();
+
+		// TODO : load & validate after run() -- save some precious time
+		debug("load module");
+		dbg.loadModule(sys.io.File.getBytes(program));
+
+		debug("connecting");
+		if( !dbg.connect("127.0.0.1", debugPort) || !dbg.init(new hld.NodeDebugApi(proc.pid, dbg.is64)) ) {
+			sendToOutput("Could not initialize debugger");
+			proc.kill("SIGINT");
+			return;
+		}
+
+		debug("connected");
+	}
+
+    override function configurationDoneRequest(response:ConfigurationDoneResponse, args:ConfigurationDoneArguments) {
+		run();
+		debug("init done");
+		timer = new haxe.Timer(100);
+		timer.run = function() {
+			if( dbg.stoppedThread != null )
+				return;
+			run();
+		};
+	}
+
+	function stopDebug() {
+		if( dbg == null ) return;
+		dbg = null;
+		timer.stop();
+		timer = null;
     }
+
+	function frameStr( f : { file : String, line : Int, ebp : hld.Pointer }, ?debug ) {
+		return f.file+":" + f.line + (debug ? " @"+f.ebp.toString():"");
+	}
+
+	function run() {
+		dbg.customTimeout = 0;
+		var ret = false;
+		while( true ) {
+			var msg = dbg.run();
+			handleMessage(msg);
+			switch( msg ) {
+			case Timeout:
+				break;
+			case Error, Breakpoint, Exit:
+				ret = true;
+				break;
+			case Handled, SingleStep:
+				// wait a bit (prevent locking the process until next tick when many events are pending)
+				dbg.customTimeout = 0.1;
+			}
+		}
+		dbg.customTimeout = null;
+		return ret;
+	}
+
+	function handleMessage( msg : hld.Api.WaitResult ) {
+		switch( msg ) {
+		case Breakpoint:
+			debug("Thread " + dbg.stoppedThread + " paused " + frameStr(dbg.getStackFrame()));
+			var exc = dbg.getException();
+			if( exc != null )
+				debug("Exception: " + dbg.eval.valueStr(exc));
+			beforeStop();
+			var ev = new StoppedEvent(
+				exc == null ? "breakpoint" : "exception",
+				dbg.stoppedThread,
+				exc == null ? null : dbg.eval.valueStr(exc)
+			);
+			ev.allThreadsStopped = true;
+			sendEvent(ev);
+		case Error:
+			debug("*** ERROR ***");
+			beforeStop();
+			var ev = new StoppedEvent(
+				"error",
+				dbg.stoppedThread
+			);
+			ev.allThreadsStopped = true;
+			sendEvent(ev);
+		case Exit:
+			debug("Exit event");
+			dbg.resume();
+			stopDebug();
+			sendEvent(new TerminatedEvent());
+		default:
+		}
+	}
+
+	function beforeStop() {
+		varsValues = new Map();
+	}
+
+	function getLocalFile( file : String ) {
+		file = file.split("\\").join("/");
+		var filePath = file.toLowerCase();
+		for( c in classPath )
+			if( StringTools.startsWith(filePath, c.toLowerCase()) )
+				return file.substr(c.length);
+		return null;
+	}
+
+	override function setBreakPointsRequest(response:SetBreakpointsResponse, args:SetBreakpointsArguments):Void {
+		//debug("Setbreakpoints request");
+		var file = getLocalFile(args.source.path);
+		if( file == null ) {
+			response.body = { breakpoints : [for( a in args.breakpoints ) { line : a.line, verified : false, message : "Could not resolve file " + args.source.path }] };
+			sendResponse(response);
+			return;
+		}
+		dbg.clearBreakpoints(file);
+		var bps = [];
+		response.body = { breakpoints : bps };
+		for( bp in args.breakpoints ) {
+			var ok = dbg.addBreakpoint(file, bp.line);
+			bps.push({ line : bp.line, verified : ok, message : ok ? null : "No opcode here" });
+		}
+		sendResponse(response);
+	}
+
+	override function threadsRequest(response:ThreadsResponse) {
+		//debug("Threads request");
+		var threads = [];
+		if( dbg != null )
+			threads.push({
+				name : "Main thread",
+				id : @:privateAccess dbg.jit.mainThread,
+			});
+		response.body = {
+			threads : threads,
+		};
+		sendResponse(response);
+	}
+
+	override function stackTraceRequest(response:StackTraceResponse, args:StackTraceArguments) {
+		//debug("Stacktrace Request");
+		var bt = dbg.getBackTrace();
+		var start = args.startFrame;
+		var count = args.levels + start > bt.length ? bt.length - start : args.levels;
+		response.body = {
+			stackFrames : [for( i in 0...count ) {
+				var f = bt[start + i];
+				{
+					id : start + i,
+					name : f.file+":" + f.line,
+					source : {
+						name : f.file.split("/").pop(),
+						path : try getFilePath(f.file).split("/").join("\\") catch( e : Dynamic ) f.file,
+					},
+					line : f.line,
+					column : 1
+				};
+			}],
+			totalFrames : bt.length,
+		};
+		sendResponse(response);
+	}
+
+	function allocValue( v ) {
+		var id = ++UID;
+		varsValues.set(id, v);
+		return id;
+	}
+
+	override function scopesRequest(response:ScopesResponse, args:ScopesArguments) {
+		//debug("Scopes Request " + args);
+		dbg.currentStackFrame = args.frameId;
+		var args = dbg.getCurrentVars(true);
+		var locals = dbg.getCurrentVars(false);
+		response.body = {
+			scopes : [{
+				name : "Locals",
+				variablesReference : allocValue(VScope(dbg.currentStackFrame)),
+				expensive : false,
+				namedVariables : args.length + locals.length,
+			}],
+		};
+		sendResponse(response);
+	}
+
+	function makeVar( name : String, value : hld.Value ) : protocol.debug.Types.Variable {
+		var tstr = format.hl.Tools.toString(value.t);
+		switch( value.v ) {
+		case VPointer(_):
+			var fields = dbg.eval.getFields(value);
+			if( fields != null )
+				return { name : name, type : tstr, value : tstr, variablesReference : allocValue(VValue(value)), namedVariables : fields.length };
+		case VArray(_, len, _, _), VMap(_, len, _, _):
+			return { name : name, type : tstr, value : dbg.eval.valueStr(value), variablesReference : allocValue(VValue(value)), indexedVariables : len };
+		default:
+		}
+		return { name : name, type : tstr, value : dbg.eval.valueStr(value), variablesReference : 0 };
+	}
+
+    override function variablesRequest(response:VariablesResponse, args:VariablesArguments) {
+		//debug("Variables Request " + args);
+		var vref = varsValues.get(args.variablesReference);
+		var vars = [];
+		response.body = { variables : vars };
+		switch( vref ) {
+		case VScope(k):
+			dbg.currentStackFrame = k;
+			var vnames = dbg.getCurrentVars(true).concat(dbg.getCurrentVars(false));
+			for( v in vnames ) {
+				try {
+					var value = dbg.getValue(v);
+					vars.push(makeVar(v, value));
+				} catch( e : Dynamic ) {
+					vars.push({
+						name : v,
+						value : Std.string(e),
+						variablesReference : 0,
+					});
+				}
+			}
+		case VValue(v):
+			switch( v.v ) {
+			case VPointer(_):
+				var fields = dbg.eval.getFields(v);
+				for( f in fields ) {
+					try {
+						var value = dbg.eval.readField(v, f);
+						vars.push(makeVar(f, value));
+					} catch( e : Dynamic ) {
+						vars.push({
+							name : f,
+							value : Std.string(e),
+							variablesReference : 0,
+						});
+					}
+				}
+			case VArray(_, len, get, _):
+				for( i in 0...len ) {
+					try {
+						var value = get(i);
+						vars.push(makeVar("" + i, value));
+					} catch( e : Dynamic ) {
+						vars.push({
+							name : "" + i,
+							value : Std.string(e),
+							variablesReference : 0,
+						});
+					}
+				}
+			default:
+				vars.push({
+					name : "TODO",
+					value : format.hl.Tools.toString(v.t),
+					variablesReference : 0,
+				});
+			}
+		}
+		sendResponse(response);
+	}
+
+	override function pauseRequest(response:PauseResponse, args:PauseArguments):Void {
+		debug("Pause Request");
+		dbg.pause();
+		sendResponse(response);
+	}
 
     override function disconnectRequest(response:DisconnectResponse, args:DisconnectArguments) {
         proc.kill("SIGINT");
         sendResponse(response);
-    }
+		stopDebug();
+	}
+
+    override function nextRequest(response:NextResponse, args:NextArguments) {
+		handleMessage(dbg.step(Next));
+		sendResponse(response);
+	}
+
+    override function stepInRequest(response:StepInResponse, args:StepInArguments) {
+		handleMessage(dbg.step(Into));
+		sendResponse(response);
+	}
+
+    override function stepOutRequest(response:StepOutResponse, args:StepOutArguments) {
+		handleMessage(dbg.step(Out));
+		sendResponse(response);
+	}
+
+	override function continueRequest(response:ContinueResponse, args:ContinueArguments) {
+		dbg.resume();
+		sendResponse(response);
+	}
+
+    override function attachRequest(response:AttachResponse, args:AttachRequestArguments) { debug("Unhandled request"); }
+    override function setFunctionBreakPointsRequest(response:SetFunctionBreakpointsResponse, args:SetFunctionBreakpointsArguments) { debug("Unhandled request"); }
+    override function setExceptionBreakPointsRequest(response:SetExceptionBreakpointsResponse, args:SetExceptionBreakpointsArguments) { debug("Unhandled request"); }
+    override function stepBackRequest(response:StepBackResponse, args:StepBackArguments) { debug("Unhandled request"); }
+    override function restartFrameRequest(response:RestartFrameResponse, args:RestartFrameArguments) { debug("Unhandled request"); }
+    override function gotoRequest(response:GotoResponse, args:GotoArguments) { debug("Unhandled request"); }
+    override function sourceRequest(response:SourceResponse, args:SourceArguments) { debug("Unhandled request"); }
+    override function setVariableRequest(response:SetVariableResponse, args:SetVariableArguments) { debug("Unhandled request"); }
+    override function evaluateRequest(response:EvaluateResponse, args:EvaluateArguments) { debug("Unhandled request"); }
+    override function stepInTargetsRequest(response:StepInTargetsResponse, args:StepInTargetsArguments) { debug("Unhandled request"); }
+    override function gotoTargetsRequest(responses:GotoTargetsResponse, args:GotoTargetsArguments) { debug("Unhandled request"); }
+    override function completionsRequest(response:CompletionsResponse, args:CompletionsArguments) { debug("Unhandled request"); }
 
     function sendToOutput(output:String, category:OutputEventCategory = OutputEventCategory.console) {
         sendEvent(new OutputEvent(output + "\n", category));
