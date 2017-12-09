@@ -7,6 +7,7 @@ import js.node.child_process.ChildProcess as ChildProcessObject;
 enum VarValue {
 	VScope( k : Int );
 	VValue( v : hld.Value );
+	VUnkownFile( file : String );
 }
 
 class HLAdapter extends adapter.DebugSession {
@@ -152,6 +153,7 @@ class HLAdapter extends adapter.DebugSession {
 			if( !StringTools.endsWith(c, "/") ) c += "/";
 			classPath[i] = c;
 		}
+		classPath.push("");
 
 		return program;
 	}
@@ -359,12 +361,14 @@ class HLAdapter extends adapter.DebugSession {
 		response.body = {
 			stackFrames : [for( i in 0...count ) {
 				var f = bt[start + i];
+				var file = getFilePath(f.file);
 				{
 					id : start + i,
 					name : f.file+":" + f.line,
 					source : {
 						name : f.file.split("/").pop(),
-						path : try getFilePath(f.file).split("/").join("\\") catch( e : Dynamic ) f.file,
+						path : file == null ? null : file.split("/").join("\\"),
+						sourceReference : file == null ? allocValue(VUnkownFile(f.file)) : 0,
 					},
 					line : f.line,
 					column : 1
@@ -468,6 +472,8 @@ class HLAdapter extends adapter.DebugSession {
 					variablesReference : 0,
 				});
 			}
+		case VUnkownFile(_):
+			throw "assert";
 		}
 		sendResponse(response);
 	}
@@ -504,15 +510,44 @@ class HLAdapter extends adapter.DebugSession {
 		sendResponse(response);
 	}
 
+    override function sourceRequest(response:SourceResponse, args:SourceArguments) {
+		switch( varsValues.get(Std.int(args.sourceReference)) ) {
+		case VUnkownFile(file):
+			response.body = { content : "Unknown file " + file };
+			sendResponse(response);
+		default:
+			throw "assert";
+		}
+	}
+
+    override function evaluateRequest(response:EvaluateResponse, args:EvaluateArguments) {
+		dbg.currentStackFrame = args.frameId;
+		try {
+			var value = dbg.getValue(args.expression);
+			var v = makeVar("", value);
+			response.body = {
+				result : v.value,
+				type : v.type,
+				variablesReference : v.variablesReference,
+				namedVariables : v.namedVariables,
+				indexedVariables : v.indexedVariables,
+			};
+		} catch( e : Dynamic ) {
+			response.body = {
+				result : Std.string(e),
+				variablesReference : 0,
+			};
+		}
+		sendResponse(response);
+	}
+
     override function attachRequest(response:AttachResponse, args:AttachRequestArguments) { debug("Unhandled request"); }
     override function setFunctionBreakPointsRequest(response:SetFunctionBreakpointsResponse, args:SetFunctionBreakpointsArguments) { debug("Unhandled request"); }
     override function setExceptionBreakPointsRequest(response:SetExceptionBreakpointsResponse, args:SetExceptionBreakpointsArguments) { debug("Unhandled request"); }
     override function stepBackRequest(response:StepBackResponse, args:StepBackArguments) { debug("Unhandled request"); }
     override function restartFrameRequest(response:RestartFrameResponse, args:RestartFrameArguments) { debug("Unhandled request"); }
     override function gotoRequest(response:GotoResponse, args:GotoArguments) { debug("Unhandled request"); }
-    override function sourceRequest(response:SourceResponse, args:SourceArguments) { debug("Unhandled request"); }
     override function setVariableRequest(response:SetVariableResponse, args:SetVariableArguments) { debug("Unhandled request"); }
-    override function evaluateRequest(response:EvaluateResponse, args:EvaluateArguments) { debug("Unhandled request"); }
     override function stepInTargetsRequest(response:StepInTargetsResponse, args:StepInTargetsArguments) { debug("Unhandled request"); }
     override function gotoTargetsRequest(responses:GotoTargetsResponse, args:GotoTargetsArguments) { debug("Unhandled request"); }
     override function completionsRequest(response:CompletionsResponse, args:CompletionsArguments) { debug("Unhandled request"); }
