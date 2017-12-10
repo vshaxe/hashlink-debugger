@@ -34,7 +34,7 @@
 						"haxe"
 					]
 				},
-				"program": "./hl_adapter.js",
+				"program": "./hladapter.js",
 				"runtime": "node",
 				"configurationAttributes": {
 					"launch": {

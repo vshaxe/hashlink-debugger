@@ -2,5 +2,5 @@
 -lib hldebug
 -cp src
 -cp vscode-debugadapter-extern/src
--js hl_adapter.js
+-js hladapter.js
 -main HLAdapter
