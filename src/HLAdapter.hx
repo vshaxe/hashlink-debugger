@@ -87,7 +87,7 @@ class HLAdapter extends adapter.DebugSession {
 		if( reg != null ) {
 			var file = reg.matched(1);
 			var path = getFilePath(file);
-			if( path != null ) untyped {
+			if( path != null ) {
 				e.body.source = {
 					name : file,
 					path : path,
@@ -511,7 +511,7 @@ class HLAdapter extends adapter.DebugSession {
 	}
 
     override function sourceRequest(response:SourceResponse, args:SourceArguments) {
-		switch( varsValues.get(Std.int(args.sourceReference)) ) {
+		switch( varsValues.get(args.sourceReference) ) {
 		case VUnkownFile(file):
 			response.body = { content : "Unknown file " + file };
 			sendResponse(response);
