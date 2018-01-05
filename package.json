@@ -11,7 +11,7 @@
 	"engines": {
 		"vscode": "^1.4.0"
 	},
-	"icon": "images/icon.svg",
+	"icon": "icon.png",
 	"categories": [
 		"Debuggers"
 	],

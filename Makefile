@@ -5,3 +5,7 @@ deps:
 	npm install node-gyp -g
 	npm install $(NPARAMS)
 	(cd node_modules/deasync && rm -rf bin && node-gyp rebuild $(NPARAMS))	
+
+package:
+	#npm install vsce -g
+	vsce package
