@@ -2,7 +2,6 @@
 NPARAMS=--runtime=electron --target=1.7.9 --disturl=https://atom.io/download/electron
 
 deps:
+	npm install node-gyp -g
 	npm install $(NPARAMS)
-	cd node_modules/deasync
-	rm -rf bin
-	npm install $(NPARAMS)
+	(cd node_modules/deasync && rm -rf bin && node-gyp rebuild $(NPARAMS))	
