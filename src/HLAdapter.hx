@@ -8,6 +8,7 @@ enum VarValue {
 	VScope( k : Int );
 	VValue( v : hld.Value );
 	VUnkownFile( file : String );
+	VObjFields( v : hld.Value, o : format.hl.Data.ObjPrototype );
 }
 
 class HLAdapter extends adapter.DebugSession {
@@ -436,10 +437,29 @@ class HLAdapter extends adapter.DebugSession {
 					});
 				}
 			}
-		case VValue(v):
+		case VValue(v), VObjFields(v,_):
 			switch( v.v ) {
 			case VPointer(_):
-				var fields = dbg.eval.getFields(v);
+
+				var fields;
+				switch( [vref, v.t] ) {
+				case [VObjFields(_, p), _]:
+					fields = [for( f in p.fields ) f.name];
+				case [_,HObj(o)]:
+					var p = o.tsuper;
+					while( p != null )
+						switch( p ) {
+						case HObj(o):
+							if( o.fields.length > 0 )
+								vars.unshift({ name : o.name, type : "", value : "", variablesReference : allocValue(VObjFields(v, o)) });
+							p = o.tsuper;
+						default:
+						}
+					fields = [for( f in o.fields ) f.name];
+				default:
+					fields = dbg.eval.getFields(v);
+				}
+
 				for( f in fields ) {
 					try {
 						var value = dbg.eval.readField(v, f);
