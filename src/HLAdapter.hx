@@ -9,6 +9,7 @@ enum VarValue {
 	VValue( v : hld.Value );
 	VUnkownFile( file : String );
 	VObjFields( v : hld.Value, o : format.hl.Data.ObjPrototype );
+	VMapPair( key : hld.Value, value : hld.Value );
 }
 
 class HLAdapter extends adapter.DebugSession {
@@ -485,6 +486,28 @@ class HLAdapter extends adapter.DebugSession {
 						});
 					}
 				}
+			case VMap(tkey, len, getKey, getValue, _):
+				if( len > 0 ) getKey(len - 1); // fetch all
+				for( i in 0...len ) {
+					try {
+						var key = getKey(i);
+						var value = getValue(i);
+						if( tkey == HDyn ) {
+							vars.push({
+								name : "" + i,
+								value : "",
+								variablesReference : allocValue(VMapPair(key,value)),
+							});
+						} else
+							vars.push(makeVar(dbg.eval.valueStr(key), value));
+					} catch( e : Dynamic ) {
+						vars.push({
+							name : "" + i,
+							value : Std.string(e),
+							variablesReference : 0,
+						});
+					}
+				}
 			default:
 				vars.push({
 					name : "TODO",
@@ -492,6 +515,9 @@ class HLAdapter extends adapter.DebugSession {
 					variablesReference : 0,
 				});
 			}
+		case VMapPair(key, value):
+			vars.push(makeVar("key", key));
+			vars.push(makeVar("value", value));
 		case VUnkownFile(_):
 			throw "assert";
 		}
