@@ -39,8 +39,8 @@ class HLAdapter extends adapter.DebugSession {
 
         response.body.supportsConfigurationDoneRequest = true;
         response.body.supportsFunctionBreakpoints = false;
-        response.body.supportsConditionalBreakpoints = false;
-        response.body.supportsEvaluateForHovers = false;
+        response.body.supportsConditionalBreakpoints = true;
+        response.body.supportsEvaluateForHovers = true;
         response.body.supportsStepBack = false;
         sendResponse( response );
     }
@@ -252,11 +252,27 @@ class HLAdapter extends adapter.DebugSession {
 		timer = null;
     }
 
-	function frameStr( f : { file : String, line : Int, ebp : hld.Pointer }, ?debug ) {
+	function frameStr( f : hld.Debugger.StackInfo, ?debug ) {
 		return f.file+":" + f.line + (debug ? " @"+f.ebp.toString():"");
 	}
 
+	function stackStr( f : hld.Debugger.StackInfo ) {
+		if( f.context != null ) {
+			var clName = f.context.obj.name.split(".");
+			var field = f.context.field;
+			for( i in 0...clName.length )
+				if( clName[i].charCodeAt(0) == "$".code )
+					clName[i] = clName[i].substr(1);
+			if( field == "__constructor__" )
+				field = "new";
+			return clName.join(".") + "." + field;
+		}
+		return "<local function>";
+	}
+
 	function run() {
+		if( dbg == null )
+			return true;
 		dbg.customTimeout = 0;
 		var ret = false;
 		while( true ) {
@@ -265,7 +281,7 @@ class HLAdapter extends adapter.DebugSession {
 			switch( msg ) {
 			case Timeout:
 				break;
-			case Error, Breakpoint, Exit:
+			case Error, Breakpoint, Exit, Watchbreak:
 				ret = true;
 				break;
 			case Handled, SingleStep:
@@ -273,7 +289,8 @@ class HLAdapter extends adapter.DebugSession {
 				dbg.customTimeout = 0.1;
 			}
 		}
-		dbg.customTimeout = null;
+		if( dbg != null )
+			dbg.customTimeout = null;
 		return ret;
 	}
 
@@ -306,6 +323,8 @@ class HLAdapter extends adapter.DebugSession {
 			dbg.resume();
 			stopDebug();
 			sendEvent(new TerminatedEvent());
+		case Watchbreak:
+			debug("Watch "+dbg.watchBreak.ptr.toString());
 		default:
 		}
 	}
@@ -366,7 +385,7 @@ class HLAdapter extends adapter.DebugSession {
 				var file = getFilePath(f.file);
 				{
 					id : start + i,
-					name : f.file+":" + f.line,
+					name : stackStr(f),
 					source : {
 						name : f.file.split("/").pop(),
 						path : file == null ? null : file.split("/").join("\\"),
@@ -567,6 +586,7 @@ class HLAdapter extends adapter.DebugSession {
 	}
 
     override function evaluateRequest(response:EvaluateResponse, args:EvaluateArguments) {
+		//debug("Eval " + args);
 		dbg.currentStackFrame = args.frameId;
 		try {
 			var value = dbg.getValue(args.expression);
