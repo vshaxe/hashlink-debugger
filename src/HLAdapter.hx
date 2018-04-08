@@ -149,14 +149,13 @@ class HLAdapter extends adapter.DebugSession {
 		// TODO : we need locate haxe std (and std/hl/_std) class path
 
 		classPath.reverse();
+		classPath.push("");
 		for( i in 0...classPath.length ) {
 			var c = sys.FileSystem.fullPath(classPath[i]);
 			c = c.split("\\").join("/");
 			if( !StringTools.endsWith(c, "/") ) c += "/";
 			classPath[i] = c;
 		}
-		classPath.push("");
-
 		return program;
 	}
 
