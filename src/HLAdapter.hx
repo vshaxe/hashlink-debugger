@@ -644,12 +644,22 @@ class HLAdapter extends adapter.DebugSession {
 	}
 
     override function attachRequest(response:AttachResponse, args:AttachRequestArguments) { debug("Unhandled request"); }
-    override function setFunctionBreakPointsRequest(response:SetFunctionBreakpointsResponse, args:SetFunctionBreakpointsArguments) { debug("Unhandled request"); }
-    override function setExceptionBreakPointsRequest(response:SetExceptionBreakpointsResponse, args:SetExceptionBreakpointsArguments) { debug("Unhandled request"); }
+
+    override function setVariableRequest(response:SetVariableResponse, args:SetVariableArguments) { debug("Unhandled request"); }
+
+	override function setFunctionBreakPointsRequest(response:SetFunctionBreakpointsResponse, args:SetFunctionBreakpointsArguments) {
+		debug("Unhandled request");
+		sendResponse(response);
+	}
+
+    override function setExceptionBreakPointsRequest(response:SetExceptionBreakpointsResponse, args:SetExceptionBreakpointsArguments) {
+		debug("Unhandled request");
+		sendResponse(response);
+	}
+
     override function stepBackRequest(response:StepBackResponse, args:StepBackArguments) { debug("Unhandled request"); }
     override function restartFrameRequest(response:RestartFrameResponse, args:RestartFrameArguments) { debug("Unhandled request"); }
     override function gotoRequest(response:GotoResponse, args:GotoArguments) { debug("Unhandled request"); }
-    override function setVariableRequest(response:SetVariableResponse, args:SetVariableArguments) { debug("Unhandled request"); }
     override function stepInTargetsRequest(response:StepInTargetsResponse, args:StepInTargetsArguments) { debug("Unhandled request"); }
     override function gotoTargetsRequest(responses:GotoTargetsResponse, args:GotoTargetsArguments) { debug("Unhandled request"); }
     override function completionsRequest(response:CompletionsResponse, args:CompletionsArguments) { debug("Unhandled request"); }
