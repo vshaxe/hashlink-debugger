@@ -447,9 +447,9 @@ class HLAdapter extends adapter.DebugSession {
 	function makeVar( name : String, value : hld.Value ) : protocol.debug.Types.Variable {
 		var tstr = format.hl.Tools.toString(value.t);
 		switch( value.v ) {
-		case VPointer(_):
+		case VPointer(_), VEnum(_):
 			var fields = dbg.eval.getFields(value);
-			if( fields != null )
+			if( fields != null && fields.length > 0 )
 				return { name : name, type : tstr, value : tstr, variablesReference : allocValue(VValue(value)), namedVariables : fields.length };
 		case VArray(_, len, _, _), VMap(_, len, _, _):
 			return { name : name, type : tstr, value : dbg.eval.valueStr(value), variablesReference : allocValue(VValue(value)), indexedVariables : len };
@@ -527,6 +527,18 @@ class HLAdapter extends adapter.DebugSession {
 						});
 					}
 				}
+			case VEnum(_,values):
+				for( i in 0...values.length )
+					try {
+						var value = values[i];
+						vars.push(makeVar("" + i, value));
+					} catch( e : Dynamic ) {
+						vars.push({
+							name : "" + i,
+							value : Std.string(e),
+							variablesReference : 0,
+						});
+					}
 			case VMap(tkey, len, getKey, getValue, _):
 				if( len > 0 ) getKey(len - 1); // fetch all
 				for( i in 0...len ) {
