@@ -160,7 +160,7 @@ class HLAdapter extends adapter.DebugSession {
 		return program;
 	}
 
-	function launch( args : { cwd: String, hxml: String, ?args: Array<String> } ) {
+	function launch( args : { cwd: String, hxml: String, ?args: Array<String>, ?argsFile : String } ) {
 
 		var program = readHXML(args.hxml);
 		if( program == null )
@@ -175,6 +175,29 @@ class HLAdapter extends adapter.DebugSession {
 		debug("start process");
 
         if( args.args != null ) hlArgs = hlArgs.concat(args.args);
+		if( args.argsFile != null ) {
+			var words = sys.io.File.getContent(args.argsFile).split(" ");
+			// parse double quote from source file
+			while( words.length > 0 ) {
+				var w = words.shift();
+				if( w == "" ) continue;
+				if( StringTools.startsWith(w,'"') ) {
+					var buf = [w.substr(1)];
+					while( true ) {
+						var w = words.shift();
+						if( w == null ) break;
+						if( StringTools.endsWith(w,'"') ) {
+							w = w.substr(0,-1);
+							buf.push(w);
+							break;
+						}
+						buf.push(w);
+					}
+					w = buf.join(" ");
+				}
+				hlArgs.push(w);
+			}
+		}
         proc = ChildProcess.spawn("hl", hlArgs, {env: {}, cwd: args.cwd});
 
         proc.stdout.setEncoding('utf8');

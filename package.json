@@ -64,6 +64,10 @@
 								"items": {
 									"type": "string"
 								}
+							},
+							"argsFile": {
+								"description": "File from which to read program arguments.",
+								"type": "string"
 							}
 						}
 					}
