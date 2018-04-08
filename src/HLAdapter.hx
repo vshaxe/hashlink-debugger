@@ -149,13 +149,15 @@ class HLAdapter extends adapter.DebugSession {
 		// TODO : we need locate haxe std (and std/hl/_std) class path
 
 		classPath.reverse();
-		classPath.push("");
+		classPath.push("./"); // default path
 		for( i in 0...classPath.length ) {
 			var c = sys.FileSystem.fullPath(classPath[i]);
 			c = c.split("\\").join("/");
 			if( !StringTools.endsWith(c, "/") ) c += "/";
 			classPath[i] = c;
 		}
+		classPath.push(""); // for absolute paths
+
 		return program;
 	}
 
@@ -319,7 +321,7 @@ class HLAdapter extends adapter.DebugSession {
 	function handleMessage( msg : hld.Api.WaitResult ) {
 		switch( msg ) {
 		case Breakpoint:
-			debug("Thread " + dbg.stoppedThread + " paused " + frameStr(dbg.getStackFrame()));
+			//debug("Thread " + dbg.currentThread + " paused " + frameStr(dbg.getStackFrame()));
 			var exc = dbg.getException();
 			if( exc != null )
 				debug("Exception: " + dbg.eval.valueStr(exc));
@@ -579,7 +581,7 @@ class HLAdapter extends adapter.DebugSession {
 
 	override function pauseRequest(response:PauseResponse, args:PauseArguments):Void {
 		debug("Pause Request");
-		dbg.pause();
+		handleMessage(dbg.pause());
 		sendResponse(response);
 	}
 
