@@ -16,7 +16,7 @@ class HLAdapter extends adapter.DebugSession {
 
 	static var UID = 0;
 
-    var proc : ChildProcessObject;
+	var proc : ChildProcessObject;
 	var workspaceDirectory : String;
 	var classPath : Array<String>;
 
@@ -28,7 +28,7 @@ class HLAdapter extends adapter.DebugSession {
 
 	var varsValues : Map<Int,VarValue>;
 
-    override function initializeRequest(response:InitializeResponse, args:InitializeRequestArguments) {
+	override function initializeRequest(response:InitializeResponse, args:InitializeRequestArguments) {
 
 		haxe.Log.trace = function(v:Dynamic, ?p:haxe.PosInfos) {
 			var str = haxe.Log.formatOutput(v, p);
@@ -37,19 +37,19 @@ class HLAdapter extends adapter.DebugSession {
 
 		debug("initialize");
 
-        response.body.supportsConfigurationDoneRequest = true;
-        response.body.supportsFunctionBreakpoints = false;
-        response.body.supportsConditionalBreakpoints = true;
-        response.body.supportsEvaluateForHovers = true;
-        response.body.supportsStepBack = false;
-        sendResponse( response );
-    }
+		response.body.supportsConfigurationDoneRequest = true;
+		response.body.supportsFunctionBreakpoints = false;
+		response.body.supportsConditionalBreakpoints = true;
+		response.body.supportsEvaluateForHovers = true;
+		response.body.supportsStepBack = false;
+		sendResponse( response );
+	}
 
 	function debug(v:Dynamic, ?pos:haxe.PosInfos) {
 		haxe.Log.trace(v, pos);
 	}
 
-    override function launchRequest(response:LaunchResponse, args:LaunchRequestArguments) {
+	override function launchRequest(response:LaunchResponse, args:LaunchRequestArguments) {
 
 		debug("launch");
 
@@ -167,14 +167,14 @@ class HLAdapter extends adapter.DebugSession {
 		if( program == null )
 			throw args.hxml + " file does not contain -hl output";
 
-        var hlArgs = ["--debug", "" + debugPort, program];
+		var hlArgs = ["--debug", "" + debugPort, program];
 
 		if( doDebug )
 			hlArgs.unshift("--debug-wait");
 
 		debug("start process");
 
-        if( args.args != null ) hlArgs = hlArgs.concat(args.args);
+		if( args.args != null ) hlArgs = hlArgs.concat(args.args);
 		if( args.argsFile != null ) {
 			var words = sys.io.File.getContent(args.argsFile).split(" ");
 			// parse double quote from source file
@@ -198,11 +198,11 @@ class HLAdapter extends adapter.DebugSession {
 				hlArgs.push(w);
 			}
 		}
-        proc = ChildProcess.spawn("hl", hlArgs, {env: {}, cwd: args.cwd});
+		proc = ChildProcess.spawn("hl", hlArgs, {env: {}, cwd: args.cwd});
 
-        proc.stdout.setEncoding('utf8');
+		proc.stdout.setEncoding('utf8');
 		var prev = "";
-        proc.stdout.on('data', function(buf) {
+		proc.stdout.on('data', function(buf) {
 			prev += (buf:Buffer).toString();
 			// buffer might be sent incrementaly, only process until newline is sent
 			while( true ) {
@@ -223,18 +223,18 @@ class HLAdapter extends adapter.DebugSession {
 					}
 				};
 			}
-        } );
-        proc.stderr.setEncoding('utf8');
-        proc.stderr.on('data', function(buf){
-            sendEvent(new OutputEvent(buf.toString(), OutputEventCategory.stderr));
-        } );
-        proc.on('close', function(code) {
-            var exitedEvent:ExitedEvent = {type:MessageType.event, event:"exited", seq:0, body : { exitCode:code}};
+		} );
+		proc.stderr.setEncoding('utf8');
+		proc.stderr.on('data', function(buf){
+			sendEvent(new OutputEvent(buf.toString(), OutputEventCategory.stderr));
+		} );
+		proc.on('close', function(code) {
+			var exitedEvent:ExitedEvent = {type:MessageType.event, event:"exited", seq:0, body : { exitCode:code}};
 			debug("Exit code " + code);
-            sendEvent(exitedEvent);
-            sendEvent(new TerminatedEvent());
+			sendEvent(exitedEvent);
+			sendEvent(new TerminatedEvent());
 			stopDebug();
-        });
+		});
 
 		return program;
 	}
@@ -259,7 +259,7 @@ class HLAdapter extends adapter.DebugSession {
 		return true;
 	}
 
-    override function configurationDoneRequest(response:ConfigurationDoneResponse, args:ConfigurationDoneArguments) {
+	override function configurationDoneRequest(response:ConfigurationDoneResponse, args:ConfigurationDoneArguments) {
 		run();
 		debug("init done");
 		timer = new haxe.Timer(16);
@@ -275,7 +275,7 @@ class HLAdapter extends adapter.DebugSession {
 		dbg = null;
 		timer.stop();
 		timer = null;
-    }
+	}
 
 	function frameStr( f : hld.Debugger.StackInfo, ?debug ) {
 		return f.file+":" + f.line + (debug ? " @"+f.ebp.toString():"");
@@ -461,7 +461,7 @@ class HLAdapter extends adapter.DebugSession {
 		return { name : name, type : tstr, value : dbg.eval.valueStr(value), variablesReference : 0 };
 	}
 
-    override function variablesRequest(response:VariablesResponse, args:VariablesArguments) {
+	override function variablesRequest(response:VariablesResponse, args:VariablesArguments) {
 		//debug("Variables Request " + args);
 		var vref = varsValues.get(args.variablesReference);
 		var vars = [];
@@ -586,23 +586,23 @@ class HLAdapter extends adapter.DebugSession {
 		sendResponse(response);
 	}
 
-    override function disconnectRequest(response:DisconnectResponse, args:DisconnectArguments) {
-        proc.kill("SIGINT");
-        sendResponse(response);
+	override function disconnectRequest(response:DisconnectResponse, args:DisconnectArguments) {
+		proc.kill("SIGINT");
+		sendResponse(response);
 		stopDebug();
 	}
 
-    override function nextRequest(response:NextResponse, args:NextArguments) {
+	override function nextRequest(response:NextResponse, args:NextArguments) {
 		handleMessage(dbg.step(Next));
 		sendResponse(response);
 	}
 
-    override function stepInRequest(response:StepInResponse, args:StepInArguments) {
+	override function stepInRequest(response:StepInResponse, args:StepInArguments) {
 		handleMessage(dbg.step(Into));
 		sendResponse(response);
 	}
 
-    override function stepOutRequest(response:StepOutResponse, args:StepOutArguments) {
+	override function stepOutRequest(response:StepOutResponse, args:StepOutArguments) {
 		handleMessage(dbg.step(Out));
 		sendResponse(response);
 	}
@@ -612,7 +612,7 @@ class HLAdapter extends adapter.DebugSession {
 		sendResponse(response);
 	}
 
-    override function sourceRequest(response:SourceResponse, args:SourceArguments) {
+	override function sourceRequest(response:SourceResponse, args:SourceArguments) {
 		switch( varsValues.get(args.sourceReference) ) {
 		case VUnkownFile(file):
 			response.body = { content : "Unknown file " + file };
@@ -622,7 +622,7 @@ class HLAdapter extends adapter.DebugSession {
 		}
 	}
 
-    override function evaluateRequest(response:EvaluateResponse, args:EvaluateArguments) {
+	override function evaluateRequest(response:EvaluateResponse, args:EvaluateArguments) {
 		//debug("Eval " + args);
 		dbg.currentStackFrame = args.frameId;
 		try {
@@ -644,33 +644,33 @@ class HLAdapter extends adapter.DebugSession {
 		sendResponse(response);
 	}
 
-    override function attachRequest(response:AttachResponse, args:AttachRequestArguments) { debug("Unhandled request"); }
+	override function attachRequest(response:AttachResponse, args:AttachRequestArguments) { debug("Unhandled request"); }
 
-    override function setVariableRequest(response:SetVariableResponse, args:SetVariableArguments) { debug("Unhandled request"); }
+	override function setVariableRequest(response:SetVariableResponse, args:SetVariableArguments) { debug("Unhandled request"); }
 
 	override function setFunctionBreakPointsRequest(response:SetFunctionBreakpointsResponse, args:SetFunctionBreakpointsArguments) {
 		debug("Unhandled request");
 		sendResponse(response);
 	}
 
-    override function setExceptionBreakPointsRequest(response:SetExceptionBreakpointsResponse, args:SetExceptionBreakpointsArguments) {
+	override function setExceptionBreakPointsRequest(response:SetExceptionBreakpointsResponse, args:SetExceptionBreakpointsArguments) {
 		debug("Unhandled request");
 		sendResponse(response);
 	}
 
-    override function stepBackRequest(response:StepBackResponse, args:StepBackArguments) { debug("Unhandled request"); }
-    override function restartFrameRequest(response:RestartFrameResponse, args:RestartFrameArguments) { debug("Unhandled request"); }
-    override function gotoRequest(response:GotoResponse, args:GotoArguments) { debug("Unhandled request"); }
-    override function stepInTargetsRequest(response:StepInTargetsResponse, args:StepInTargetsArguments) { debug("Unhandled request"); }
-    override function gotoTargetsRequest(responses:GotoTargetsResponse, args:GotoTargetsArguments) { debug("Unhandled request"); }
-    override function completionsRequest(response:CompletionsResponse, args:CompletionsArguments) { debug("Unhandled request"); }
+	override function stepBackRequest(response:StepBackResponse, args:StepBackArguments) { debug("Unhandled request"); }
+	override function restartFrameRequest(response:RestartFrameResponse, args:RestartFrameArguments) { debug("Unhandled request"); }
+	override function gotoRequest(response:GotoResponse, args:GotoArguments) { debug("Unhandled request"); }
+	override function stepInTargetsRequest(response:StepInTargetsResponse, args:StepInTargetsArguments) { debug("Unhandled request"); }
+	override function gotoTargetsRequest(responses:GotoTargetsResponse, args:GotoTargetsArguments) { debug("Unhandled request"); }
+	override function completionsRequest(response:CompletionsResponse, args:CompletionsArguments) { debug("Unhandled request"); }
 
-    function sendToOutput(output:String, category:OutputEventCategory = OutputEventCategory.console) {
-        sendEvent(new OutputEvent(output + "\n", category));
-    }
+	function sendToOutput(output:String, category:OutputEventCategory = OutputEventCategory.console) {
+		sendEvent(new OutputEvent(output + "\n", category));
+	}
 
-    static function main() {
-        DebugSession.run( HLAdapter );
-    }
+	static function main() {
+		DebugSession.run( HLAdapter );
+	}
 
 }
