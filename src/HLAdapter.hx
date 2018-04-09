@@ -59,8 +59,11 @@ class HLAdapter extends adapter.DebugSession {
 		try {
 			var program = launch(cast args);
 			sendEvent( new InitializedEvent() );
-			if( doDebug && !startDebug(program, proc.pid) )
+			if( doDebug && !startDebug(program, proc.pid) ) {
+				proc.kill();
+				dbg = null;
 				throw "Could not initialize debugger";
+			}
 		} catch( e : Dynamic ) {
 			sendEvent(new OutputEvent("ERROR : " + e, OutputEventCategory.stderr));
 			sendEvent(new TerminatedEvent());
@@ -199,7 +202,6 @@ class HLAdapter extends adapter.DebugSession {
 			}
 		}
 		proc = ChildProcess.spawn("hl", hlArgs, {env: {}, cwd: args.cwd});
-
 		proc.stdout.setEncoding('utf8');
 		var prev = "";
 		proc.stdout.on('data', function(buf) {
@@ -235,6 +237,9 @@ class HLAdapter extends adapter.DebugSession {
 			sendEvent(new TerminatedEvent());
 			stopDebug();
 		});
+		proc.on('error', function(err) {
+			sendToOutput("Failed to start hl process ("+err+")", stderr);
+		});
 
 		return program;
 	}
@@ -248,10 +253,21 @@ class HLAdapter extends adapter.DebugSession {
 		dbg.loadModule(sys.io.File.getBytes(program));
 
 		debug("connecting");
-		var connect = dbg.connect("127.0.0.1", debugPort);
-		if( !connect || !dbg.init(new hld.NodeDebugApi(proc.pid, dbg.is64)) ) {
-			if( !connect ) sendToOutput("Failed to connect on debug port", stderr);
-			proc.kill("SIGINT");
+		var connect = false;
+		var i = 0;
+		while( true ) {
+			if( dbg == null ) return false;
+			connect = dbg.connect("127.0.0.1", debugPort);
+			if( connect ) break;
+			if( i++ > 5 ) {
+				sendToOutput("Failed to connect on debug port", stderr);
+				return false;
+			}
+			Sys.sleep(0.4);
+		}
+
+		if( !dbg.init(new hld.NodeDebugApi(proc.pid, dbg.is64)) ) {
+			sendToOutput("Failed to initialize debugger", stderr);
 			return false;
 		}
 
@@ -260,6 +276,7 @@ class HLAdapter extends adapter.DebugSession {
 	}
 
 	override function configurationDoneRequest(response:ConfigurationDoneResponse, args:ConfigurationDoneArguments) {
+		if( dbg == null ) return;
 		run();
 		debug("init done");
 		timer = new haxe.Timer(16);
