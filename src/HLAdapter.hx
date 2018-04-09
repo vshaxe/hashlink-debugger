@@ -59,8 +59,8 @@ class HLAdapter extends adapter.DebugSession {
 		try {
 			var program = launch(cast args);
 			sendEvent( new InitializedEvent() );
-			if( doDebug )
-				startDebug(program, proc.pid);
+			if( doDebug && !startDebug(program, proc.pid) )
+				throw "Could not initialize debugger";
 		} catch( e : Dynamic ) {
 			sendEvent(new OutputEvent("ERROR : " + e, OutputEventCategory.stderr));
 			sendEvent(new TerminatedEvent());
@@ -167,7 +167,6 @@ class HLAdapter extends adapter.DebugSession {
 		if( program == null )
 			throw args.hxml + " file does not contain -hl output";
 
-		var doDebug = true;
         var hlArgs = ["--debug", "" + debugPort, program];
 
 		if( doDebug )
@@ -249,13 +248,15 @@ class HLAdapter extends adapter.DebugSession {
 		dbg.loadModule(sys.io.File.getBytes(program));
 
 		debug("connecting");
-		if( !dbg.connect("127.0.0.1", debugPort) || !dbg.init(new hld.NodeDebugApi(proc.pid, dbg.is64)) ) {
-			sendToOutput("Could not initialize debugger");
+		var connect = dbg.connect("127.0.0.1", debugPort);
+		if( !connect || !dbg.init(new hld.NodeDebugApi(proc.pid, dbg.is64)) ) {
+			if( !connect ) sendToOutput("Failed to connect on debug port", stderr);
 			proc.kill("SIGINT");
-			return;
+			return false;
 		}
 
 		debug("connected");
+		return true;
 	}
 
     override function configurationDoneRequest(response:ConfigurationDoneResponse, args:ConfigurationDoneArguments) {
