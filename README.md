@@ -2,8 +2,11 @@
 
 This VSCode extension allows you to compile, run and debug HashLink JIT applications.
 
+## Building from Source
 
-## Compiling
+The following instructions are only relevant for building the extension from source and are **not required when installing it from the marketplace**.
+
+### Compiling
 
 The VSCode debugger relies on the `hldebug` library that is not yet released (still in alpha), you will then need to checkout latest [HashLink sources](https://github.com/HaxeFoundation/hashlink) and then run `haxelib dev hldebug /path/to/hashlink/other/debugger`
 
@@ -13,7 +16,7 @@ And finally you need to get the latest version of the `format` and `hscript` lib
 
 Once all dependencies are ready, you should be able to compile with `haxe hladapter.hxml`
 
-## Installing
+### Installing
 
 Please note that VSCode does not allow to have a specific directory for a single extension, so the most easier is to clone this repository directly in the `extensions` directory of VSCode (`C:\Users\<you>\.vscode\extensions` on Windows).
 
