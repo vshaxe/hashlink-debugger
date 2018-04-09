@@ -1,12 +1,13 @@
 {
 	"name": "haxe-hl",
-	"displayName": "HashLink Debug Launcher",
-	"version": "0.0.1",
-	"publisher": "haxe-foundation",
+	"displayName": "HashLink Debugger",
+	"version": "0.1.0",
+	"publisher": "HaxeFoundation",
 	"license": "MIT",
-	"description": "Debugger for HashLink",
+	"description": "Debugger for Haxe/HashLink virtual machine",
+	"repository": "https://github.com/ncannasse/vscode_hl",
 	"author": {
-		"name": "haxe-foundation"
+		"name": "ncannasse"
 	},
 	"engines": {
 		"vscode": "^1.4.0"
@@ -39,7 +40,8 @@
 				"configurationAttributes": {
 					"launch": {
 						"required": [
-							"hxml"
+							"hxml",
+							"cwd"
 						],
 						"properties": {
 							"request": {

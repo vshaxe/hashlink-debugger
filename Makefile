@@ -9,3 +9,7 @@ deps:
 package:
 	#npm install vsce -g
 	vsce package
+	
+publish:
+	#npm install vsce -g
+	vsce publish -p ${VSCE_TOKEN}
