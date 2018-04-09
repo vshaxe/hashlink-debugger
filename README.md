@@ -15,9 +15,9 @@ Once all dependencies are ready, you should be able to compile with `haxe hladap
 
 ## Installing
 
-Please note that VSCode does not allow to have a specific directory for a single extension, so the most easier is to clone this repository directly in the `extensions` directory of VSCode (`C:\Users\<you>\.vscode\extensions` on Windows).
+Please note that VSCode does not allow users to have a specific directory for a single extension, so it's easier to clone this repository directly into the `extensions` directory of VSCode (`C:\Users\<you>\.vscode\extensions` on Windows).
 
-Before running, you need to install a few NodeJS extensions. **DO NOT** npm install, as this will install the native extensions for your current NodeJS version and not for the Electron version of VSCode (if you did already, simple remove the node_modules directory). Instead, run `make deps`, which will npm install & compile the extensions for the latest version of VSCode.
+Before running, you need to install a few NodeJS extensions. **DO NOT** npm install, as this will install the native extensions for your current NodeJS version and not for the Electron version of VSCode (if you did this already, simply remove the node_modules directory). Instead, run `make deps`, which will npm install & compile the extensions for the latest version of VSCode.
 
 If the extension fails to run, maybe you are using a different version of VSCode than the one you compiled for.
 Open VSCode, go to Help / Activate Development Tools, then in the dev console write `process.versions.electron` and replace it in the `Makefile`,  remove `node_modules` and recompile.
@@ -26,4 +26,4 @@ Open VSCode, go to Help / Activate Development Tools, then in the dev console wr
 
 **Only Windows is supported for now.**
 
-Linux ans OSX versions are now yet available, this requires implementing the hld.NodeDebugApi class of hldebug using `ptrace`.
+Linux ans OSX versions are not yet available, this requires implementing the hld.NodeDebugApi class of hldebug using `ptrace`.
