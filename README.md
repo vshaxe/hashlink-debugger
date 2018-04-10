@@ -13,9 +13,14 @@ The VSCode debugger relies on the `hldebug` library that is not yet released (st
 
 You also need to clone this repository submodules so the `vscode-debugadapter-extern` directory is correctly populated.
 
-And finally you need to get the latest version of the `format` and `hscript` libraries with `haxelib install format hscript` 
+And finally you need to get the latest version of the `format` and `hscript` libraries with:
 
-Once all dependencies are ready, you should be able to compile with `haxe hladapter.hxml`
+```hxml
+haxelib git hscript https://github.com/HaxeFoundation/hscript
+haxelib install format
+```
+
+Once all dependencies are ready, you should be able to compile with `haxe build.hxml`
 
 ### Installing
 
