@@ -16,7 +16,14 @@
 	"categories": [
 		"Debuggers"
 	],
-	"private": true,
+	"galleryBanner": {
+		"theme": "dark",
+		"color": "#5d338f"
+	},
+	"keywords": [
+		"haxe",
+		"hashlink"
+	],
 	"dependencies": {
 		"vscode-debugprotocol": "1.24.0",
 		"vscode-debugadapter": "1.24.0",
