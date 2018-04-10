@@ -1,4 +1,4 @@
-## 0.0.1
+## 0.1.0 (April 9, 2018)
 
 * added class/method in stack trace
 * added hover eval (support member and static vars)
