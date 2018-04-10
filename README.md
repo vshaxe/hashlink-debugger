@@ -11,11 +11,10 @@ The following instructions are only relevant for building the extension from sou
 
 The VSCode debugger relies on the `hldebug` library that is not yet released (still in alpha), you will then need to checkout latest [HashLink sources](https://github.com/HaxeFoundation/hashlink) and then run `haxelib dev hldebug /path/to/hashlink/other/debugger`
 
-You also need to clone this repository submodules so the `vscode-debugadapter-extern` directory is correctly populated.
-
-And finally you need to get the latest version of the `format` and `hscript` libraries with:
+Additionally, you need to install these dependencies:
 
 ```hxml
+haxelib git vscode-debugadapter https://github.com/vshaxe/vscode-debugadapter-extern
 haxelib git hscript https://github.com/HaxeFoundation/hscript
 haxelib install format
 ```
