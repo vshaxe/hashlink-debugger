@@ -1,6 +1,7 @@
-# VSCode HashLink support
+# HashLink Debugger
+[![Build Status](https://travis-ci.org/vshaxe/hashlink-debugger.svg?branch=master)](https://travis-ci.org/vshaxe/hashlink-debugger) [![Version](https://vsmarketplacebadge.apphb.com/version-short/HaxeFoundation.haxe-hl.svg)](https://marketplace.visualstudio.com/items?itemName=HaxeFoundation.haxe-hl) [![Installs](https://vsmarketplacebadge.apphb.com/installs-short/HaxeFoundation.haxe-hl.svg)](https://marketplace.visualstudio.com/items?itemName=HaxeFoundation.haxe-hl)
 
-This VSCode extension allows you to compile, run and debug HashLink JIT applications.
+This VSCode extension allows you to compile debug HashLink JIT applications.
 
 ## Building from Source
 
