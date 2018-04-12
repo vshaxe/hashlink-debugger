@@ -4,7 +4,7 @@
 	"version": "0.1.0",
 	"publisher": "HaxeFoundation",
 	"license": "MIT",
-	"description": "Debugger for Haxe/HashLink virtual machine",
+	"description": "Debugger for Haxe/HashLink applications",
 	"repository": "https://github.com/vshaxe/hashlink-debugger",
 	"bugs": {
 		"url": "https://github.com/vshaxe/hashlink-debugger/issues"
