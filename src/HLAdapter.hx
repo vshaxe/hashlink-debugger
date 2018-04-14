@@ -341,14 +341,15 @@ class HLAdapter extends adapter.DebugSession {
 		case Breakpoint:
 			//debug("Thread " + dbg.currentThread + " paused " + frameStr(dbg.getStackFrame()));
 			var exc = dbg.getException();
-			if( exc != null )
-				debug("Exception: " + dbg.eval.valueStr(exc));
+			var str = null;
+			if( exc != null ) {
+				str = dbg.eval.valueStr(exc);
+				debug("Exception: " + str);
+				// remove quotes
+				if( StringTools.startsWith(str,'"') && StringTools.endsWith(str,'"') ) str = str.substr(1,str.length - 2);
+			}
 			beforeStop();
-			var ev = new StoppedEvent(
-				exc == null ? "breakpoint" : "exception",
-				dbg.stoppedThread,
-				exc == null ? null : dbg.eval.valueStr(exc)
-			);
+			var ev = new StoppedEvent(exc == null ? "breakpoint" : "exception", dbg.stoppedThread, str);
 			ev.allThreadsStopped = true;
 			sendEvent(ev);
 		case Error:
