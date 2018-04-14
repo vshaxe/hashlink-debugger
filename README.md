@@ -9,7 +9,7 @@ The following instructions are only relevant for building the extension from sou
 
 ### Compiling
 
-The VSCode debugger relies on the `hldebug` library that is not yet released (still in alpha), you will then need to checkout latest [HashLink sources](https://github.com/HaxeFoundation/hashlink) and then run `haxelib dev hldebug /path/to/hashlink/other/debugger`
+The VSCode debugger relies on the `hldebug` library that is not yet released (still in alpha), you will then need to checkout latest [HashLink sources](https://github.com/HaxeFoundation/hashlink) and then run `haxelib dev hldebug /path/to/hashlink/other/debugger`. You will also need a [Haxe 4 preview build](https://haxe.org/download/version/4.0.0-preview.3/).
 
 Additionally, you need to install these dependencies:
 

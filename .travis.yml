@@ -1,7 +1,6 @@
 language: haxe
 
 haxe:
-  - "3.4.7"
   - development
 
 install:
