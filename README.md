@@ -15,7 +15,8 @@ Additionally, you need to install these dependencies:
 
 ```hxml
 haxelib git vscode-debugadapter https://github.com/vshaxe/vscode-debugadapter-extern
-haxelib git hscript https://github.com/HaxeFoundation/hscript
+haxelib git hxnodejs https://github.com/HaxeFoundation/hxnodejs
+haxelib install hscript
 haxelib install format
 ```
 
