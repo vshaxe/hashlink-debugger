@@ -57,7 +57,7 @@ class HLAdapter extends adapter.DebugSession {
 		Sys.setCwd(workspaceDirectory);
 
 		try {
-			var program = launch(cast args);
+			var program = launch(cast args, response);
 			sendEvent( new InitializedEvent() );
 			if( doDebug && !startDebug(program, proc.pid) ) {
 				proc.kill();
@@ -65,10 +65,15 @@ class HLAdapter extends adapter.DebugSession {
 				throw "Could not initialize debugger";
 			}
 		} catch( e : Dynamic ) {
-			sendEvent(new OutputEvent("ERROR : " + e, OutputEventCategory.stderr));
+			error(cast response, e);
 			sendEvent(new TerminatedEvent());
 		}
 		sendResponse(response);
+	}
+
+	function error<T>(response:Response<T>, message:String) {
+		sendErrorResponse(cast response, 3000, message);
+		sendToOutput("ERROR : " + message, OutputEventCategory.stderr);
 	}
 
 	/**
@@ -164,7 +169,7 @@ class HLAdapter extends adapter.DebugSession {
 		return program;
 	}
 
-	function launch( args : { cwd: String, hxml: String, ?args: Array<String>, ?argsFile : String } ) {
+	function launch( args : { cwd: String, hxml: String, ?args: Array<String>, ?argsFile : String }, response : LaunchResponse ) {
 
 		var program = readHXML(args.hxml);
 		if( program == null )
@@ -238,7 +243,7 @@ class HLAdapter extends adapter.DebugSession {
 			stopDebug();
 		});
 		proc.on('error', function(err) {
-			sendToOutput("Failed to start hl process ("+err+")", stderr);
+			error(cast response, 'Failed to start hl process ($err)');
 		});
 
 		return program;
@@ -260,15 +265,13 @@ class HLAdapter extends adapter.DebugSession {
 			connect = dbg.connect("127.0.0.1", debugPort);
 			if( connect ) break;
 			if( i++ > 5 ) {
-				sendToOutput("Failed to connect on debug port", stderr);
-				return false;
+				throw "Failed to connect on debug port";
 			}
 			Sys.sleep(0.4);
 		}
 
 		if( !dbg.init(new hld.NodeDebugApi(proc.pid, dbg.is64)) ) {
-			sendToOutput("Failed to initialize debugger", stderr);
-			return false;
+			throw "Failed to initialize debugger";
 		}
 
 		debug("connected");
