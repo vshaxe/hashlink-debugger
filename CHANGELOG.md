@@ -1,3 +1,8 @@
+## 0.2.0 (April 16, 2018)
+
+* added HL 1.6 bytecode support
+* started threads support
+
 ## 0.1.0 (April 9, 2018)
 
 * added class/method in stack trace
