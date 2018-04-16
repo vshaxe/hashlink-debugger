@@ -409,11 +409,13 @@ class HLAdapter extends adapter.DebugSession {
 	override function threadsRequest(response:ThreadsResponse) {
 		//debug("Threads request");
 		var threads = [];
-		if( dbg != null )
-			threads.push({
-				name : "Main thread",
-				id : @:privateAccess dbg.jit.mainThread,
-			});
+		if( dbg != null ) {
+			for( t in dbg.getThreads() )
+				threads.push({
+					name : threads.length == 0 ? "Main thread" : "Thread "+t,
+					id : t,
+				});
+		}
 		response.body = {
 			threads : threads,
 		};
