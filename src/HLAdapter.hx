@@ -346,10 +346,11 @@ class HLAdapter extends adapter.DebugSession {
 			var exc = dbg.getException();
 			var str = null;
 			if( exc != null ) {
-				str = dbg.eval.valueStr(exc);
+				str = switch( exc.v ) {
+				case VString(str, _): str;
+				default: dbg.eval.valueStr(exc);
+				};
 				debug("Exception: " + str);
-				// remove quotes
-				if( StringTools.startsWith(str,'"') && StringTools.endsWith(str,'"') ) str = str.substr(1,str.length - 2);
 			}
 			beforeStop();
 			var ev = new StoppedEvent(exc == null ? "breakpoint" : "exception", dbg.stoppedThread, str);
