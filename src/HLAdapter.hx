@@ -210,7 +210,7 @@ class HLAdapter extends adapter.DebugSession {
 		proc.stdout.setEncoding('utf8');
 		var prev = "";
 		proc.stdout.on('data', function(buf) {
-			prev += (buf:Buffer).toString();
+			prev += (buf:Buffer).toString().split("\r\n").join("\n");
 			// buffer might be sent incrementaly, only process until newline is sent
 			while( true ) {
 				var index = prev.indexOf("\n");
