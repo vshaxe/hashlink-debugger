@@ -58,12 +58,12 @@ class HLAdapter extends adapter.DebugSession {
 
 		try {
 			var program = launch(cast args, response);
-			sendEvent( new InitializedEvent() );
 			if( doDebug && !startDebug(program, proc.pid) ) {
 				proc.kill();
 				dbg = null;
 				throw "Could not initialize debugger";
 			}
+			sendEvent(new InitializedEvent());
 		} catch( e : Dynamic ) {
 			error(cast response, e);
 			sendEvent(new TerminatedEvent());
@@ -258,28 +258,23 @@ class HLAdapter extends adapter.DebugSession {
 		dbg.loadModule(sys.io.File.getBytes(program));
 
 		debug("connecting");
-		var connect = false;
-		var i = 0;
-		while( true ) {
-			if( dbg == null ) return false;
-			connect = dbg.connect("127.0.0.1", debugPort);
-			if( connect ) break;
-			if( i++ > 5 ) {
-				throw "Failed to connect on debug port";
-			}
-			Sys.sleep(0.4);
-		}
+		if( !dbg.connect("127.0.0.1", debugPort) )
+			throw "Failed to connect on debug port";
 
-		if( !dbg.init(new hld.NodeDebugApi(proc.pid, dbg.is64)) ) {
+		var api : hld.Api;
+		if( Sys.systemName() == "Windows" )
+			api = new hld.NodeDebugApi(proc.pid, dbg.is64);
+		else
+			api = new hld.NodeDebugApiLinux(proc.pid, dbg.is64);
+
+		if( !dbg.init(api) )
 			throw "Failed to initialize debugger";
-		}
 
 		debug("connected");
 		return true;
 	}
 
 	override function configurationDoneRequest(response:ConfigurationDoneResponse, args:ConfigurationDoneArguments) {
-		if( dbg == null ) return;
 		run();
 		debug("init done");
 		timer = new haxe.Timer(16);
