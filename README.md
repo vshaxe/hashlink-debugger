@@ -31,8 +31,6 @@ Before running, you need to install a few NodeJS extensions. **DO NOT** npm inst
 If the extension fails to run, maybe you are using a different version of VSCode than the one you compiled for.
 Open VSCode, go to Help / Activate Development Tools, then in the dev console write `process.versions.electron` and replace it in the `Makefile`,  remove `node_modules` and recompile.
 
-## Linux / OSX version
+## OSX version
 
-**Only Windows is supported for now.**
-
-Linux ans OSX versions are not yet available, this requires implementing the hld.NodeDebugApi class of hldebug using `ptrace`.
+Both Windows and Linux are supported. We will soon work on OSX version using Mach tasks debugging API.
