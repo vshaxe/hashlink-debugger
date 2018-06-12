@@ -19,6 +19,8 @@ var fs = require('fs')
       , try: [
           // node-gyp's linked version in the "build" dir
           [ 'module_root', 'build', 'bindings' ]
+		  // *** CUSTOM EDIT ***
+        , [ 'module_root', 'build', 'platform', 'bindings' ]
           // node-waf and gyp_addon (a.k.a node-gyp)
         , [ 'module_root', 'build', 'Debug', 'bindings' ]
         , [ 'module_root', 'build', 'Release', 'bindings' ]
@@ -71,6 +73,8 @@ function bindings (opts) {
     , n
     , b
     , err
+	
+  var lasterr;
 
   for (; i<l; i++) {
     n = join.apply(null, opts.try[i].map(function (p) {
@@ -84,11 +88,14 @@ function bindings (opts) {
       }
       return b
     } catch (e) {
-      if (!/not find/i.test(e.message)) {
-        throw e
-      }
+
+        if (!/not find/i.test(e.message)) {
+		  lasterr = e;
+		}
     }
   }
+  
+  if( lasterr ) throw lasterr;
 
   err = new Error('Could not locate the bindings file. Tried:\n'
     + tries.map(function (a) { return opts.arrow + a }).join('\n'))
