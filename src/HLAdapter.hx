@@ -28,7 +28,11 @@ class HLAdapter extends adapter.DebugSession {
 
 	var varsValues : Map<Int,VarValue>;
 
+	static var DEBUG = false;
+	static var isWindow = Sys.systemName() == "Windows";
+
 	override function initializeRequest(response:InitializeResponse, args:InitializeRequestArguments) {
+
 
 		haxe.Log.trace = function(v:Dynamic, ?p:haxe.PosInfos) {
 			var str = haxe.Log.formatOutput(v, p);
@@ -46,7 +50,7 @@ class HLAdapter extends adapter.DebugSession {
 	}
 
 	function debug(v:Dynamic, ?pos:haxe.PosInfos) {
-		haxe.Log.trace(v, pos);
+		if( DEBUG ) haxe.Log.trace(v, pos);
 	}
 
 	override function launchRequest(response:LaunchResponse, args:LaunchRequestArguments) {
@@ -262,7 +266,7 @@ class HLAdapter extends adapter.DebugSession {
 			throw "Failed to connect on debug port";
 
 		var api : hld.Api;
-		if( Sys.systemName() == "Windows" )
+		if( isWindow )
 			api = new hld.NodeDebugApi(proc.pid, dbg.is64);
 		else
 			api = new hld.NodeDebugApiLinux(proc.pid, dbg.is64);
@@ -432,7 +436,7 @@ class HLAdapter extends adapter.DebugSession {
 					name : stackStr(f),
 					source : {
 						name : f.file.split("/").pop(),
-						path : file == null ? null : file.split("/").join("\\"),
+						path : file == null ? null : (isWindow ? file.split("/").join("\\") : file),
 						sourceReference : file == null ? allocValue(VUnkownFile(f.file)) : 0,
 					},
 					line : f.line,
