@@ -5,8 +5,14 @@ deps:
 	npm install node-gyp -g
 	npm install $(NPARAMS)
 	(cd node_modules/deasync && rm -rf bin && node-gyp rebuild $(NPARAMS))	
-
-package:
+	
+cleanup:
+	/bin/find . -name *.obj | xargs rm -f 
+	/bin/find . -name *.pdb | xargs rm -f 
+	/bin/find . -name *.tlog | xargs rm -rf 
+	/bin/find . -name *.map | xargs rm -rf 
+	
+package: cleanup
 	#npm install vsce -g
 	vsce package
 	
