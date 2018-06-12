@@ -11,11 +11,21 @@ cleanup:
 	/bin/find . -name *.pdb | xargs rm -f 
 	/bin/find . -name *.tlog | xargs rm -rf 
 	/bin/find . -name *.map | xargs rm -rf 
+
+import_linux_bindings:
+	make LIB=ffi NAME=ffi_bindings _import_linux_bindings
+	make LIB=ref NAME=binding _import_linux_bindings
+	make LIB=deasync NAME=deasync _import_linux_bindings
+	cp bindings.js node_modules/bindings/	
+
+_import_linux_bindings:
+	-mkdir node_modules/$(LIB)/build/linux
+	pscp ncannasse@virtbuntu:hashlink-debugger/node_modules/$(LIB)/build/Release/$(NAME).node node_modules/$(LIB)/build/linux/
+	chmod +x node_modules/$(LIB)/build/linux/$(NAME).node
 	
 package: cleanup
 	#npm install vsce -g
 	vsce package
 	
 publish:
-	#npm install vsce -g
 	vsce publish -p ${VSCE_TOKEN}
