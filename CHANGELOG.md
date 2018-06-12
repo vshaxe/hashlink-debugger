@@ -1,3 +1,11 @@
+## 0.3.0 (June 12, 2018)
+
+* added Linux support
+* fixed initialize errors
+* fixed newlines mix in debugger trace output
+* don't escape strings in exception reports
+* improved file resolution for breakpoints
+
 ## 0.2.0 (April 16, 2018)
 
 * added HL 1.6 bytecode support

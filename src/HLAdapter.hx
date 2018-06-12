@@ -379,28 +379,35 @@ class HLAdapter extends adapter.DebugSession {
 		varsValues = new Map();
 	}
 
-	function getLocalFile( file : String ) {
+	function getLocalFiles( file : String ) {
 		file = file.split("\\").join("/");
 		var filePath = file.toLowerCase();
+		var matches = [];
 		for( c in classPath )
 			if( StringTools.startsWith(filePath, c.toLowerCase()) )
-				return file.substr(c.length);
-		return null;
+				matches.push(file.substr(c.length));
+		return matches;
 	}
 
 	override function setBreakPointsRequest(response:SetBreakpointsResponse, args:SetBreakpointsArguments):Void {
 		//debug("Setbreakpoints request");
-		var file = getLocalFile(args.source.path);
-		if( file == null ) {
+		var files = getLocalFiles(args.source.path);
+		if( files.length == 0 ) {
 			response.body = { breakpoints : [for( a in args.breakpoints ) { line : a.line, verified : false, message : "Could not resolve file " + args.source.path }] };
 			sendResponse(response);
 			return;
 		}
-		dbg.clearBreakpoints(file);
+		for( f in files )
+			dbg.clearBreakpoints(f);
 		var bps = [];
 		response.body = { breakpoints : bps };
 		for( bp in args.breakpoints ) {
-			var ok = dbg.addBreakpoint(file, bp.line);
+			var ok = false;
+			for( f in files )
+				if( dbg.addBreakpoint(f, bp.line) ) {
+					ok = true;
+					break;
+				}
 			bps.push({ line : bp.line, verified : ok, message : ok ? null : "No opcode here" });
 		}
 		sendResponse(response);
