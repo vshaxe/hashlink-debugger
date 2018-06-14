@@ -519,7 +519,7 @@ class HLAdapter extends adapter.DebugSession {
 				var fields;
 				switch( [vref, v.t] ) {
 				case [VObjFields(_, p), _]:
-					fields = [for( f in p.fields ) f.name];
+					fields = [for( f in p.fields ) if( f.name != "" ) f.name];
 				case [_,HObj(o)]:
 					var p = o.tsuper;
 					while( p != null )
@@ -530,7 +530,7 @@ class HLAdapter extends adapter.DebugSession {
 							p = o.tsuper;
 						default:
 						}
-					fields = [for( f in o.fields ) f.name];
+					fields = [for( f in o.fields ) if( f.name != "" ) f.name];
 				default:
 					fields = dbg.eval.getFields(v);
 				}
