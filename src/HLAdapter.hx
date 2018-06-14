@@ -478,7 +478,7 @@ class HLAdapter extends adapter.DebugSession {
 	}
 
 	function makeVar( name : String, value : hld.Value ) : protocol.debug.Types.Variable {
-		var tstr = format.hl.Tools.toString(value.t);
+		var tstr = dbg.eval.typeStr(value.t);
 		switch( value.v ) {
 		case VPointer(_), VEnum(_):
 			var fields = dbg.eval.getFields(value);
@@ -597,7 +597,7 @@ class HLAdapter extends adapter.DebugSession {
 			default:
 				vars.push({
 					name : "TODO",
-					value : format.hl.Tools.toString(v.t),
+					value : dbg.eval.typeStr(v.t),
 					variablesReference : 0,
 				});
 			}
