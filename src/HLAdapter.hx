@@ -656,6 +656,9 @@ class HLAdapter extends adapter.DebugSession {
 		//debug("Eval " + args);
 		dbg.currentStackFrame = args.frameId;
 		try {
+			// ?ident => hover on optional param (most likely)
+			if( ~/^\?[A-Za-z0-9_]+$/.match(args.expression) )
+				args.expression = args.expression.substr(1);
 			var value = dbg.getValue(args.expression);
 			var v = makeVar("", value);
 			response.body = {
