@@ -5,7 +5,10 @@
 	"publisher": "HaxeFoundation",
 	"license": "MIT",
 	"description": "Debugger for Haxe/HashLink applications",
-	"repository": "https://github.com/vshaxe/hashlink-debugger",
+	"repository": {
+		"url": "https://github.com/vshaxe/hashlink-debugger",
+		"type": "git"
+	},
 	"bugs": {
 		"url": "https://github.com/vshaxe/hashlink-debugger/issues"
 	},
