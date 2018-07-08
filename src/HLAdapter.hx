@@ -402,13 +402,15 @@ class HLAdapter extends adapter.DebugSession {
 		var bps = [];
 		response.body = { breakpoints : bps };
 		for( bp in args.breakpoints ) {
-			var ok = false;
-			for( f in files )
-				if( dbg.addBreakpoint(f, bp.line) ) {
-					ok = true;
-					break;
-				}
-			bps.push({ line : bp.line, verified : ok, message : ok ? null : "No opcode here" });
+			var line = -1;
+			for( f in files ) {
+				line = dbg.addBreakpoint(f, bp.line);
+				if( line >= 0 ) break;
+			}
+			if( line >= 0 )
+				bps.push({ line : line, verified : true, message : null });
+			else
+				bps.push({ line : bp.line, verified : false, message : "No code found here" });
 		}
 		sendResponse(response);
 	}
