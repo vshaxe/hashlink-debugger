@@ -10,6 +10,7 @@ enum VarValue {
 	VUnkownFile( file : String );
 	VObjFields( v : hld.Value, o : format.hl.Data.ObjPrototype );
 	VMapPair( key : hld.Value, value : hld.Value );
+	VStatics( cl : String );
 }
 
 class HLAdapter extends adapter.DebugSession {
@@ -470,6 +471,7 @@ class HLAdapter extends adapter.DebugSession {
 		dbg.currentStackFrame = args.frameId;
 		var args = dbg.getCurrentVars(true);
 		var locals = dbg.getCurrentVars(false);
+		var hasThis = args.indexOf("this") >= 0 || locals.indexOf("this") >= 0;
 		response.body = {
 			scopes : [{
 				name : "Locals",
@@ -478,6 +480,39 @@ class HLAdapter extends adapter.DebugSession {
 				namedVariables : args.length + locals.length,
 			}],
 		};
+		if( hasThis ) {
+			try {
+				var vthis = dbg.getValue("this");
+				response.body.scopes.push({
+					name : "Members",
+					variablesReference : allocValue(VValue(vthis)),
+					expensive : false,
+					namedVariables : dbg.eval.getFields(vthis).length,
+				});
+			} catch( e : Dynamic ) {
+				trace(e);
+			}
+		}
+		var cl = dbg.getCurrentClass();
+		if( cl != null ) {
+			try {
+				var fields = dbg.getClassStatics(cl);
+				for( f in fields.copy() ) {
+					var v = dbg.getValue(cl+"."+f);
+					if( v == null || v.t.match(HFun(_)) )
+						fields.remove(f);
+				}
+				if( fields.length > 0 )
+					response.body.scopes.push({
+						name : "Statics",
+						variablesReference : allocValue(VStatics(cl)),
+						expensive : false,
+						namedVariables : fields.length,
+					});
+			} catch( e : Dynamic ) {
+				trace(e);
+			}
+		}
 		sendResponse(response);
 	}
 
@@ -604,6 +639,12 @@ class HLAdapter extends adapter.DebugSession {
 					value : dbg.eval.typeStr(v.t),
 					variablesReference : 0,
 				});
+			}
+		case VStatics(cl):
+			for( f in dbg.getClassStatics(cl) ) {
+				var v = dbg.getValue(cl+"."+f);
+				if( v.t.match(HFun(_)) ) continue;
+				vars.push(makeVar(f,v));
 			}
 		case VMapPair(key, value):
 			vars.push(makeVar("key", key));
