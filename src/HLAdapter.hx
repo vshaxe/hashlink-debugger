@@ -292,8 +292,10 @@ class HLAdapter extends adapter.DebugSession {
 	function stopDebug() {
 		if( dbg == null ) return;
 		dbg = null;
-		timer.stop();
-		timer = null;
+		if( timer != null ) {
+			timer.stop();
+			timer = null;
+		}
 	}
 
 	function frameStr( f : hld.Debugger.StackInfo, ?debug ) {
