@@ -84,6 +84,39 @@
 							"argsFile": {
 								"description": "File from which to read program arguments.",
 								"type": "string"
+							},
+							"port" : {
+								"type" : "number",
+								"decscription": "Port to connect to."
+							}
+						}
+					},
+					"attach": {
+						"required": [
+							"port",
+							"hxml",
+							"cwd"
+						],
+						"properties": {
+							"request": {
+								"type": "string",
+								"description": "attach",
+								"default": "attach"
+							},
+							"hxml": {
+								"type": "string",
+								"description": "Path to the .hxml file.",
+								"default": "build.hxml"
+							},
+							"cwd": {
+								"type": "string",
+								"description": "Working directory",
+								"default": "${workspaceRoot}"
+							},
+							"port" : {
+								"type" : "number",
+								"decscription": "Port to connect to.",
+								"default": 6112
 							}
 						}
 					}
@@ -92,6 +125,15 @@
 					{
 						"name": "HashLink",
 						"request": "launch",
+						"type": "hl",
+						"hxml": "build.hxml",
+						"cwd": "${workspaceRoot}",
+						"preLaunchTask": "Build"
+					},
+					{
+						"name": "HashLink",
+						"request": "attach",
+						"port" : 6112,
 						"type": "hl",
 						"hxml": "build.hxml",
 						"cwd": "${workspaceRoot}",

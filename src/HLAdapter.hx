@@ -60,10 +60,12 @@ class HLAdapter extends adapter.DebugSession {
 
 		workspaceDirectory = Reflect.field(args, "cwd");
 		Sys.setCwd(workspaceDirectory);
+		var port = Reflect.field(args,"port");
+		if( port == null ) port = debugPort;
 
 		try {
 			var program = launch(cast args, response);
-			if( doDebug && !startDebug(program, proc.pid) ) {
+			if( doDebug && !startDebug(program, port) ) {
 				proc.kill();
 				dbg = null;
 				throw "Could not initialize debugger";
@@ -76,8 +78,24 @@ class HLAdapter extends adapter.DebugSession {
 		sendResponse(response);
 	}
 
-	function error<T>(response:Response<T>, message:String) {
-		sendErrorResponse(cast response, 3000, message);
+	override function attachRequest(response:AttachResponse, args:AttachRequestArguments) {
+		debug("attach");
+		workspaceDirectory = Reflect.field(args, "cwd");
+		Sys.setCwd(workspaceDirectory);
+		var program = readHXML(Reflect.field(args,"hxml"));
+		try {
+			if( !startDebug(program,Reflect.field(args,"port")) )
+				throw "Failed to start debugging";
+			sendEvent(new InitializedEvent());
+		} catch( e : Dynamic ) {
+			error(cast response, e);
+			sendEvent(new TerminatedEvent());
+		}
+		sendResponse(response);
+	}
+
+	function error<T>(response:Response<T>, message:Dynamic) {
+		sendErrorResponse(cast response, 3000, "" + message);
 		sendToOutput("ERROR : " + message, OutputEventCategory.stderr);
 	}
 
@@ -255,7 +273,7 @@ class HLAdapter extends adapter.DebugSession {
 	}
 
 
-	function startDebug( program : String, pid : Int ) {
+	function startDebug( program : String, port : Int ) {
 		dbg = new hld.Debugger();
 
 		// TODO : load & validate after run() -- save some precious time
@@ -263,14 +281,15 @@ class HLAdapter extends adapter.DebugSession {
 		dbg.loadModule(sys.io.File.getBytes(program));
 
 		debug("connecting");
-		if( !dbg.connect("127.0.0.1", debugPort) )
+		if( !dbg.connect("127.0.0.1", port) )
 			throw "Failed to connect on debug port";
 
+		var pid = @:privateAccess dbg.jit.pid;
 		var api : hld.Api;
 		if( isWindow )
-			api = new hld.NodeDebugApi(proc.pid, dbg.is64);
+			api = new hld.NodeDebugApi(pid, dbg.is64);
 		else
-			api = new hld.NodeDebugApiLinux(proc.pid, dbg.is64);
+			api = new hld.NodeDebugApiLinux(pid, dbg.is64);
 
 		if( !dbg.init(api) )
 			throw "Failed to initialize debugger";
@@ -292,6 +311,7 @@ class HLAdapter extends adapter.DebugSession {
 
 	function stopDebug() {
 		if( dbg == null ) return;
+		dbg.end();
 		dbg = null;
 		if( timer != null ) {
 			timer.stop();
@@ -662,7 +682,7 @@ class HLAdapter extends adapter.DebugSession {
 	}
 
 	override function disconnectRequest(response:DisconnectResponse, args:DisconnectArguments) {
-		proc.kill("SIGINT");
+		if( proc != null ) proc.kill("SIGINT");
 		sendResponse(response);
 		stopDebug();
 	}
@@ -721,8 +741,6 @@ class HLAdapter extends adapter.DebugSession {
 		}
 		sendResponse(response);
 	}
-
-	override function attachRequest(response:AttachResponse, args:AttachRequestArguments) { debug("Unhandled request"); }
 
 	override function setVariableRequest(response:SetVariableResponse, args:SetVariableArguments) { debug("Unhandled request"); }
 
