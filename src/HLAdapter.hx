@@ -355,7 +355,7 @@ class HLAdapter extends adapter.DebugSession {
 				debug("Exception: " + str);
 			}
 			beforeStop();
-			var ev = new StoppedEvent(exc == null ? "breakpoint" : "exception", dbg.stoppedThread, str);
+			var ev = new StoppedEvent(exc == null ? "breakpoint" : "exception", dbg.currentThread, str);
 			ev.allThreadsStopped = true;
 			sendEvent(ev);
 		case Error:
