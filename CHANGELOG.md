@@ -1,3 +1,14 @@
+## 0.4.0 (July 9, 2018)
+
+* added attach/detach support
+* fixed pause
+* add member and static vars preview
+* fixed static var eval()
+* move breakpoint to next valid line when no opcode at this pos
+* don't step in hl/haxe standard library anymore
+* hl 1.7 support
+* many other fixes
+
 ## 0.3.0 (June 12, 2018)
 
 * added Linux support
