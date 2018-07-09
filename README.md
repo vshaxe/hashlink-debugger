@@ -3,6 +3,8 @@
 
 This VSCode extension allows you to debug [HashLink](https://hashlink.haxe.org/) JIT applications.
 
+*Only available on VSCode 64 bit*
+
 ## Building from Source
 
 The following instructions are only relevant for building the extension from source and are **not required when installing it from the marketplace**.
