@@ -1,3 +1,7 @@
+## 0.4.1 (July 11, 2018)
+
+* fixed regression regarding locals resolution
+
 ## 0.4.0 (July 9, 2018)
 
 * added attach/detach support
