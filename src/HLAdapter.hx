@@ -537,6 +537,8 @@ class HLAdapter extends adapter.DebugSession {
 	}
 
 	function makeVar( name : String, value : hld.Value ) : protocol.debug.Types.Variable {
+		if( value == null )
+			return { name : name, value : "Unknown variable", variablesReference : 0 };
 		var tstr = dbg.eval.typeStr(value.t);
 		switch( value.v ) {
 		case VPointer(_), VEnum(_):
@@ -545,6 +547,8 @@ class HLAdapter extends adapter.DebugSession {
 				return { name : name, type : tstr, value : tstr, variablesReference : allocValue(VValue(value)), namedVariables : fields.length };
 		case VArray(_, len, _, _), VMap(_, len, _, _):
 			return { name : name, type : tstr, value : dbg.eval.valueStr(value), variablesReference : allocValue(VValue(value)), indexedVariables : len };
+		case VBytes(len, _):
+			return { name : name, type : tstr, value : tstr+":"+len, variablesReference : allocValue(VValue(value)), indexedVariables : (len+15)>>4 };
 		default:
 		}
 		return { name : name, type : tstr, value : dbg.eval.valueStr(value), variablesReference : 0 };
@@ -618,6 +622,16 @@ class HLAdapter extends adapter.DebugSession {
 							variablesReference : 0,
 						});
 					}
+				}
+			case VBytes(len, read):
+				var count = (len + 15) >> 4;
+				for( i in 0...count ) {
+					var p = i * 16;
+					var size = p + 16 > len ? len - p : 16;
+					var b = haxe.io.Bytes.alloc(size);
+					for( k in 0...size )
+						b.set(k,read(p+k));
+					vars.push({ name : ""+p, value : "0x"+b.toHex().toUpperCase(), variablesReference : 0 });
 				}
 			case VEnum(_,values):
 				for( i in 0...values.length )
