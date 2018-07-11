@@ -1,3 +1,10 @@
+## 0.4.2 (July 11, 2018)
+
+* added haxe.io.Bytes custom display
+* fixed statics in classes within a package
+* fixed error message when var unknown
+* fixed with single captured var ptr
+
 ## 0.4.1 (July 11, 2018)
 
 * fixed regression regarding locals resolution
