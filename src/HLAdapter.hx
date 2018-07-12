@@ -47,6 +47,7 @@ class HLAdapter extends adapter.DebugSession {
 		response.body.supportsConditionalBreakpoints = true;
 		response.body.supportsEvaluateForHovers = true;
 		response.body.supportsStepBack = false;
+		response.body.supportsSetVariable = true;
 		response.body.exceptionBreakpointFilters = [{ filter : "all", label : "Stop on all exceptions" }];
 
 		sendResponse( response );
@@ -631,7 +632,7 @@ class HLAdapter extends adapter.DebugSession {
 						});
 					}
 				}
-			case VBytes(len, read):
+			case VBytes(len, read, _):
 				var count = (len + 15) >> 4;
 				for( i in 0...count ) {
 					var p = i * 16;
@@ -641,7 +642,7 @@ class HLAdapter extends adapter.DebugSession {
 						b.set(k,read(p+k));
 					vars.push({ name : ""+p, value : "0x"+b.toHex().toUpperCase(), variablesReference : 0 });
 				}
-			case VEnum(_,values):
+			case VEnum(_,values, _):
 				for( i in 0...values.length )
 					try {
 						var value = values[i];
@@ -764,7 +765,17 @@ class HLAdapter extends adapter.DebugSession {
 		sendResponse(response);
 	}
 
-	override function setVariableRequest(response:SetVariableResponse, args:SetVariableArguments) { debug("Unhandled request"); }
+	override function setVariableRequest(response:SetVariableResponse, args:SetVariableArguments) {
+		try {
+			var v = dbg.setValue(args.name, args.value);
+			if( v == null )
+				throw "Can't set "+args.name+" to "+args.value;
+			response.body = makeVar(args.name, v);
+		} catch( e : Dynamic ) {
+			errorMessage(""+e);
+		}
+		sendResponse(response);
+	}
 
 	override function setFunctionBreakPointsRequest(response:SetFunctionBreakpointsResponse, args:SetFunctionBreakpointsArguments) {
 		debug("Unhandled request");
@@ -780,6 +791,10 @@ class HLAdapter extends adapter.DebugSession {
 
 	function sendToOutput(output:String, category:OutputEventCategory = OutputEventCategory.console) {
 		sendEvent(new OutputEvent(output + "\n", category));
+	}
+
+	function errorMessage( msg : String ) {
+		sendEvent(new OutputEvent(msg+"\n", stderr));
 	}
 
 	static function main() {
