@@ -47,6 +47,8 @@ class HLAdapter extends adapter.DebugSession {
 		response.body.supportsConditionalBreakpoints = true;
 		response.body.supportsEvaluateForHovers = true;
 		response.body.supportsStepBack = false;
+		response.body.exceptionBreakpointFilters = [{ filter : "all", label : "Stop on all exceptions" }];
+
 		sendResponse( response );
 	}
 
@@ -77,6 +79,12 @@ class HLAdapter extends adapter.DebugSession {
 		}
 		sendResponse(response);
 	}
+
+	override function setExceptionBreakPointsRequest(response:SetExceptionBreakpointsResponse, args:SetExceptionBreakpointsArguments) {
+		dbg.breakOnThrow = args.filters.indexOf("all") >= 0;
+		sendResponse(response);
+	}
+
 
 	override function attachRequest(response:AttachResponse, args:AttachRequestArguments) {
 		debug("attach");
@@ -759,11 +767,6 @@ class HLAdapter extends adapter.DebugSession {
 	override function setVariableRequest(response:SetVariableResponse, args:SetVariableArguments) { debug("Unhandled request"); }
 
 	override function setFunctionBreakPointsRequest(response:SetFunctionBreakpointsResponse, args:SetFunctionBreakpointsArguments) {
-		debug("Unhandled request");
-		sendResponse(response);
-	}
-
-	override function setExceptionBreakPointsRequest(response:SetExceptionBreakpointsResponse, args:SetExceptionBreakpointsArguments) {
 		debug("Unhandled request");
 		sendResponse(response);
 	}
