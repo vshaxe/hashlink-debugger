@@ -294,6 +294,10 @@ class HLAdapter extends adapter.DebugSession {
 			throw "Failed to connect on debug port";
 
 		var pid = @:privateAccess dbg.jit.pid;
+		if( pid == 0 ) {
+			if( proc == null ) throw "Process attach requires HL 1.7+";
+			pid = proc.pid;
+		}
 		var api : hld.Api;
 		if( isWindow )
 			api = new hld.NodeDebugApi(pid, dbg.is64);
