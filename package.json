@@ -123,7 +123,7 @@
 				},
 				"initialConfigurations": [
 					{
-						"name": "HashLink",
+						"name": "HashLink (launch)",
 						"request": "launch",
 						"type": "hl",
 						"hxml": "build.hxml",
@@ -131,7 +131,7 @@
 						"preLaunchTask": "Build"
 					},
 					{
-						"name": "HashLink",
+						"name": "HashLink (attach)",
 						"request": "attach",
 						"port" : 6112,
 						"type": "hl",
