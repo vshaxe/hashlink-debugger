@@ -65,7 +65,7 @@ class JitInfo {
 			hlVersion = 0x150;
 		} else {
 			hlVersion = input.readInt32();
-			if( hlVersion >= 170 )
+			if( hlVersion >= 0x170 )
 				pid = input.readInt32();
 			threads = readPointer();
 			globals = readPointer();
