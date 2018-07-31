@@ -1,0 +1,4 @@
+-lib format
+-lib hscript
+-hl debug.hl
+-main hld.Main
