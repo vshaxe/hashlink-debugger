@@ -1,3 +1,10 @@
+## 0.4.3 (August 26, 2018)
+
+* VSCode 1.26 compatibility (electron 2.0.5)
+* added "break on all exceptions" support
+* started set variable implementation (very little support for now)
+* fixed HL 1.6- support
+
 ## 0.4.2 (July 11, 2018)
 
 * added haxe.io.Bytes custom display

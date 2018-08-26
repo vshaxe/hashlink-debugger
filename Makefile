@@ -1,5 +1,5 @@
 # requires compiling native extensions with electron support
-NPARAMS=--runtime=electron --target=1.7.9 --disturl=https://atom.io/download/electron
+NPARAMS=--runtime=electron --target=2.0.5 --disturl=https://atom.io/download/electron
 
 deps:
 	npm install node-gyp -g

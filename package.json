@@ -1,7 +1,7 @@
 {
 	"name": "haxe-hl",
 	"displayName": "HashLink Debugger",
-	"version": "0.4.2",
+	"version": "0.4.3",
 	"publisher": "HaxeFoundation",
 	"license": "MIT",
 	"description": "Debugger for Haxe/HashLink applications",
@@ -16,7 +16,7 @@
 		"name": "ncannasse"
 	},
 	"engines": {
-		"vscode": "^1.4.0"
+		"vscode": "^1.26.0"
 	},
 	"icon": "icon.png",
 	"categories": [
@@ -85,8 +85,8 @@
 								"description": "File from which to read program arguments.",
 								"type": "string"
 							},
-							"port" : {
-								"type" : "number",
+							"port": {
+								"type": "number",
 								"decscription": "Port to connect to."
 							}
 						}
@@ -113,8 +113,8 @@
 								"description": "Working directory",
 								"default": "${workspaceRoot}"
 							},
-							"port" : {
-								"type" : "number",
+							"port": {
+								"type": "number",
 								"decscription": "Port to connect to.",
 								"default": 6112
 							}
@@ -133,7 +133,7 @@
 					{
 						"name": "HashLink (attach)",
 						"request": "attach",
-						"port" : 6112,
+						"port": 6112,
 						"type": "hl",
 						"hxml": "build.hxml",
 						"cwd": "${workspaceRoot}",
