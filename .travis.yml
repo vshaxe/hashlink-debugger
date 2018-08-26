@@ -8,8 +8,6 @@ install:
   - haxelib install hscript
   - haxelib git vscode-debugadapter https://github.com/vshaxe/vscode-debugadapter-extern
   - haxelib git hxnodejs https://github.com/HaxeFoundation/hxnodejs
-  - git clone https://github.com/HaxeFoundation/hashlink
-  - haxelib dev hldebug hashlink/other/debugger
 
 script:
   - haxe build.hxml
