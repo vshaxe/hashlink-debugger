@@ -1,3 +1,7 @@
+## 0.4.4 (September 17, 2018)
+
+* VSCode 1.27 compatibility (bugfix stepping)
+
 ## 0.4.3 (August 26, 2018)
 
 * VSCode 1.26 compatibility (electron 2.0.5)

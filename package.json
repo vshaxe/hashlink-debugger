@@ -1,7 +1,7 @@
 {
 	"name": "haxe-hl",
 	"displayName": "HashLink Debugger",
-	"version": "0.4.3",
+	"version": "0.4.4",
 	"publisher": "HaxeFoundation",
 	"license": "MIT",
 	"description": "Debugger for Haxe/HashLink applications",
@@ -16,7 +16,7 @@
 		"name": "ncannasse"
 	},
 	"engines": {
-		"vscode": "^1.26.0"
+		"vscode": ">1.26.0"
 	},
 	"icon": "icon.png",
 	"categories": [
