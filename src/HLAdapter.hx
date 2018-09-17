@@ -715,23 +715,27 @@ class HLAdapter extends adapter.DebugSession {
 	}
 
 	override function nextRequest(response:NextResponse, args:NextArguments) {
-		handleMessage(dbg.step(Next));
+		debug("Next");
 		sendResponse(response);
+		handleMessage(dbg.step(Next));
 	}
 
 	override function stepInRequest(response:StepInResponse, args:StepInArguments) {
-		handleMessage(dbg.step(Into));
+		debug("StepIn");
 		sendResponse(response);
+		handleMessage(dbg.step(Into));
 	}
 
 	override function stepOutRequest(response:StepOutResponse, args:StepOutArguments) {
-		handleMessage(dbg.step(Out));
+		debug("StepOut");
 		sendResponse(response);
+		handleMessage(dbg.step(Out));
 	}
 
 	override function continueRequest(response:ContinueResponse, args:ContinueArguments) {
-		dbg.resume();
+		debug("Continue");
 		sendResponse(response);
+		dbg.resume();
 	}
 
 	override function sourceRequest(response:SourceResponse, args:SourceArguments) {
