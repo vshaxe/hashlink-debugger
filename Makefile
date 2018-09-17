@@ -29,4 +29,4 @@ package: cleanup
 	vsce package
 	
 publish:
-	vsce publish -p ${VSCE_TOKEN}
+	vsce publish -p `cat vsce_token.txt`

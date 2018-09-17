@@ -2,3 +2,4 @@ node_modules
 *.js
 /package-lock.json
 /*.vsix
+/vsce_token.txt
