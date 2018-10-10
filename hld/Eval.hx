@@ -204,7 +204,7 @@ class Eval {
 			return evalUnop(op, prefix, evalExpr(e));
 		case EMeta(_, _, e):
 			return evalExpr(e);
-		case EObject(_), ENew(_), ECall(_), EFor(_), ETry(_), EReturn(_), EBreak, EContinue, EDoWhile(_), EFunction(_), EVar(_), EWhile(_), ESwitch(_):
+		default:
 			throw "Unsupported expression `" + hscript.Printer.toString(e) + "`";
 		}
 	}
