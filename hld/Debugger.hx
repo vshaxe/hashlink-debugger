@@ -285,7 +285,7 @@ class Debugger {
 			case Exit:
 				processExit = true;
 				break;
-			case Error, Watchbreak:
+			case Error, Watchbreak, StackOverflow:
 				break;
 			}
 		}

@@ -166,6 +166,8 @@ class Main {
 		case Timeout:
 			dbg.customTimeout = null;
 			handleResult(dbg.pause());
+		case StackOverflow:
+			Sys.println("*** stack overflow, paused ***");
 		default:
 			throw "assert "+r;
 		}

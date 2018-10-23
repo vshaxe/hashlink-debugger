@@ -7,6 +7,7 @@ package hld;
 	public var SingleStep = 2;
 	public var Error = 3;
 	public var Handled = 4;
+	public var StackOverflow = 5;
 	public var Watchbreak = 0x100;
 }
 

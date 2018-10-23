@@ -3,3 +3,5 @@ node_modules
 /package-lock.json
 /*.vsix
 /vsce_token.txt
+/debugger/args.txt
+/debugger/debug.hl

@@ -361,7 +361,7 @@ class HLAdapter extends adapter.DebugSession {
 			switch( msg ) {
 			case Timeout:
 				break;
-			case Error, Breakpoint, Exit, Watchbreak:
+			case Error, Breakpoint, Exit, Watchbreak, StackOverflow:
 				ret = true;
 				break;
 			case Handled, SingleStep:
@@ -391,12 +391,14 @@ class HLAdapter extends adapter.DebugSession {
 			var ev = new StoppedEvent(exc == null ? "breakpoint" : "exception", dbg.currentThread, str);
 			ev.allThreadsStopped = true;
 			sendEvent(ev);
-		case Error:
-			debug("*** ERROR ***");
+		case Error, StackOverflow:
+			var error = msg == Error ? "Access Violation" : "Stack Overflow";
+			debug("*** "+error+" ***");
 			beforeStop();
 			var ev = new StoppedEvent(
-				"error",
-				dbg.stoppedThread
+				"exception",
+				dbg.stoppedThread,
+				error
 			);
 			ev.allThreadsStopped = true;
 			sendEvent(ev);
@@ -407,7 +409,10 @@ class HLAdapter extends adapter.DebugSession {
 			sendEvent(new TerminatedEvent());
 		case Watchbreak:
 			debug("Watch "+dbg.watchBreak.ptr.toString());
+		case Handled:
+			// nothing
 		default:
+			errorMessage("??? "+msg);
 		}
 	}
 
