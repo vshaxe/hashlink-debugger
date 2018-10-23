@@ -409,7 +409,7 @@ class HLAdapter extends adapter.DebugSession {
 			sendEvent(new TerminatedEvent());
 		case Watchbreak:
 			debug("Watch "+dbg.watchBreak.ptr.toString());
-		case Handled:
+		case Handled, Timeout:
 			// nothing
 		default:
 			errorMessage("??? "+msg);
@@ -521,12 +521,16 @@ class HLAdapter extends adapter.DebugSession {
 		if( hasThis ) {
 			try {
 				var vthis = dbg.getValue("this");
-				response.body.scopes.push({
-					name : "Members",
-					variablesReference : allocValue(VValue(vthis)),
-					expensive : false,
-					namedVariables : dbg.eval.getFields(vthis).length,
-				});
+				var fields = dbg.eval.getFields(vthis);
+				if( fields == null )
+					debug("Can't get fields for "+dbg.eval.typeStr(vthis.t));
+				else
+					response.body.scopes.push({
+						name : "Members",
+						variablesReference : allocValue(VValue(vthis)),
+						expensive : false,
+						namedVariables : fields.length,
+					});
 			} catch( e : Dynamic ) {
 				trace(e);
 			}
