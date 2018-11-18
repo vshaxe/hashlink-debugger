@@ -16,7 +16,7 @@
 		"name": "ncannasse"
 	},
 	"engines": {
-		"vscode": "^1.26.0"
+		"vscode": "^1.29.0"
 	},
 	"icon": "icon.png",
 	"categories": [
