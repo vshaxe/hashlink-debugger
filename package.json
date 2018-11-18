@@ -1,7 +1,7 @@
 {
 	"name": "haxe-hl",
 	"displayName": "HashLink Debugger",
-	"version": "0.4.4",
+	"version": "0.5.0",
 	"publisher": "HaxeFoundation",
 	"license": "MIT",
 	"description": "Debugger for Haxe/HashLink applications",

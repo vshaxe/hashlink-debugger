@@ -1,3 +1,9 @@
+## 0.5.0 (November 18, 2018)
+
+* VSCode 1.29 compatibility (electron 2.0.12)
+* HashLink bytecode 5 support
+* stack overflow correctly reported on windows
+
 ## 0.4.4 (September 17, 2018)
 
 * VSCode 1.27 compatibility (bugfix stepping)
