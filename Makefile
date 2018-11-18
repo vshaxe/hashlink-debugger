@@ -1,5 +1,6 @@
 # requires compiling native extensions with electron support
 NPARAMS=--runtime=electron --target=2.0.12 --disturl=https://atom.io/download/electron
+LINUX_VM=ncannasse@virtbuntu
 
 deps:
 	npm install node-gyp -g
@@ -12,6 +13,7 @@ cleanup:
 	/bin/find . -name *.tlog | xargs rm -rf 
 	/bin/find . -name *.map | xargs rm -rf 
 
+# git pull && sudo rm -rf node_modules && sudo make deps on LINUX_VM before running this
 import_linux_bindings:
 	cp bindings.js node_modules/bindings/	
 	make LIB=ffi NAME=ffi_bindings _import_linux_bindings
@@ -20,7 +22,7 @@ import_linux_bindings:
 
 _import_linux_bindings:
 	-mkdir node_modules/$(LIB)/build/linux
-	pscp ncannasse@virtbuntu:hashlink-debugger/node_modules/$(LIB)/build/Release/$(NAME).node node_modules/$(LIB)/build/linux/
+	pscp $(LINUX_VM):hashlink-debugger/node_modules/$(LIB)/build/Release/$(NAME).node node_modules/$(LIB)/build/linux/
 	chmod +x node_modules/$(LIB)/build/linux/$(NAME).node
 	-cp bindings.js node_modules/$(LIB)/node_modules/bindings	
 	
