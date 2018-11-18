@@ -5,3 +5,5 @@ node_modules
 /vsce_token.txt
 /debugger/args.txt
 /debugger/debug.hl
+/debugger/package-lock.json
+/debugger/*.map

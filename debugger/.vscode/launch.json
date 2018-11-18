@@ -12,6 +12,17 @@
 			"cwd": "${workspaceRoot}",
 			"argsFile": "args.txt",
 			"preLaunchTask": "Build"
-		}
+		},
+		{
+			"type": "node",
+			"request": "launch",
+			"name": "Node",
+			"program": "${workspaceRoot}/debugger.js",
+			"args": [
+				"--input",
+				"args.txt"
+			],
+			"preLaunchTask": "Build"
+		},
 	]
 }

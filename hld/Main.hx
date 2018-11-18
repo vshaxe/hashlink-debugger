@@ -56,6 +56,9 @@ class Main {
 				cmd = args.shift();
 			case "--cwd":
 				Sys.setCwd(args.shift());
+			case "--input":
+				var file = args.shift();
+				args = StringTools.trim(sys.io.File.getContent(file)).split("\n").map(StringTools.trim).concat(args);
 			default:
 				error("Unsupported parameter " + param);
 			}
