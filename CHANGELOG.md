@@ -1,3 +1,7 @@
+## 0.5.1 (December 3, 2018)
+
+* More HashLink 1.9 (bytecode 5) support
+
 ## 0.5.0 (November 18, 2018)
 
 * VSCode 1.29 compatibility (electron 2.0.12)
