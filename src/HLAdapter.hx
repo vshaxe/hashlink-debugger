@@ -486,7 +486,7 @@ class HLAdapter extends adapter.DebugSession {
 					name : stackStr(f),
 					source : {
 						name : f.file.split("/").pop(),
-						path : file == null ? undefined : (isWindow ? file.split("/").join("\\") : file),
+						path : file == null ? js.Lib.undefined : (isWindow ? file.split("/").join("\\") : file),
 						sourceReference : file == null ? allocValue(VUnkownFile(f.file)) : 0,
 					},
 					line : f.line,
