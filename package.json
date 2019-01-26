@@ -128,7 +128,10 @@
 						"type": "hl",
 						"hxml": "build.hxml",
 						"cwd": "${workspaceRoot}",
-						"preLaunchTask": "Build"
+						"preLaunchTask": {
+							"type" : "haxe",
+							"args" : "active configuration"
+						}
 					},
 					{
 						"name": "HashLink (attach)",
@@ -137,7 +140,10 @@
 						"type": "hl",
 						"hxml": "build.hxml",
 						"cwd": "${workspaceRoot}",
-						"preLaunchTask": "Build"
+						"preLaunchTask": {
+							"type" : "haxe",
+							"args" : "active configuration"
+						}
 					}
 				]
 			}
