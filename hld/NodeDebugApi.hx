@@ -139,7 +139,8 @@ class NodeDebugApi implements Api {
 			case 0x406D1388: // MS_VC_EXCEPTION (see SetThreadName)
 				resume(tid);
 				Handled;
-			case 0xE06D7363: // C++ EH EXCEPTION
+			case 0xE06D7363 // C++ EH EXCEPTION
+				,0x6BA: // Windows File dialog API
 				winApi.ContinueDebugEvent(pid, tid, 0x80010001/*DBG_EXCEPTION_NOT_HANDLED*/);
 				Handled;
 			case 0xC00000FD:
