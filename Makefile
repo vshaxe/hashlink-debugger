@@ -30,5 +30,9 @@ package: cleanup
 	#npm install vsce -g
 	vsce package
 	
+# to get token : 
+# - visit https://dev.azure.com/ncannasse/
+# - login (@hotmail)
+# - click user / security / Personal Access token
 publish:
 	vsce publish -p `cat vsce_token.txt`
