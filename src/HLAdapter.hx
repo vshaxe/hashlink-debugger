@@ -1,3 +1,4 @@
+import haxe.io.Path;
 import haxe.CallStack;
 import protocol.debug.Types;
 import adapter.DebugSession;
@@ -12,6 +13,15 @@ enum VarValue {
 	VObjFields( v : hld.Value, o : format.hl.Data.ObjPrototype );
 	VMapPair( key : hld.Value, value : hld.Value );
 	VStatics( cl : String );
+}
+
+typedef Arguments = {
+	cwd: String,
+	hxml: String,
+	?program: String,
+	?args: Array<String>,
+	?argsFile: String,
+	?port: Int
 }
 
 class HLAdapter extends adapter.DebugSession {
@@ -62,9 +72,11 @@ class HLAdapter extends adapter.DebugSession {
 
 		debug("launch");
 
-		workspaceDirectory = Reflect.field(args, "cwd");
+		var args:Arguments = cast args;
+
+		workspaceDirectory = if( args.cwd == null ) Path.directory(args.program) else args.cwd;
 		Sys.setCwd(workspaceDirectory);
-		var port = Reflect.field(args,"port");
+		var port = args.port;
 		if( port == null ) port = debugPort;
 
 		try {
@@ -90,11 +102,13 @@ class HLAdapter extends adapter.DebugSession {
 
 	override function attachRequest(response:AttachResponse, args:AttachRequestArguments) {
 		debug("attach");
-		workspaceDirectory = Reflect.field(args, "cwd");
+
+		var args:Arguments = cast args;
+		workspaceDirectory = args.cwd;
 		Sys.setCwd(workspaceDirectory);
-		var program = readHXML(Reflect.field(args,"hxml"));
+		var program = readHXML(args.hxml);
 		try {
-			if( !startDebug(program,Reflect.field(args,"port")) )
+			if( !startDebug(program,args.port) )
 				throw "Failed to start debugging";
 			sendEvent(new InitializedEvent());
 		} catch( e : Dynamic ) {
@@ -203,9 +217,11 @@ class HLAdapter extends adapter.DebugSession {
 		return program;
 	}
 
-	function launch( args : { cwd: String, hxml: String, ?args: Array<String>, ?argsFile : String }, response : LaunchResponse ) {
+	function launch( args : Arguments, response : LaunchResponse ) {
 
 		var program = readHXML(args.hxml);
+		if( args.program != null )
+			program = args.program;
 		if( program == null )
 			throw args.hxml + " file does not contain -hl output";
 

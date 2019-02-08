@@ -73,6 +73,10 @@
 								"description": "Working directory",
 								"default": "${workspaceRoot}"
 							},
+							"program": {
+								"type": "string",
+								"description": "Path to the .hl file"
+							},
 							"args": {
 								"description": "Program arguments.",
 								"type": "array",
