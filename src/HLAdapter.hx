@@ -1,3 +1,4 @@
+import haxe.CallStack;
 import protocol.debug.Types;
 import adapter.DebugSession;
 import js.node.ChildProcess;
@@ -75,7 +76,7 @@ class HLAdapter extends adapter.DebugSession {
 			}
 			sendEvent(new InitializedEvent());
 		} catch( e : Dynamic ) {
-			error(cast response, e);
+			error(cast response, e + "\n" + CallStack.toString(CallStack.exceptionStack()));
 			sendEvent(new TerminatedEvent());
 		}
 		sendResponse(response);
