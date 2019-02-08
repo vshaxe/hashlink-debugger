@@ -193,6 +193,7 @@ class HLAdapter extends adapter.DebugSession {
 		classPath.push("./"); // default path
 		for( i in 0...classPath.length ) {
 			var c = sys.FileSystem.fullPath(classPath[i]);
+			if( c == null ) continue; // this can happen if the cwd at runtime is different from the cwd at compile time
 			c = c.split("\\").join("/");
 			if( !StringTools.endsWith(c, "/") ) c += "/";
 			classPath[i] = c;
