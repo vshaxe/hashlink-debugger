@@ -1,0 +1,7 @@
+-lib vscode-debugadapter
+-lib hxnodejs
+-lib format
+-lib hscript
+-cp src
+-js hladapter.js
+-main HLAdapter
