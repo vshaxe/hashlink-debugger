@@ -1,13 +1,13 @@
 import vscode.*;
 
 class Configuration {
-
-	static function main() {
-		Vscode.debug.registerDebugConfigurationProvider("hashlink", {resolveDebugConfiguration: resolveDebugConfiguration});
+	@:expose("activate")
+	static function main(context:ExtensionContext) {
+		Vscode.debug.registerDebugConfigurationProvider("hl", {resolveDebugConfiguration: resolveDebugConfiguration});
 	}
 
-	static function resolveDebugConfiguration(folder:Null<WorkspaceFolder>, config:DebugConfiguration, ?token:CancellationToken):ProviderResult<DebugConfiguration> {
-		return config;
+	static function resolveDebugConfiguration(folder:Null<WorkspaceFolder>, config:DebugConfiguration,
+			?token:CancellationToken):ProviderResult<DebugConfiguration> {
+		return null; // show launch.json
 	}
-	
 }

@@ -39,7 +39,10 @@
 	},
 	"devDependencies": {},
 	"scripts": {},
-	"__main" : "config.js",
+	"main" : "config.js",
+	"activationEvents": [
+		"onDebugResolve:hl"
+	],
 	"contributes": {
 		"debuggers": [
 			{
