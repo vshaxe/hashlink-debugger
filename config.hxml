@@ -1,0 +1,4 @@
+-cp src
+-lib vscode
+-js config.js
+-main Configuration

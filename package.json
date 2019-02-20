@@ -39,6 +39,7 @@
 	},
 	"devDependencies": {},
 	"scripts": {},
+	"__main" : "config.js",
 	"contributes": {
 		"debuggers": [
 			{
@@ -133,8 +134,8 @@
 						"hxml": "build.hxml",
 						"cwd": "${workspaceRoot}",
 						"preLaunchTask": {
-							"type" : "haxe",
-							"args" : "active configuration"
+							"type": "haxe",
+							"args": "active configuration"
 						}
 					},
 					{
@@ -145,12 +146,17 @@
 						"hxml": "build.hxml",
 						"cwd": "${workspaceRoot}",
 						"preLaunchTask": {
-							"type" : "haxe",
-							"args" : "active configuration"
+							"type": "haxe",
+							"args": "active configuration"
 						}
 					}
 				]
 			}
 		]
+	},
+	"__metadata": {
+		"id": "1cc8d5ef-027a-447d-8a30-0ec3f0fe30d3",
+		"publisherDisplayName": "Haxe Foundation",
+		"publisherId": "61407f1c-eaa6-4653-b105-144f7a312894"
 	}
 }
