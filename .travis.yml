@@ -6,6 +6,7 @@ haxe:
 install:
   - haxelib install format
   - haxelib install hscript
+  - haxelib install vscode
   - haxelib git vscode-debugadapter https://github.com/vshaxe/vscode-debugadapter-extern
   - haxelib git hxnodejs https://github.com/HaxeFoundation/hxnodejs
 
