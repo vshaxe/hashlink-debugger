@@ -1,3 +1,10 @@
+## 0.6.0 (to be released)
+
+* added optional `program` support (#3)
+* fixed a crash with compile cwd != runtime cwd
+* fixed "Start Debugging" not doing anything without a `launch.json`
+* updated `${workspaceRoot}` to `${workspaceFolder}`
+
 ## 0.5.2 (February 7, 2019)
 
 * VSCode 1.31 compatibility (electron 3.1.2)
