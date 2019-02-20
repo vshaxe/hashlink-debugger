@@ -39,7 +39,7 @@
 	},
 	"devDependencies": {},
 	"scripts": {},
-	"main" : "config.js",
+	"main" : "extension.js",
 	"activationEvents": [
 		"onDebugResolve:hl"
 	],
@@ -53,7 +53,7 @@
 						"haxe"
 					]
 				},
-				"program": "./hladapter.js",
+				"program": "./adapter.js",
 				"runtime": "node",
 				"configurationAttributes": {
 					"launch": {

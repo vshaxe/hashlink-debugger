@@ -3,12 +3,12 @@
 -lib format
 -lib hscript
 -cp src
--js hladapter.js
+-js adapter.js
 -main HLAdapter
 
 --next
 
 -cp src
 -lib vscode
--js config.js
-Configuration
+-js extension.js
+Extension

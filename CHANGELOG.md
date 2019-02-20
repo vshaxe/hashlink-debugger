@@ -1,7 +1,7 @@
 ## 0.6.0 (to be released)
 
 * added optional `program` support (#3)
-* fixed a crash with compile cwd != runtime cwd
+* fixed a crash with compile time cwd != runtime cwd
 * fixed "Start Debugging" not doing anything without a `launch.json`
 * updated `${workspaceRoot}` to `${workspaceFolder}`
 
