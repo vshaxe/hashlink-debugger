@@ -8,6 +8,9 @@ class Configuration {
 
 	static function resolveDebugConfiguration(folder:Null<WorkspaceFolder>, config:DebugConfiguration,
 			?token:CancellationToken):ProviderResult<DebugConfiguration> {
-		return null; // show launch.json
+		if (config.type == null) {
+			return null; // show launch.json
+		}
+		return config;
 	}
 }

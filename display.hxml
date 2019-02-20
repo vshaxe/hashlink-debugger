@@ -4,3 +4,4 @@
 -lib format
 -lib hscript
 -cp src
+-js foo.js
