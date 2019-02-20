@@ -75,7 +75,7 @@
 							"cwd": {
 								"type": "string",
 								"description": "Working directory",
-								"default": "${workspaceRoot}"
+								"default": "${workspaceFolder}"
 							},
 							"program": {
 								"type": "string",
@@ -119,7 +119,7 @@
 							"cwd": {
 								"type": "string",
 								"description": "Working directory",
-								"default": "${workspaceRoot}"
+								"default": "${workspaceFolder}"
 							},
 							"port": {
 								"type": "number",
@@ -135,7 +135,7 @@
 						"request": "launch",
 						"type": "hl",
 						"hxml": "build.hxml",
-						"cwd": "${workspaceRoot}",
+						"cwd": "${workspaceFolder}",
 						"preLaunchTask": {
 							"type": "haxe",
 							"args": "active configuration"
@@ -147,7 +147,7 @@
 						"port": 6112,
 						"type": "hl",
 						"hxml": "build.hxml",
-						"cwd": "${workspaceRoot}",
+						"cwd": "${workspaceFolder}",
 						"preLaunchTask": {
 							"type": "haxe",
 							"args": "active configuration"

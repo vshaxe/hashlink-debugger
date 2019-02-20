@@ -9,7 +9,7 @@
 			"request": "launch",
 			"type": "hl",
 			"hxml": "debugger.hxml",
-			"cwd": "${workspaceRoot}",
+			"cwd": "${workspaceFolder}",
 			"argsFile": "args.txt",
 			"preLaunchTask": "Build"
 		},
@@ -17,7 +17,7 @@
 			"type": "node",
 			"request": "launch",
 			"name": "Node",
-			"program": "${workspaceRoot}/debugger.js",
+			"program": "${workspaceFolder}/debugger.js",
 			"args": [
 				"--input",
 				"args.txt"
