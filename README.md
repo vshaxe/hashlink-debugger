@@ -11,7 +11,7 @@ The following instructions are only relevant for building the extension from sou
 
 ### Compiling
 
-You will need [Haxe 4 preview build](https://haxe.org/download/version/4.0.0-preview.5/).
+You will need [Haxe 4.0.0-rc.1](https://haxe.org/download/version/4.0.0-rc.1/).
 
 Additionally, you need to install these dependencies:
 
