@@ -581,10 +581,17 @@ class HLAdapter extends adapter.DebugSession {
 			return { name : name, value : "Unknown variable", variablesReference : 0 };
 		var tstr = dbg.eval.typeStr(value.t);
 		switch( value.v ) {
-		case VPointer(_), VEnum(_):
+		case VPointer(_):
 			var fields = dbg.eval.getFields(value);
 			if( fields != null && fields.length > 0 )
 				return { name : name, type : tstr, value : tstr, variablesReference : allocValue(VValue(value)), namedVariables : fields.length };
+		case VEnum(c,values,_) if( values.length > 0 ):
+			var str = c + "(" + [for( v in values ) switch( v.v ) {
+				case VEnum(c,values,_) if( values.length == 0 ): c;
+				case VPointer(_), VEnum(_), VArray(_), VMap(_), VBytes(_): "...";
+				default: dbg.eval.valueStr(v);
+			}].join(", ")+")";
+			return { name : name, type : tstr, value : str, variablesReference : allocValue(VValue(value)), namedVariables : values.length };
 		case VArray(_, len, _, _), VMap(_, len, _, _):
 			return { name : name, type : tstr, value : dbg.eval.valueStr(value), variablesReference : allocValue(VValue(value)), indexedVariables : len };
 		case VBytes(len, _):
