@@ -785,6 +785,8 @@ class HLAdapter extends adapter.DebugSession {
 		}
 	}
 
+	static var KEYWORDS = [for( k in ["var","new","function","inline","final","if","else","while","do","for","break","continue","return","throw","try","catch","switch","case","default"] ) k => true];
+
 	override function evaluateRequest(response:EvaluateResponse, args:EvaluateArguments) {
 		//debug("Eval " + args);
 		dbg.currentStackFrame = args.frameId;
@@ -792,15 +794,22 @@ class HLAdapter extends adapter.DebugSession {
 			// ?ident => hover on optional param (most likely)
 			if( ~/^\?[A-Za-z0-9_]+$/.match(args.expression) )
 				args.expression = args.expression.substr(1);
-			var value = dbg.getValue(args.expression);
-			var v = makeVar("", value);
-			response.body = {
-				result : v.value,
-				type : v.type,
-				variablesReference : v.variablesReference,
-				namedVariables : v.namedVariables,
-				indexedVariables : v.indexedVariables,
-			};
+			if( KEYWORDS.exists(args.expression) ) {
+				response.body = {
+					result : args.expression,
+					variablesReference : 0,
+				};
+			} else {
+				var value = dbg.getValue(args.expression);
+				var v = makeVar("", value);
+				response.body = {
+					result : v.value,
+					type : v.type,
+					variablesReference : v.variablesReference,
+					namedVariables : v.namedVariables,
+					indexedVariables : v.indexedVariables,
+				};
+			}
 		} catch( e : Dynamic ) {
 			response.body = {
 				result : Std.string(e),
