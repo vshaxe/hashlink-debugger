@@ -1,9 +1,15 @@
-## 0.6.0 (to be released)
+## 0.6.0 (March 4, 2019)
 
 * added optional `program` support (#3)
 * fixed a crash with compile time cwd != runtime cwd
 * fixed "Start Debugging" not doing anything without a `launch.json`
 * updated `${workspaceRoot}` to `${workspaceFolder}`
+* improved enum display in tree view
+* added explicit error on ENOENT
+* fixed static variables lookup
+* fixed current package type lookup
+* make sure to have correct port on launch (#37)
+* prevent overflow error when doing pointer difference (#46)
 
 ## 0.5.2 (February 7, 2019)
 
