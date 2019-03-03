@@ -306,6 +306,7 @@ class Eval {
 
 		// static
 		var ctx = module.getMethodContext(funIndex);
+		var tpack = null;
 		if( ctx != null ) {
 			var t = ctx.obj;
 			if( t.globalValue != null )
@@ -313,11 +314,28 @@ class Eval {
 				case HObj(p): p;
 				default: null;
 				}
-			if( t != null && t.name.charCodeAt(0) == '$'.code ) {
-				for( f in t.fields )
-					if( f.name == name )
-						return readFieldAddress(getVar(t.name.substr(1)), name);
+			if( t != null ) {
+				var path = t.name.split(".");
+				var tname = path.pop();
+				if( tname.charCodeAt(0) == '$'.code ) {
+					path.push(tname.substr(1));
+					for( f in t.fields )
+						if( f.name == name ) {
+							path.push(name);
+							return getGlobalAddress(path);
+						}
+					path.pop();
+					tpack = path;
+				}
 			}
+		}
+
+		// global (current package)
+		if( tpack != null && tpack.length > 0 ) {
+			tpack.push(name);
+			var g = getGlobalAddress(tpack);
+			if( g != null )
+				return g;
 		}
 
 		// global
