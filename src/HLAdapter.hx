@@ -80,7 +80,7 @@ class HLAdapter extends adapter.DebugSession {
 		if( port == null ) port = debugPort;
 
 		try {
-			var program = launch(cast args, response);
+			var program = launch(args, response);
 			if( doDebug && !startDebug(program, port) ) {
 				proc.kill();
 				dbg = null;
@@ -225,7 +225,7 @@ class HLAdapter extends adapter.DebugSession {
 		if( program == null )
 			throw args.hxml + " file does not contain -hl output";
 
-		var hlArgs = ["--debug", "" + debugPort, program];
+		var hlArgs = ["--debug", "" + (args.port == null ? debugPort : args.port), program];
 
 		if( doDebug )
 			hlArgs.unshift("--debug-wait");
