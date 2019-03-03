@@ -69,8 +69,11 @@ abstract Pointer(haxe.Int64) to haxe.Int64 {
 		return new Pointer(this + pos);
 	}
 
-	public inline function sub( p : Pointer ) : Int {
-		return haxe.Int64.toInt(this - p.i64);
+	public function sub( p : Pointer ) : Int {
+		var d = this - p.i64;
+		if( d.high != d.low >> 31 )
+			return d.high > 0 ? 0x7FFFFFFF : 0x80000000; // overflow
+		return d.low;
 	}
 
 	public function toInt() {
