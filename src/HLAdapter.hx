@@ -257,8 +257,7 @@ class HLAdapter extends adapter.DebugSession {
 			}
 		}
 		// ALLUSERSPROFILE required to spawn correctly on Windows, see vshaxe/hashlink-debugger!51.
-		var env = Sys.systemName() == "Windows" ? { ALLUSERSPROFILE: Sys.environment()['ALLUSERSPROFILE']} : {};
-		proc = ChildProcess.spawn("hl", hlArgs, {env: env, cwd: args.cwd});
+		proc = ChildProcess.spawn("hl", hlArgs, {cwd: args.cwd});
 		proc.stdout.setEncoding('utf8');
 		var prev = "";
 		proc.stdout.on('data', function(buf) {
