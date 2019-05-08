@@ -330,6 +330,10 @@ class HLAdapter extends adapter.DebugSession {
 		if( !dbg.init(api) )
 			throw "Failed to initialize debugger";
 
+		// send initial threads (allow pauseRequest to be fired)
+		for( t in dbg.getThreads() )
+			sendEvent(new ThreadEvent("started",t));
+
 		debug("connected");
 		return true;
 	}
