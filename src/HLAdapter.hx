@@ -39,6 +39,7 @@ class HLAdapter extends adapter.DebugSession {
 	var timer : haxe.Timer;
 
 	var varsValues : Map<Int,VarValue>;
+	var isPause : Bool;
 
 	static var DEBUG = false;
 	static var isWindow = Sys.systemName() == "Windows";
@@ -410,7 +411,8 @@ class HLAdapter extends adapter.DebugSession {
 				debug("Exception: " + str);
 			}
 			beforeStop();
-			var ev = new StoppedEvent(exc == null ? "breakpoint" : "exception", dbg.currentThread, str);
+			var msg = exc == null ? (isPause ? "paused" : "breakpoint") : "exception";
+			var ev = new StoppedEvent(msg, dbg.currentThread, str);
 			ev.allThreadsStopped = true;
 			sendEvent(ev);
 		case Error, StackOverflow:
@@ -436,6 +438,7 @@ class HLAdapter extends adapter.DebugSession {
 		default:
 			errorMessage("??? "+msg);
 		}
+		isPause = false;
 	}
 
 	function beforeStop() {
@@ -742,8 +745,9 @@ class HLAdapter extends adapter.DebugSession {
 
 	override function pauseRequest(response:PauseResponse, args:PauseArguments):Void {
 		debug("Pause Request");
-		handleMessage(dbg.pause());
+		isPause = true;
 		sendResponse(response);
+		handleMessage(dbg.pause());
 	}
 
 	override function disconnectRequest(response:DisconnectResponse, args:DisconnectArguments) {
