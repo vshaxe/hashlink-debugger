@@ -8,6 +8,15 @@ class Extension {
 
 	static function resolveDebugConfiguration(folder:Null<WorkspaceFolder>, config:DebugConfiguration,
 			?token:CancellationToken):ProviderResult<DebugConfiguration> {
+		if (Sys.systemName() == "Mac") {
+			final visitButton = "Visit GitHub Issue";
+			Vscode.window.showErrorMessage("HashLink debugging on macOS is not supported yet.", visitButton).then(function(choice) {
+				if (choice == visitButton) {
+					Vscode.env.openExternal(Uri.parse("https://github.com/vshaxe/hashlink-debugger/issues/28"));
+				}
+			});
+			return null;
+		}
 		if (config.type == null) {
 			return null; // show launch.json
 		}

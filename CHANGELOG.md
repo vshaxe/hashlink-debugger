@@ -1,3 +1,7 @@
+## 0.6.1 (to be released)
+
+* added an error message for trying to debug on macOS (#28)
+
 ## 0.6.0 (March 4, 2019)
 
 * added optional `program` support (#3)
