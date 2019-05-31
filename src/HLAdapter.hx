@@ -1,5 +1,7 @@
 import haxe.io.Path;
 import haxe.CallStack;
+import haxe.DynamicAccess;
+
 import protocol.debug.Types;
 import adapter.DebugSession;
 import js.node.ChildProcess;
@@ -18,6 +20,8 @@ enum VarValue {
 typedef Arguments = {
 	cwd: String,
 	hxml: String,
+	?hl:String,
+	?env:DynamicAccess<String>,
 	?program: String,
 	?args: Array<String>,
 	?argsFile: String,
@@ -232,7 +236,7 @@ class HLAdapter extends adapter.DebugSession {
 			hlArgs.unshift("--debug-wait");
 
 		debug("start process");
-
+		
 		if( args.args != null ) hlArgs = hlArgs.concat(args.args);
 		if( args.argsFile != null ) {
 			var words = sys.io.File.getContent(args.argsFile).split(" ");
@@ -258,7 +262,8 @@ class HLAdapter extends adapter.DebugSession {
 			}
 		}
 		// ALLUSERSPROFILE required to spawn correctly on Windows, see vshaxe/hashlink-debugger!51.
-		proc = ChildProcess.spawn("hl", hlArgs, {cwd: args.cwd});
+		var hlPath = (args.hl != null) ? args.hl : 'hl';
+		proc = ChildProcess.spawn(hlPath, hlArgs, {cwd: args.cwd, env:args.env});
 		proc.stdout.setEncoding('utf8');
 		var prev = "";
 		proc.stdout.on('data', function(buf) {
