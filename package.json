@@ -67,19 +67,28 @@
 								"description": "launch",
 								"default": "launch"
 							},
-							"hxml": {
-								"type": "string",
-								"description": "Path to the .hxml file.",
-								"default": "build.hxml"
-							},
 							"cwd": {
 								"type": "string",
 								"description": "Working directory",
 								"default": "${workspaceFolder}"
 							},
+							"hxml": {
+								"type": "string",
+								"markdownDescription": "Path to the `.hxml` file.",
+								"default": "build.hxml"
+							},
+							"hl": {
+								"type": "string",
+								"markdownDescription": "Path to the `hl` executable.",
+								"default": "hl"
+							},
+							"env": {
+								"type": "object",
+								"markdownDescription": "The environment with which to start the `hl` executable."
+							},
 							"program": {
 								"type": "string",
-								"description": "Path to the .hl file"
+								"markdownDescription": "Path to the `.hl` file"
 							},
 							"args": {
 								"description": "Program arguments.",
