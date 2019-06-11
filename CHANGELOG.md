@@ -1,7 +1,9 @@
-## 0.6.1 (to be released)
+## 0.7.0 (June 11, 2019)
 
 * added an error message for trying to debug on macOS (#28)
 * added optional `hl` and `env` fields to launch configs (#55)
+* fixed pause button
+* fixed some startup errors on Windows/Linux
 
 ## 0.6.0 (March 4, 2019)
 
