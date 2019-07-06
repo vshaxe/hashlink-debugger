@@ -1,7 +1,7 @@
 {
 	"name": "haxe-hl",
 	"displayName": "HashLink Debugger",
-	"version": "0.7.0",
+	"version": "0.7.1",
 	"publisher": "HaxeFoundation",
 	"license": "MIT",
 	"description": "Debugger for Haxe/HashLink applications",
@@ -165,10 +165,5 @@
 				]
 			}
 		]
-	},
-	"__metadata": {
-		"id": "1cc8d5ef-027a-447d-8a30-0ec3f0fe30d3",
-		"publisherDisplayName": "Haxe Foundation",
-		"publisherId": "61407f1c-eaa6-4653-b105-144f7a312894"
 	}
 }

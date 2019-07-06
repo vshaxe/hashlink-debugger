@@ -1,3 +1,8 @@
+## 0.7.1 (July 6, 2019)
+
+* compatible with VSCode 1.36 (Electron 4.3.5)
+
+
 ## 0.7.0 (June 11, 2019)
 
 * added an error message for trying to debug on macOS (#28)
