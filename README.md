@@ -11,11 +11,11 @@ The following instructions are only relevant for building the extension from sou
 
 ### Compiling
 
-You will need [Haxe 4.0.0-rc.2](https://haxe.org/download/version/4.0.0-rc.2/).
+You will need [Haxe 4.0.0-rc.3](https://haxe.org/download/version/4.0.0-rc.3/).
 
 Additionally, you need to install these dependencies:
 
-```hxml
+```
 haxelib git vscode-debugadapter https://github.com/vshaxe/vscode-debugadapter-extern
 haxelib git hxnodejs https://github.com/HaxeFoundation/hxnodejs
 haxelib install hscript
