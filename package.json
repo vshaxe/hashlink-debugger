@@ -34,8 +34,8 @@
 		"bindings": "^1.3.0",
 		"deasync": "0.1.14",
 		"ffi": "2.3.0",
-		"vscode-debugadapter": "1.24.0",
-		"vscode-debugprotocol": "1.24.0"
+		"vscode-debugadapter": "1.36.0",
+		"vscode-debugprotocol": "1.36.0"
 	},
 	"devDependencies": {},
 	"scripts": {},
@@ -48,11 +48,6 @@
 			{
 				"type": "hl",
 				"label": "HashLink",
-				"enableBreakpointsFor": {
-					"languageIds": [
-						"haxe"
-					]
-				},
 				"program": "./adapter.js",
 				"runtime": "node",
 				"configurationAttributes": {
@@ -165,5 +160,10 @@
 				]
 			}
 		]
+	},
+	"__metadata": {
+		"id": "1cc8d5ef-027a-447d-8a30-0ec3f0fe30d3",
+		"publisherDisplayName": "Haxe Foundation",
+		"publisherId": "61407f1c-eaa6-4653-b105-144f7a312894"
 	}
 }

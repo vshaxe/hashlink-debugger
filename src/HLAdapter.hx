@@ -1,9 +1,8 @@
-import haxe.io.Path;
 import haxe.CallStack;
 import haxe.DynamicAccess;
 
-import protocol.debug.Types;
-import adapter.DebugSession;
+import vscode.debugProtocol.DebugProtocol;
+import vscode.debugAdapter.DebugSession;
 import js.node.ChildProcess;
 import js.node.Buffer;
 import js.node.child_process.ChildProcess as ChildProcessObject;
@@ -28,7 +27,7 @@ typedef Arguments = {
 	?port: Int
 }
 
-class HLAdapter extends adapter.DebugSession {
+class HLAdapter extends DebugSession {
 
 	static var UID = 0;
 
@@ -36,10 +35,10 @@ class HLAdapter extends adapter.DebugSession {
 	var workspaceDirectory : String;
 	var classPath : Array<String>;
 
-	var debugPort = 6112;
-	var doDebug = true;
+	var debugPort : Int;
+	var doDebug : Bool;
 	var dbg : hld.Debugger;
-	var startTime = haxe.Timer.stamp();
+	var startTime : Float;
 	var timer : haxe.Timer;
 
 	var varsValues : Map<Int,VarValue>;
@@ -47,6 +46,13 @@ class HLAdapter extends adapter.DebugSession {
 
 	static var DEBUG = false;
 	static var isWindow = Sys.systemName() == "Windows";
+
+	function new() {
+		super();
+		debugPort = 6112;
+		doDebug = true;
+		startTime = haxe.Timer.stamp();
+	}
 
 	override function initializeRequest(response:InitializeResponse, args:InitializeRequestArguments) {
 
@@ -79,7 +85,7 @@ class HLAdapter extends adapter.DebugSession {
 
 		var args:Arguments = cast args;
 
-		workspaceDirectory = if( args.cwd == null ) Path.directory(args.program) else args.cwd;
+		workspaceDirectory = if( args.cwd == null ) haxe.io.Path.directory(args.program) else args.cwd;
 		Sys.setCwd(workspaceDirectory);
 		var port = args.port;
 		if( port == null ) port = debugPort;
@@ -125,7 +131,7 @@ class HLAdapter extends adapter.DebugSession {
 
 	function error<T>(response:Response<T>, message:Dynamic) {
 		sendErrorResponse(cast response, 3000, "" + message);
-		sendToOutput("ERROR : " + message, OutputEventCategory.stderr);
+		sendToOutput("ERROR : " + message, OutputEventCategory.Stderr);
 	}
 
 	/**
@@ -139,8 +145,8 @@ class HLAdapter extends adapter.DebugSession {
 		return null;
 	}
 
-	var r_trace = ~/^([A-Za-z0-9_.\/]+):([0-9]+): /;
-	var r_call = ~/^Called from [^(]+\(([A-Za-z0-9_.\/\\:]+) line ([0-9]+)\)/;
+	static final r_trace = ~/^([A-Za-z0-9_.\/]+):([0-9]+): /;
+	static final r_call = ~/^Called from [^(]+\(([A-Za-z0-9_.\/\\:]+) line ([0-9]+)\)/;
 
 	function processLine( str : String, ?out : OutputEventCategory ) {
 		var e = new OutputEvent(str+"\n", out);
@@ -274,7 +280,7 @@ class HLAdapter extends adapter.DebugSession {
 				if( index < 0 ) break;
 				var str = prev.substr(0, index);
 				prev = prev.substr(index + 1);
-				processLine(str, stdout);
+				processLine(str, Stdout);
 			}
 			// remaining data ?, wait a little before sending -- if it's really a progressive trace
 			if( prev != "" ) {
@@ -282,7 +288,7 @@ class HLAdapter extends adapter.DebugSession {
 				var t = new haxe.Timer(200);
 				t.run = function() {
 					if( prev == cur ) {
-						sendEvent(new OutputEvent(prev, stdout));
+						sendEvent(new OutputEvent(prev, Stdout));
 						prev = "";
 					}
 				};
@@ -290,10 +296,10 @@ class HLAdapter extends adapter.DebugSession {
 		} );
 		proc.stderr.setEncoding('utf8');
 		proc.stderr.on('data', function(buf){
-			sendEvent(new OutputEvent(buf.toString(), OutputEventCategory.stderr));
+			sendEvent(new OutputEvent(buf.toString(), OutputEventCategory.Stderr));
 		} );
 		proc.on('close', function(code) {
-			var exitedEvent:ExitedEvent = {type:MessageType.event, event:"exited", seq:0, body : { exitCode:code}};
+			var exitedEvent:ExitedEvent = {type:MessageType.Event, event:"exited", seq:0, body : { exitCode:code}};
 			debug("Exit code " + code);
 			sendEvent(exitedEvent);
 			sendEvent(new TerminatedEvent());
@@ -592,7 +598,7 @@ class HLAdapter extends adapter.DebugSession {
 		sendResponse(response);
 	}
 
-	function makeVar( name : String, value : hld.Value ) : protocol.debug.Types.Variable {
+	function makeVar( name : String, value : hld.Value ) : vscode.debugProtocol.DebugProtocol.Variable {
 		if( value == null )
 			return { name : name, value : "Unknown variable", variablesReference : 0 };
 		var tstr = dbg.eval.typeStr(value.t);
@@ -857,12 +863,12 @@ class HLAdapter extends adapter.DebugSession {
 	override function gotoTargetsRequest(responses:GotoTargetsResponse, args:GotoTargetsArguments) { debug("Unhandled request"); }
 	override function completionsRequest(response:CompletionsResponse, args:CompletionsArguments) { debug("Unhandled request"); }
 
-	function sendToOutput(output:String, category:OutputEventCategory = OutputEventCategory.console) {
+	function sendToOutput(output:String, category:OutputEventCategory = Console) {
 		sendEvent(new OutputEvent(output + "\n", category));
 	}
 
 	function errorMessage( msg : String ) {
-		sendEvent(new OutputEvent(msg+"\n", stderr));
+		sendEvent(new OutputEvent(msg+"\n", Stderr));
 	}
 
 	static function main() {

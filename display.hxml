@@ -1,6 +1,5 @@
 -lib vscode
 -lib vscode-debugadapter
--lib hxnodejs
 -lib format
 -lib hscript
 -cp src

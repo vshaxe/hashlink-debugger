@@ -1,8 +1,8 @@
 -lib vscode-debugadapter
--lib hxnodejs
 -lib format
 -lib hscript
 -cp src
+-D js-es=6
 -js adapter.js
 -main HLAdapter
 
@@ -10,5 +10,6 @@
 
 -cp src
 -lib vscode
+-D js-es=6
 -js extension.js
 Extension
