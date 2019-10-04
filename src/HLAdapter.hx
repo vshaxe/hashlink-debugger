@@ -197,12 +197,12 @@ class HLAdapter extends DebugSession {
 			var arg = args.shift();
 			var value = args.join(" ");
 			switch( arg ) {
-			case "-lib":
+			case "-lib" | "-L" | "--library":
 				libs.push(value);
-			case "-cp":
+			case "-cp" | "-p" | "--class-path":
 				flushLibs();
 				classPath.push(value);
-			case "-hl":
+			case "-hl" | "--hl":
 				program = value;
 			default:
 				if( StringTools.endsWith(arg, ".hxml") && value == "" )
