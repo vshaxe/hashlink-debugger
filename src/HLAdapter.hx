@@ -197,12 +197,27 @@ class HLAdapter extends DebugSession {
 			var arg = args.shift();
 			var value = args.join(" ");
 			switch( arg ) {
+			#if haxe3compat
+			case "-lib": trace("Haxe 3 argument -lib is not supported");
+			case "-L" | "--library":
+			#else
 			case "-lib" | "-L" | "--library":
+			#end
 				libs.push(value);
+			#if haxe3compat
+			case "-cp": trace("Haxe 3 argument -cp is not supported");
+			case "-p" | "--class-path":
+			#else
 			case "-cp" | "-p" | "--class-path":
+			#end
 				flushLibs();
 				classPath.push(value);
+			#if haxe3compat
+			case "-hl": trace("Haxe 3 argument -hl is not supported");
+			case "--hl":
+			#else
 			case "-hl" | "--hl":
+			#end
 				program = value;
 			default:
 				if( StringTools.endsWith(arg, ".hxml") && value == "" )
