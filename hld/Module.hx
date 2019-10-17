@@ -35,6 +35,7 @@ class Module {
 	var graphCache : Map<Int, CodeGraph>;
 	var methods : Array<{ obj : ObjPrototype, field : String }>;
 	var functionsIndexes : Map<Int,Int>;
+	var isWindows : Bool;
 
 	public function new() {
 		protoCache = new Map();
@@ -43,6 +44,7 @@ class Module {
 		functionsIndexes = new Map();
 		functionRegsCache = [];
 		methods = [];
+		isWindows = Sys.systemName() == "Windows";
 	}
 
 	public function getMethodContext( fidx : Int ) {
@@ -308,12 +310,19 @@ class Module {
 
 		var argsSize = 0;
 		var size = 0;
+		var floatRegs = 0, intRegs = 0;
 		for( i in 0...nargs ) {
-
-			if( align.is64 )
-				throw "TODO : handle x64 calling conventions";
-
 			var t = f.regs[i];
+			if( align.is64 && !isWindows ) {
+				var isFloat = t.match(HF32 | HF64);
+				if( (isFloat ? ++floatRegs : ++intRegs) <= 6 ) {
+					// stored in locals
+					size += align.typeSize(t);
+					size += align.padSize(size, t);
+					regs[i] = { t : t, offset : -size };
+					continue;
+				}
+			}
 			regs[i] = { t : t, offset : argsSize + align.ptr * 2 };
 			argsSize += align.stackSize(t);
 		}
