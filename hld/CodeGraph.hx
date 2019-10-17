@@ -26,6 +26,7 @@ class CodeBlock {
 	public var writtenVars : Map<String, Array<Int>>;
 
 	public var visitTag : Int = 0;
+	public var visitResult : LocalAccess;
 
 	public function new(pos) {
 		start = pos;
@@ -194,7 +195,7 @@ class CodeGraph {
 
 	function lookupLocal( b : CodeBlock, name : String, pos : Int ) : LocalAccess {
 		if( b.visitTag == currentTag )
-			return null;
+			return b.visitResult;
 		b.visitTag = currentTag;
 		var v = b.writtenVars.get(name);
 		if( v != null ) {
@@ -207,15 +208,20 @@ class CodeGraph {
 			if( last >= 0 ) {
 				var rid = -1;
 				opFx(fun.ops[last], function(_) {}, function(w) rid = w);
-				return { rid : rid, t : fun.regs[rid] };
+				return b.visitResult = { rid : rid, t : fun.regs[rid] };
 			}
 		}
+		var found : LocalAccess = null;
 		for( b2 in b.prev )
 			if( b2.start < b.start ) {
 				var l = lookupLocal(b2, name, pos);
-				if( l != null ) return l;
+				// make sure that all branches have written the same register
+				// if not it's out of scope
+				if( found != null && (l == null || l.rid != found.rid) )
+					return b.visitResult = null;
+				found = l;
 			}
-		return null;
+		return b.visitResult = found;
 	}
 
 	function checkWrites( b : CodeBlock ) {
