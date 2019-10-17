@@ -1,3 +1,8 @@
+## 0.8.0 (October 10, 2019)
+
+* added x64 function arguments support
+* do not display variables once they are out of scope
+
 ## 0.7.1 (July 6, 2019)
 
 * compatible with VSCode 1.36 (Electron 4.2.5)
