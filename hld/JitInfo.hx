@@ -4,11 +4,13 @@ private enum DebugFlag {
 	Is64; // runs in 64 bit mode
 	Bool4; // bool = 4 bytes (instead of 1)
 	Threads; // was compiled with threads support
+	IsWinCall;
 }
 
 class JitInfo {
 
 	public var is64(default, null) : Bool;
+	public var isWinCall(default, null) : Bool;
 	public var align(default,null) : Align;
 	public var hasThreads(get,never) : Bool;
 	public var pid(default,null) : Int = 0;
@@ -55,6 +57,7 @@ class JitInfo {
 		flags = haxe.EnumFlags.ofInt(input.readInt32());
 		is64 = flags.has(Is64);
 		align = new Align(is64, flags.has(Bool4)?4:1);
+		isWinCall = flags.has(IsWinCall) || Sys.systemName() == "Windows" /* todo : disable this for cross platform remote debug */;
 
 		if( version == 0 ) {
 			var mainThread = input.readInt32();
