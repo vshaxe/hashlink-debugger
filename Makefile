@@ -2,6 +2,8 @@
 NPARAMS=--runtime=electron --target=6.1.2 --disturl=https://atom.io/download/electron
 LINUX_VM=ncannasse@virtbuntu
 
+all:
+
 deps:
 	npm install node-gyp -g
 	npm install $(NPARAMS)
@@ -16,8 +18,8 @@ cleanup:
 # git pull && sudo rm -rf node_modules && sudo make deps on LINUX_VM before running this
 import_linux_bindings:
 	cp bindings.js node_modules/bindings/	
-	make LIB=ffi NAME=ffi_bindings _import_linux_bindings
-	make LIB=ref NAME=binding _import_linux_bindings
+	make LIB=ffi-napi NAME=ffi_bindings _import_linux_bindings
+	make LIB=ref-napi NAME=binding _import_linux_bindings
 	make LIB=deasync NAME=deasync _import_linux_bindings
 
 _import_linux_bindings:

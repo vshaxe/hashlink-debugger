@@ -38,7 +38,7 @@ extern class CValue extends js.node.Buffer {
 
 abstract CStruct(Dynamic) {
 	public function new() {
-		this = untyped require('ref-struct')();
+		this = untyped require('ref-struct-napi')();
 	}
 	public inline function defineProperty( name : String, t : CType ) {
 		this.defineProperty(name, t);
@@ -48,7 +48,7 @@ abstract CStruct(Dynamic) {
 	}
 }
 
-@:jsRequire('ref')
+@:jsRequire('ref-napi')
 extern class Ref {
 
 	public static var types : {
@@ -62,7 +62,7 @@ extern class Ref {
 
 }
 
-@:jsRequire('ffi')
+@:jsRequire('ffi-napi')
 extern class NodeFFI {
 
 	public static function Library( name : String, decls : {} ) : Dynamic;

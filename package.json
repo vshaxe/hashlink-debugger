@@ -33,7 +33,9 @@
 	"dependencies": {
 		"bindings": "^1.5.0",
 		"deasync": "0.1.15",
-		"ffi": "2.3.0",
+		"ffi-napi": "^2.4.5",
+		"ref-napi": "^1.4.2",
+		"ref-struct-napi": "^1.1.0",
 		"vscode-debugadapter": "1.36.0",
 		"vscode-debugprotocol": "1.36.0"
 	},
