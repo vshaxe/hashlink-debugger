@@ -24,7 +24,8 @@ typedef Arguments = {
 	?program: String,
 	?args: Array<String>,
 	?argsFile: String,
-	?port: Int
+	?port: Int,
+	?hotReload : Bool
 }
 
 class HLAdapter extends DebugSession {
@@ -241,8 +242,11 @@ class HLAdapter extends DebugSession {
 		if( doDebug )
 			hlArgs.unshift("--debug-wait");
 
+		if( args.hotReload )
+			hlArgs.unshift("--hot-reload");
+
 		debug("start process");
-		
+
 		if( args.args != null ) hlArgs = hlArgs.concat(args.args);
 		if( args.argsFile != null ) {
 			var words = sys.io.File.getContent(args.argsFile).split(" ");

@@ -102,6 +102,10 @@
 							"port": {
 								"type": "number",
 								"decscription": "Port to connect to."
+							},
+							"hotReload": {
+								"description": "Enable HL code hot reload on compilation - EXPERIMENTAL.",
+								"type" : "boolean"
 							}
 						}
 					},
