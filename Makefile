@@ -1,5 +1,5 @@
 # requires compiling native extensions with electron support
-NPARAMS=--runtime=electron --target=4.2.5 --disturl=https://atom.io/download/electron
+NPARAMS=--runtime=electron --target=6.1.2 --disturl=https://atom.io/download/electron
 LINUX_VM=ncannasse@virtbuntu
 
 deps:
