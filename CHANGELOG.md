@@ -1,3 +1,7 @@
+## 0.8.1 (November 10, 2019)
+
+* compatible with VSCode 1.40 (Electron 6.1.2)
+
 ## 0.8.0 (October 10, 2019)
 
 * added x64 function arguments support
