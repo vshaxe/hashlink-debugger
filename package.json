@@ -1,7 +1,7 @@
 {
 	"name": "haxe-hl",
 	"displayName": "HashLink Debugger",
-	"version": "0.8.0",
+	"version": "0.8.1",
 	"publisher": "HaxeFoundation",
 	"license": "MIT",
 	"description": "Debugger for Haxe/HashLink applications",
@@ -105,7 +105,7 @@
 							},
 							"hotReload": {
 								"description": "Enable HL code hot reload on compilation - EXPERIMENTAL.",
-								"type" : "boolean"
+								"type": "boolean"
 							}
 						}
 					},
