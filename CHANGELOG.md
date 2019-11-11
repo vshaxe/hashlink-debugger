@@ -1,6 +1,7 @@
-## 0.8.1 (November 10, 2019)
+## 0.8.2 (November 11, 2019)
 
-* compatible with VSCode 1.40 (Electron 6.1.2)
+* compatible with VSCode 1.40 (Electron 6.2)
+* added hotReload experimental configuration on launch
 
 ## 0.8.0 (October 10, 2019)
 
