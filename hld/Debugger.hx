@@ -542,16 +542,22 @@ class Debugger {
 
 		// similar to module/module_capture_stack
 		if( is64 ) {
+			// on windows x64, we can't guarantee a stack pointer for our native funs...
+			var skipFirstCheck = (e == null && jit.isWinCall);
 			for( i in 0...size >> 3 ) {
 				var val = mem.getPointer(i << 3, jit.align);
-				if( val > esp && val < tinf.stackTop || (inProlog && i == 0) ) {
-					var codePtr = mem.getPointer((i + 1) << 3, jit.align);
+				if( val > esp && val < tinf.stackTop || (inProlog && i == 0) || skipFirstCheck ) {
+					var codePtr = skipFirstCheck ? val : mem.getPointer((i + 1) << 3, jit.align);
 					if( codePtr < jit.codeStart || codePtr > jit.codeEnd )
 						continue;
 					var codePos = codePtr.sub(jit.codeStart);
 					var e = jit.resolveAsmPos(codePos);
 					if( e != null && e.fpos >= 0 ) {
-						e.ebp = val;
+						if( skipFirstCheck ) {
+							e.ebp = getReg(tid, Ebp);
+							skipFirstCheck = false;
+						} else
+							e.ebp = val;
 						stack.push(e);
 						if( max > 0 && stack.length >= max ) return stack;
 					}
