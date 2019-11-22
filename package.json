@@ -1,7 +1,7 @@
 {
 	"name": "haxe-hl",
 	"displayName": "HashLink Debugger",
-	"version": "0.8.2",
+	"version": "0.8.3",
 	"publisher": "HaxeFoundation",
 	"license": "MIT",
 	"description": "Debugger for Haxe/HashLink applications",
@@ -101,11 +101,15 @@
 							},
 							"port": {
 								"type": "number",
-								"decscription": "Port to connect to."
+								"description": "Debug port used to connect to HL virtual machine."
 							},
 							"hotReload": {
 								"description": "Enable HL code hot reload on compilation - EXPERIMENTAL.",
 								"type": "boolean"
+							},
+							"profileSamples" : {
+								"type": "number",
+								"description": "Start profiling with the specified number of samples per second."
 							}
 						}
 					},

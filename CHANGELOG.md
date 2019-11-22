@@ -1,3 +1,8 @@
+## 0.8.3 (November 22, 2019)
+
+* improved exception stack detection
+* added profileSamples configuration on launch (hl 1.11 profiler)
+
 ## 0.8.2 (November 11, 2019)
 
 * compatible with VSCode 1.40 (Electron 6.2)

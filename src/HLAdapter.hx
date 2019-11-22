@@ -25,7 +25,8 @@ typedef Arguments = {
 	?args: Array<String>,
 	?argsFile: String,
 	?port: Int,
-	?hotReload : Bool
+	?hotReload : Bool,
+	?profileSamples : Int
 }
 
 class HLAdapter extends DebugSession {
@@ -244,6 +245,11 @@ class HLAdapter extends DebugSession {
 
 		if( args.hotReload )
 			hlArgs.unshift("--hot-reload");
+
+		if( args.profileSamples != null ) {
+			hlArgs.unshift(""+args.profileSamples);
+			hlArgs.unshift("--profile");
+		}
 
 		debug("start process");
 
