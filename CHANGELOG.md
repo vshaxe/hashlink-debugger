@@ -1,4 +1,4 @@
-## 0.8.3 (November 22, 2019)
+## 0.9.0 (November 22, 2019)
 
 * improved exception stack detection
 * added profileSamples configuration on launch (hl 1.11 profiler)
