@@ -513,27 +513,36 @@ class Debugger {
 		var e = jit.resolveAsmPos(asmPos);
 		var inProlog = false;
 
+		//trace(eip,"0x"+api.readByte(eip, 0), e);
+
 		// if we are on ret, our EBP is wrong, so let's ignore this stack part
 		if( e != null ) {
 			var op = api.readByte(eip, 0);
+			if( op == 0x48 && jit.is64 )
+				op = api.readByte(eip, 1);
 			if( op == 0xC3 ) // RET
 				e = null;
 		}
 
 		if( e != null ) {
 			var ebp = getReg(tid, Ebp);
-			if( e.fpos < 0 ) {
+			if( e.fpos < 0 && jit.is64) {
+				// we can't consider being in a function while we are in the prolog
+				// because our regs args have not yet been stored on stack
+				e = null;
+			} else if( e.fpos < 0 ) {
 				// we are in function prolog
 				var delta = jit.getFunctionPos(e.fidx) - asmPos;
 				e.fpos = 0;
 				if( delta == 0 )
-					e.ebp = esp.offset( -jit.align.ptr); // not yet pushed ebp
+					e.ebp = esp.offset(-jit.align.ptr); // not yet pushed ebp
 				else
 					e.ebp = esp;
 				inProlog = true;
 			} else
 				e.ebp = ebp;
-			stack.push(e);
+			if( e != null )
+				stack.push(e);
 		}
 
 		// when requiring only top level stack, do not look further if we are in a C function
