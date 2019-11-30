@@ -555,6 +555,17 @@ class Debugger {
 					if( e != null && e.fpos >= 0 ) {
 						if( skipFirstCheck ) {
 							e.ebp = getReg(tid, Ebp);
+							// this ebp might not be good, so let's look for
+							// the first potential ebp backup starting after our esi
+							var k = i - 1;
+							var validEsp = esp.offset(i << 3);
+							while( k >= 0 ) {
+								var val = mem.getPointer((k--) << 3, jit.align);
+								if( val > validEsp && val < tinf.stackTop ) {
+									e.ebp = val;
+									break;
+								}
+							}
 							skipFirstCheck = false;
 						} else
 							e.ebp = val;
