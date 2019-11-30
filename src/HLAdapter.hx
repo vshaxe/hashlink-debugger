@@ -690,7 +690,9 @@ class HLAdapter extends DebugSession {
 					}
 				}
 			case VArray(_, len, get, _):
-				for( i in 0...len ) {
+				var start = args.start == null ? 0 : args.start;
+				var count = args.count == null ? len - start : args.count;
+				for( i in start...start+count ) {
 					try {
 						var value = get(i);
 						vars.push(makeVar("" + i, value));
