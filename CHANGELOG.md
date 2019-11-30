@@ -1,3 +1,9 @@
+## 0.9.1 (November 30, 2019)
+
+* fixes for exception stack management in win64
+* fixes for stepping in/out in x64
+* fixed partial fetching for array/map/bytes
+
 ## 0.9.0 (November 22, 2019)
 
 * improved exception stack detection
