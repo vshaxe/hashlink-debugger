@@ -515,6 +515,9 @@ class Debugger {
 
 		//trace(eip,"0x"+api.readByte(eip, 0), e);
 
+		if( e != null && !module.isValid(e.fidx,e.fpos) )
+			e = null;
+
 		// if we are on ret, our EBP is wrong, so let's ignore this stack part
 		if( e != null ) {
 			var op = api.readByte(eip, 0);
@@ -599,7 +602,8 @@ class Debugger {
 				}
 			}
 		}
-		return stack;
+
+		return [for( s in stack ) if( module.isValid(s.fidx,s.fpos) ) s];
 	}
 
 	inline function get_stackFrameCount() return currentStack.length;

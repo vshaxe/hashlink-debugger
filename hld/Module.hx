@@ -293,6 +293,12 @@ class Module {
 		return { breaks : breaks, line : line };
 	}
 
+	public function isValid( fidx : Int, fpos : Int ) {
+		var f = code.functions[fidx];
+		var fid = f.debug[fpos << 1];
+		return code.debugFiles[fid] != "?";
+	}
+
 	public function resolveSymbol( fidx : Int, fpos : Int ) {
 		var f = code.functions[fidx];
 		var fid = f.debug[fpos << 1];
