@@ -705,8 +705,11 @@ class HLAdapter extends DebugSession {
 					}
 				}
 			case VBytes(len, read, _):
-				var count = (len + 15) >> 4;
-				for( i in 0...count ) {
+				var max = (len + 15) >> 4;
+				var start = args.start == null ? 0 : args.start;
+				var count = args.count == null ? max - start : args.count;
+
+				for( i in start...start+count ) {
 					var p = i * 16;
 					var size = p + 16 > len ? len - p : 16;
 					var b = haxe.io.Bytes.alloc(size);
@@ -727,8 +730,10 @@ class HLAdapter extends DebugSession {
 						});
 					}
 			case VMap(tkey, len, getKey, getValue, _):
+				var start = args.start == null ? 0 : args.start;
+				var count = args.count == null ? len - start : args.count;
 				if( len > 0 ) getKey(len - 1); // fetch all
-				for( i in 0...len ) {
+				for( i in start...start+count ) {
 					try {
 						var key = getKey(i);
 						var value = getValue(i);
