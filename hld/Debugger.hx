@@ -571,11 +571,13 @@ class Debugger {
 							// the first potential ebp backup starting after our esi
 							var k = i - 1;
 							var validEsp = esp.offset(i << 3);
-							while( k >= 0 ) {
-								var val = mem.getPointer((k--) << 3, jit.align);
-								if( val > validEsp && val < tinf.stackTop ) {
-									e.ebp = val;
-									break;
+							if( e.ebp < validEsp || e.ebp > tinf.stackTop ) {
+								while( k >= 0 ) {
+									var val = mem.getPointer((k--) << 3, jit.align);
+									if( val > validEsp && val < tinf.stackTop ) {
+										e.ebp = val;
+										break;
+									}
 								}
 							}
 							skipFirstCheck = false;
