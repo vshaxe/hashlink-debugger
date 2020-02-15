@@ -104,6 +104,8 @@ class Module {
 				if( dline > inf.lmax ) inf.lmax = dline;
 			}
 		}
+		for( i in 0...code.natives.length )
+			functionsIndexes.set(code.natives[i].findex, code.functions.length + i);
 	}
 
 	function fetchField( o : ObjPrototype, fid : Int ) {

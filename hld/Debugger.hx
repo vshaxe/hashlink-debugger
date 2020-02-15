@@ -387,8 +387,7 @@ class Debugger {
 				// skip calls to std library
 				var fid = @:privateAccess module.functionsIndexes.get(f);
 				var ctx = module.getMethodContext(fid);
-				trace(f, fid, ctx == null ? "NULL" : ctx.obj.name + "." + ctx.field, skipFunction(fid));
-				if( fid >= module.code.functions.length /* native */ || skipFunction(fid) )
+				if( fid == null || fid >= module.code.functions.length /* native */ || skipFunction(fid) )
 					c = CNo;
 			default:
 			}
