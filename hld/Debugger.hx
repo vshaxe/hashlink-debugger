@@ -412,6 +412,8 @@ class Debugger {
 					visitRec(pos+1);
 				return;
 			}
+			if( !c.match(CNo | CCall(_)) )
+				marked.set(pos, null);
 			switch( c ) {
 			case CJCond(d):
 				visitRec(pos + 1 + d);
@@ -419,7 +421,6 @@ class Debugger {
 				visitRec(pos + 1 + d);
 				return;
 			case CLabel:
-				marked.set(pos, null); // already visited
 			case CTry(d):
 				visitRec(pos + 1 + d);
 			case CSwitch(cases):

@@ -262,6 +262,12 @@ class Module {
 				var f = f.f;
 				var i = 0;
 				var len = f.debug.length >> 1;
+				var first = -1;
+				/**
+					Because of inlining or switch compilation we might have several instances
+					of the same code duplicated within the same method, let's match continous
+					groups
+				**/
 				while( i < len ) {
 					var dfile = f.debug[i << 1];
 					if( dfile != ffuns.fidx ) {
@@ -273,7 +279,11 @@ class Module {
 						i++;
 						continue;
 					}
-					breaks.push({ ifun : ifun, pos : i });
+					var op = f.ops[i].getIndex();
+					if( first == -1 || first == op ) {
+						first = op;
+						breaks.push({ ifun : ifun, pos : i });
+					}
 					// skip
 					i++;
 					while( i < len ) {
