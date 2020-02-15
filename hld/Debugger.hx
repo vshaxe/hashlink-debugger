@@ -18,9 +18,9 @@ typedef StackInfo = { file : String, line : Int, ebp : Pointer, ?context : { obj
 
 class Debugger {
 
-	static var DEBUG = false;
 	static inline var INT3 = 0xCC;
 	static var HW_REGS : Array<Api.Register> = [Dr0, Dr1, Dr2, Dr3];
+	public static var DEBUG = false;
 	public static var IGNORED_ROOTS = [
 		"hl",
 		"sys",
@@ -423,11 +423,13 @@ class Debugger {
 		visitRec(s.fpos);
 		if( !immediateProcess ) {
 			resume();
-			wait();
+			var r = wait();
+			if( (r != Breakpoint && r != SingleStep) || currentThread != tid )
+				return r;
 		}
 		// execute until the end of Call/Ret if we stopped on it !
 		for( b in breakPoints ) {
-			if( currentThread != tid || nextStep != b.codePos || b.fid >= -1 ) continue;
+			if( nextStep != b.codePos || b.fid >= -1 ) continue;
 			var isRet = b.fid == -2;
 			while( true ) {
 				var eip = getReg(tid, Eip);
@@ -444,7 +446,7 @@ class Debugger {
 				} else {
 					// call : wait we changed line !
 					var st = makeStack(tid,1)[0];
-					if( st != null && (st.fidx != s.fidx || st.fpos != s.fpos) ) break;
+					if( st != null && (st.fidx != s.fidx || st.fpos != b.pos) ) break;
 				}
 			}
 			// in case we singleStepped !

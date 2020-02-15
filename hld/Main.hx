@@ -59,6 +59,8 @@ class Main {
 			case "--input":
 				var file = args.shift();
 				args = StringTools.trim(sys.io.File.getContent(file)).split("\n").map(StringTools.trim).concat(args);
+			case "--debug":
+				Debugger.DEBUG = true;
 			default:
 				error("Unsupported parameter " + param);
 			}
