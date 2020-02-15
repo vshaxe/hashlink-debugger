@@ -315,8 +315,6 @@ class Main {
 			handleResult(dbg.step(Into));
 		case "finish":
 			handleResult(dbg.step(Out));
-		case "debug":
-			handleResult(dbg.debugTrace(args.shift() == "step"));
 		case "thread":
 			var arg = args.shift();
 			if( arg != null ) {

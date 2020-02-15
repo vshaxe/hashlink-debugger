@@ -18,6 +18,7 @@ typedef StackInfo = { file : String, line : Int, ebp : Pointer, ?context : { obj
 
 class Debugger {
 
+	static var DEBUG = false;
 	static inline var INT3 = 0xCC;
 	static var HW_REGS : Array<Api.Register> = [Dr0, Dr1, Dr2, Dr3];
 	public static var IGNORED_ROOTS = [
@@ -34,6 +35,7 @@ class Debugger {
 		"Sys",
 		"Type",
 		"Xml",
+		"IntIterator",
 		"ArrayObj" // special
 	];
 
@@ -48,7 +50,6 @@ class Debugger {
 	var breakPoints : Array<{ fid : Int, pos : Int, codePos : Int, oldByte : Int }>;
 	var nextStep : Int = -1;
 	var currentStack : Array<{ fidx : Int, fpos : Int, codePos : Int, ebp : hld.Pointer }>;
-	var stepBreakData : { ptr : Pointer, old : Int };
 	var watches : Array<WatchPoint>;
 	var threads : Map<Int,{ id : Int, stackTop : Pointer, exception : Pointer }>;
 
@@ -163,6 +164,7 @@ class Debugger {
 	function singleStep(tid,set=true) {
 		var r = getReg(tid, EFlags).toInt();
 		if( set ) r |= 256 else r &= ~256;
+		if( DEBUG ) trace("SINGLESTEP "+set);
 		setReg(tid, EFlags, hld.Pointer.make(r,0));
 	}
 
@@ -216,6 +218,20 @@ class Debugger {
 				singleStep(cmd.tid,false);
 			}
 
+			if( DEBUG ) switch(cmd.r) {
+				case Error:
+					trace("**** ERROR ****");
+				case Breakpoint:
+					trace("BREAK");
+				case SingleStep:
+					trace("STEP");
+				case Exit:
+					trace("EXIT");
+				case Handled, Timeout:
+				default:
+					trace(cmd.r);
+				}
+
 			var tid = cmd.tid;
 			switch( cmd.r ) {
 			case Timeout, Handled:
@@ -224,29 +240,13 @@ class Debugger {
 					return cmd.r;
 
 			case Breakpoint:
-				var eip = getReg(tid, Eip);
-
-				if( stepBreakData != null ) {
-					var ptr = stepBreakData.ptr;
-					api.writeByte(ptr, 0, stepBreakData.old);
-					api.flush(ptr, 1);
-					stepBreakData = null;
-					// we triggered this break
-					if( eip.sub(ptr) == 1 ) {
-						setReg(tid, Eip, eip.offset(-1));
-						stoppedThread = tid;
-						if( !onStep ) throw "?";
-						return SingleStep;
-					}
-				}
-
-				var codePos = eip.sub(jit.codeStart) - 1;
+				var codePos = getCodePos(tid) - 1;
 				for( b in breakPoints ) {
 					if( b.codePos == codePos ) {
 						// restore code
 						setAsm(codePos, b.oldByte);
 						// move backward
-						setReg(tid, Eip, eip.offset(-1));
+						setReg(tid, Eip, getReg(tid, Eip).offset(-1));
 						singleStep(tid);
 						nextStep = codePos;
 						break;
@@ -340,113 +340,6 @@ class Debugger {
 		currentStack = makeStack(currentThread);
 	}
 
-	function smartStep( tid : Int, stepIntoCall : Bool ) {
-		var eip = getReg(tid, Eip);
-		var op = api.readByte(eip, 0);
-		var mod_rm;
-		switch( op ) {
-		case 0xEA:
-			// FAR JMP : this will elimate our single step flag
-			// instead, put a tmp breakpoint on return eip
-			// this fixes step-into continuing execution bug
-			var esp = getReg(tid, Esp);
-			var ptr = readMem(esp, jit.align.ptr).getPointer(0, jit.align);
-			stepBreak(ptr);
-		// skip CALL instruction
-		case 0xFF if( !stepIntoCall && ((mod_rm = api.readByte(eip, 1)) >> 3) & 7 == 2 /* RM/2 */ ):
-			var reg = mod_rm & 7;
-			var mod = mod_rm >> 6;
-			var size = 2; // 0xFF + mod/rm
-			if( mod == 1 )
-				size++; // single byte
-			else if( mod == 2 )
-				size += 4; // word
-			if( reg == 4 )
-				size++; // esp reg
-			stepBreak(eip.offset(size));
-		// skip CALL instruction
-		case 0xE8 if( !stepIntoCall ):
-			stepBreak(eip.offset(5));
-		default:
-			singleStep(tid);
-		}
-	}
-
-	function stepBreak( ptr : Pointer ) {
-		var old = api.readByte(ptr, 0);
-		api.writeByte(ptr, 0, INT3);
-		api.flush(ptr, 1);
-		stepBreakData = { ptr : ptr, old : old };
-	}
-
-	public function debugTrace( stepIn ) {
-		var tid = currentThread;
-		var prevFun = -1, prevPos = -1, inC = false;
-		var prevEbp = null, prevStack = 0;
-		var tabs = "";
-		function debugSt() {
-			var s = currentStack[0];
-			var eip = getReg(tid, Eip);
-			var codePos = eip.sub(jit.codeStart);
-
-			if( codePos < s.codePos || codePos > s.codePos + 1024 ) {
-				if( s.fidx == prevFun && s.fpos == prevPos && s.ebp.sub(getReg(tid, Ebp)) > 0 ) {
-					// in C function
-					if( !inC ) {
-						inC = true;
-						Sys.println(tabs+"IN C CALL");
-					}
-				}
-			}
-
-			//trace(s.fidx + "@" + s.fpos + ":" + s.ebp.toString());
-
-			if( s.fidx == prevFun && s.fpos == prevPos ) {
-				if( s.ebp.sub(prevEbp) != 0 ) {
-					throw "!!!EPB!!! " + s.ebp.toString() + "!=" + prevEbp.toString();
-					prevEbp = s.ebp;
-				}
-				return;
-			}
-
-			inC = false;
-
-			var calls = makeStack(tid);
-			tabs = [for( c in calls ) ""].join("  ");
-
-			var inf = module.resolveSymbol(s.fidx, s.fpos);
-			var file = inf.file.split("\\").join("/").split("/").pop();
-			var str = tabs;
-			str += StringTools.hex(module.code.functions[s.fidx].findex) + "h @" + StringTools.hex(s.fpos);
-			str += " " +file+":" + inf.line;
-			str += " " + Std.string(module.code.functions[s.fidx].ops[s.fpos]).substr(1);
-
-			if( s.fidx == prevFun && calls.length == prevStack ) {
-				if( s.ebp.sub(prevEbp) != 0 )
-					throw "!!!EPB!!! "+s.ebp.toString()+"!="+prevEbp.toString();
-			}
-
-			Sys.println(str);
-
-			prevEbp = s.ebp;
-			prevFun = s.fidx;
-			prevPos = s.fpos;
-			prevStack = calls.length;
-		}
-		debugSt();
-		while( true ) {
-			smartStep(tid,stepIn);
-			resume();
-			var r = wait(true);
-			if( r != SingleStep )
-				return r;
-			currentStack = makeStack(tid, 1);
-			if( currentStack.length == 0 )
-				continue;
-			debugSt();
-		}
-	}
-
 	function skipFunction( fidx : Int ) {
 		var ctx = module.getMethodContext(fidx);
 		var name = ctx == null ? new haxe.io.Path(module.resolveSymbol(fidx, 0).file).file : ctx.obj.name.split(".")[0];
@@ -462,39 +355,106 @@ class Debugger {
 	public function step( mode : StepMode ) : Api.WaitResult {
 		var tid = currentThread;
 		var s = currentStack[0];
-		var line = module.resolveSymbol(s.fidx, s.fpos).line;
-		while( true ) {
-			smartStep(tid, mode == Into);
+
+		if( s == null ) {
 			resume();
-			var r = wait(true);
-			if( r != SingleStep )
-				return r; // breakpoint
-			var st = makeStack(tid, 1)[0];
-			if( st == null )
-				continue;
-			var deltaEbp = st.ebp.sub(s.ebp);
-			switch( mode ) {
-			case Next:
-				// same stack frame but different line
-				if( st.fidx == s.fidx && deltaEbp == 0 && module.resolveSymbol(st.fidx, st.fpos).line != line )
-					break;
-			case Into:
-				// different method or different line
-				if( st.fidx != s.fidx ) {
-					if( deltaEbp < 0 && skipFunction(st.fidx) )
-						continue;
-					break;
-				}
-				if( module.resolveSymbol(st.fidx, st.fpos).line != line )
-					break;
-			case Out:
-				// only on ret
-			}
-			// returned !
-			if( deltaEbp > 0 )
-				break;
+			return wait();
 		}
-		prepareStack();
+
+		var orig = module.resolveSymbol(s.fidx, s.fpos);
+		var graph = module.getGraph(s.fidx);
+		var marked = new Map();
+		var currentCodePos = getCodePos(tid);
+		var onBreakPoint = false;
+		var immediateProcess = false;
+
+		for( b in breakPoints )
+			if( b.fid == s.fidx ) {
+				if( b.pos == s.fpos ) {
+					onBreakPoint = true;
+				} else
+					marked.set(b.pos, null);
+			}
+
+		function visitRec( pos : Int ) {
+			if( marked.exists(pos) )
+				return;
+			var l = module.resolveSymbol(s.fidx, pos);
+			var c = graph.control(pos);
+			var lineChange = mode != Out && (l.file != orig.file || l.line != orig.line);
+			switch( c ) {
+			case CCall(f) if( f >= 0 && mode == Into ):
+				// skip calls to std library
+				var fid = @:privateAccess module.functionsIndexes.get(f);
+				var ctx = module.getMethodContext(fid);
+				trace(f, fid, ctx == null ? "NULL" : ctx.obj.name + "." + ctx.field, skipFunction(fid));
+				if( fid >= module.code.functions.length /* native */ || skipFunction(fid) )
+					c = CNo;
+			default:
+			}
+			if( lineChange || c == CRet || (mode == Into && c.match(CCall(_))) ) {
+				var codePos = jit.getCodePos(s.fidx, pos);
+				var old = getAsm(codePos);
+				var bp = { fid : lineChange ? -1 : (c == CRet ? -2 : -3), pos : pos, codePos : codePos, oldByte : old };
+				breakPoints.push(bp);
+				marked.set(pos, bp);
+				if( codePos == currentCodePos && onBreakPoint ) {
+					immediateProcess = true;
+				} else
+					setAsm(codePos, INT3);
+				return;
+			}
+			switch( c ) {
+			case CJCond(d):
+				visitRec(pos + 1 + d);
+			case CJAlways(d):
+				visitRec(pos + 1 + d);
+				return;
+			case CLabel:
+				marked.set(pos, null); // already visited
+			case CTry(d):
+				visitRec(pos + 1 + d);
+			case CSwitch(cases):
+				for( c in cases )
+					visitRec(pos + 1 + c);
+			default:
+			}
+			visitRec(++pos);
+		}
+		visitRec(s.fpos);
+		if( !immediateProcess ) {
+			resume();
+			wait();
+		}
+		// execute until the end of Call/Ret if we stopped on it !
+		for( b in breakPoints ) {
+			if( currentThread != tid || nextStep != b.codePos || b.fid >= -1 ) continue;
+			var isRet = b.fid == -2;
+			while( true ) {
+				var eip = getReg(tid, Eip);
+				var op = api.readByte(eip, 0);
+				if( op == 0x48 )
+					op = api.readByte(eip, 1);
+				singleStep(tid);
+				resume();
+				var r = wait(true);
+				if( r != SingleStep || currentThread != tid )
+					break;
+				if( isRet ) {
+					if( op == 0xC3 ) break;
+				} else {
+					// call : wait we changed line !
+					var st = makeStack(tid,1)[0];
+					if( st != null && (st.fidx != s.fidx || st.fpos != s.fpos) ) break;
+				}
+			}
+			// in case we singleStepped !
+			prepareStack();
+			break;
+		}
+		for( bp in marked )
+			if( bp != null )
+				removeBP(bp);
 		return Breakpoint;
 	}
 
@@ -711,9 +671,15 @@ class Debugger {
 			resume();
 	}
 
+	function getCodePos(tid) {
+		var eip = getReg(tid, Eip);
+		return eip.sub(jit.codeStart);
+	}
+
 	public function resume() {
 		if( stoppedThread == null )
 			throw "No thread stopped";
+		if( DEBUG ) trace("RUN "+getCodePos(currentThread));
 		if( !api.resume(stoppedThread) && !processExit )
 			throw "Could not resume "+stoppedThread;
 		stoppedThread = null;
@@ -737,6 +703,7 @@ class Debugger {
 	}
 
 	function setAsm( pos : Int, byte : Int ) {
+		if( DEBUG ) trace("Set "+pos+"="+byte);
 		api.writeByte(jit.codeStart, pos, byte);
 		api.flush(jit.codeStart.offset(pos),1);
 	}

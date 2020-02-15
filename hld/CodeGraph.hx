@@ -9,6 +9,7 @@ private enum Control {
 	CRet;
 	CThrow;
 	CLabel;
+	CCall( fidx : Int );
 }
 
 typedef LocalAccess = { rid : Int, ?index : Int, ?container : format.hl.Data.EnumPrototype, t : format.hl.Data.HLType };
@@ -259,7 +260,7 @@ class CodeGraph {
 				break;
 			}
 			switch( control(i) ) {
-			case CNo:
+			case CNo, CCall(_):
 				i++;
 				continue;
 			case CRet, CThrow:
@@ -285,7 +286,7 @@ class CodeGraph {
 		return b;
 	}
 
-	function control( i ) {
+	public function control( i ) {
 		return switch( fun.ops[i] ) {
 		case OJTrue (_,d), OJFalse (_,d), OJNull (_,d), OJNotNull (_,d),
 			OJSLt (_, _, d), OJSGte (_, _, d), OJSGt (_, _, d), OJSLte (_, _, d),
@@ -304,6 +305,10 @@ class CodeGraph {
 			CSwitch(cases);
 		case OTrap(_,d):
 			CTry(d);
+		case OCallClosure(_), OCallMethod(_), OCallThis(_):
+			CCall(-1);
+		case OCall0(_,idx), OCall1(_,idx,_), OCall2(_,idx,_,_), OCall3(_,idx,_,_,_), OCall4(_,idx,_,_,_), OCallN(_,idx,_):
+			CCall(idx);
 		default:
 			CNo;
 		}
