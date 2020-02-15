@@ -788,22 +788,31 @@ class HLAdapter extends DebugSession {
 		stopDebug();
 	}
 
+	function safe<T>(f:Void->T) : T {
+		try {
+			return f();
+		} catch( e : Dynamic ) {
+			errorMessage("***** ERRROR ***** "+e+haxe.CallStack.toString(haxe.CallStack.exceptionStack()));
+			throw e;
+		}
+	}
+
 	override function nextRequest(response:NextResponse, args:NextArguments) {
 		debug("Next");
 		sendResponse(response);
-		handleMessage(dbg.step(Next));
+		safe(() -> handleMessage(dbg.step(Next)));
 	}
 
 	override function stepInRequest(response:StepInResponse, args:StepInArguments) {
 		debug("StepIn");
 		sendResponse(response);
-		handleMessage(dbg.step(Into));
+		safe(() -> handleMessage(dbg.step(Into)));
 	}
 
 	override function stepOutRequest(response:StepOutResponse, args:StepOutArguments) {
 		debug("StepOut");
 		sendResponse(response);
-		handleMessage(dbg.step(Out));
+		safe(() -> handleMessage(dbg.step(Out)));
 	}
 
 	override function continueRequest(response:ContinueResponse, args:ContinueArguments) {
