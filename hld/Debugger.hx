@@ -48,7 +48,7 @@ class Debugger {
 	var ignoredRoots : Map<String,Bool>;
 
 	var breakPoints : Array<{ fid : Int, pos : Int, codePos : Int, oldByte : Int }>;
-	var nextStep : Int = -1;
+	var nextStep(default,set): Int = -1;
 	var currentStack : Array<{ fidx : Int, fpos : Int, codePos : Int, ebp : hld.Pointer }>;
 	var watches : Array<WatchPoint>;
 	var threads : Map<Int,{ id : Int, stackTop : Pointer, exception : Pointer }>;
@@ -70,6 +70,11 @@ class Debugger {
 	public function new() {
 		breakPoints = [];
 		watches = [];
+	}
+
+	function set_nextStep(v:Int) {
+		if( DEBUG ) trace("NEXT STEP "+v);
+		return nextStep = v;
 	}
 
 	function set_stoppedThread(v) {
@@ -399,8 +404,12 @@ class Debugger {
 				marked.set(pos, bp);
 				if( codePos == currentCodePos && onBreakPoint ) {
 					immediateProcess = true;
+					bp.oldByte = -1;
 				} else
 					setAsm(codePos, INT3);
+				// if we are on same op but after the call (after returning from a finish)
+				if( c.match(CCall(_)) && codePos < currentCodePos )
+					visitRec(pos+1);
 				return;
 			}
 			switch( c ) {
@@ -421,11 +430,24 @@ class Debugger {
 			visitRec(++pos);
 		}
 		visitRec(s.fpos);
+		function cleanup() {
+			for( bp in marked )
+				if( bp != null ) {
+					if( bp.oldByte == -1 )
+						breakPoints.remove(bp);
+					else
+						removeBP(bp);
+				}
+		}
 		if( !immediateProcess ) {
 			resume();
 			var r = wait();
-			if( (r != Breakpoint && r != SingleStep) || currentThread != tid )
+			if( r != Exit && currentStack.length == 0 )
+				r = wait();
+			if( (r != Breakpoint && r != SingleStep) || currentThread != tid || currentStack.length == 0 || currentStack[0].fidx != s.fidx ) {
+				cleanup();
 				return r;
+			}
 		}
 		// execute until the end of Call/Ret if we stopped on it !
 		for( b in breakPoints ) {
@@ -441,11 +463,18 @@ class Debugger {
 				var r = wait(true);
 				if( r != SingleStep || currentThread != tid )
 					break;
+				var st = makeStack(tid,1)[0];
 				if( isRet ) {
-					if( op == 0xC3 ) break;
+					if( op == 0xC3 ) {
+						// ret on final main() - run till exit
+						if( st == null ) {
+							resume();
+							return wait();
+						}
+						break;
+					}
 				} else {
 					// call : wait we changed line !
-					var st = makeStack(tid,1)[0];
 					if( st != null && (st.fidx != s.fidx || st.fpos != b.pos) ) break;
 				}
 			}
@@ -453,9 +482,7 @@ class Debugger {
 			prepareStack();
 			break;
 		}
-		for( bp in marked )
-			if( bp != null )
-				removeBP(bp);
+		cleanup();
 		return Breakpoint;
 	}
 
