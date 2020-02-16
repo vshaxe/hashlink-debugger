@@ -185,6 +185,7 @@ class Debugger {
 
 	public function getCurrentVars( args : Bool ) {
 		var s = currentStack[currentStackFrame];
+		if( s == null ) return [];
 		var g = module.getGraph(s.fidx);
 		return args ? g.getArgs() : g.getLocals(s.fpos);
 	}
@@ -338,6 +339,8 @@ class Debugger {
 			};
 			threads.set(tid, t);
 		}
+		if( !threads.exists(currentThread) )
+			threads.set(currentThread,{ id : currentThread, stackTop: null, exception: null });
 	}
 
 	function prepareStack() {
@@ -490,7 +493,7 @@ class Debugger {
 	function makeStack(tid,max = 0) {
 		var stack = [];
 		var tinf = threads.get(tid);
-		if( tinf == null )
+		if( tinf == null || tinf.stackTop == null )
 			return stack;
 		var esp = getReg(tid, Esp);
 		var size = tinf.stackTop.sub(esp) + jit.align.ptr;
