@@ -363,6 +363,7 @@ class Debugger {
 	public function step( mode : StepMode ) : Api.WaitResult {
 		var tid = currentThread;
 		var s = currentStack[0];
+		var depth = currentStack.length;
 
 		if( s == null ) {
 			resume();
@@ -444,13 +445,29 @@ class Debugger {
 				}
 		}
 		if( !immediateProcess ) {
-			resume();
-			var r = wait();
-			if( r != Exit && currentStack.length == 0 )
-				r = wait();
-			if( (r != Breakpoint && r != SingleStep) || currentThread != tid || currentStack.length == 0 || currentStack[0].fidx != s.fidx ) {
-				cleanup();
-				return r;
+			while( true ) {
+				resume();
+				var r = wait();
+				if( r != Exit && currentStack.length == 0 )
+					r = wait();
+				if( (r != Breakpoint && r != SingleStep) || currentThread != tid || currentStack.length == 0 || currentStack[0].fidx != s.fidx ) {
+					cleanup();
+					return r;
+				}
+				// fix for recursive methods that are breaking on the return we put
+				if( (mode == Out || mode == Next) && currentStack.length > depth ) {
+					var isRecursive = false;
+					for( b in breakPoints )
+						if( b.fid == -2 && nextStep == b.codePos ) {
+							isRecursive = true;
+							break;
+						}
+					if( isRecursive ) {
+						if( DEBUG ) trace("RECURSIVE");
+						continue;
+					}
+				}
+				break;
 			}
 		}
 		// execute until the end of Call/Ret if we stopped on it !
