@@ -405,7 +405,7 @@ class HLAdapter extends DebugSession {
 		var ret = false;
 		while( true ) {
 			var msg = dbg.run();
-			handleMessage(msg);
+			handleWait(msg);
 			switch( msg ) {
 			case Timeout:
 				break;
@@ -422,7 +422,7 @@ class HLAdapter extends DebugSession {
 		return ret;
 	}
 
-	function handleMessage( msg : hld.Api.WaitResult ) {
+	function handleWait( msg : hld.Api.WaitResult ) {
 		switch( msg ) {
 		case Breakpoint:
 			//debug("Thread " + dbg.currentThread + " paused " + frameStr(dbg.getStackFrame()));
@@ -779,7 +779,7 @@ class HLAdapter extends DebugSession {
 		debug("Pause Request");
 		isPause = true;
 		sendResponse(response);
-		handleMessage(dbg.pause());
+		handleWait(dbg.pause());
 	}
 
 	override function disconnectRequest(response:DisconnectResponse, args:DisconnectArguments) {
@@ -800,19 +800,19 @@ class HLAdapter extends DebugSession {
 	override function nextRequest(response:NextResponse, args:NextArguments) {
 		debug("Next");
 		sendResponse(response);
-		safe(() -> handleMessage(dbg.step(Next)));
+		safe(() -> handleWait(dbg.step(Next)));
 	}
 
 	override function stepInRequest(response:StepInResponse, args:StepInArguments) {
 		debug("StepIn");
 		sendResponse(response);
-		safe(() -> handleMessage(dbg.step(Into)));
+		safe(() -> handleWait(dbg.step(Into)));
 	}
 
 	override function stepOutRequest(response:StepOutResponse, args:StepOutArguments) {
 		debug("StepOut");
 		sendResponse(response);
-		safe(() -> handleMessage(dbg.step(Out)));
+		safe(() -> handleWait(dbg.step(Out)));
 	}
 
 	override function continueRequest(response:ContinueResponse, args:ContinueArguments) {
