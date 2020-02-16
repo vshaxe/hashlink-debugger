@@ -1,3 +1,8 @@
+## 1.0.0 (February 2, 2020)
+
+* reimplemented the step system using predictive temporary breakpoints
+* improved display of types and values
+
 ## 0.9.1 (November 30, 2019)
 
 * fixes for exception stack management in win64
