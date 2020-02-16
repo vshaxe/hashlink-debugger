@@ -248,7 +248,7 @@ class Main {
 				Sys.println("Requires expression");
 				return true;
 			}
-			var v = try dbg.getValue(expr) catch( e : Dynamic ) {
+			var v = if( Debugger.DEBUG ) dbg.getValue(expr) else try dbg.getValue(expr) catch( e : Dynamic ) {
 				Sys.println("Error " + e + haxe.CallStack.toString(haxe.CallStack.exceptionStack()));
 				return true;
 			}
@@ -265,7 +265,7 @@ class Main {
 				}
 		case "watch", "rwatch":
 			var expr = args.shift();
-			var v = try dbg.getRef(expr) catch( e : Dynamic ) {
+			var v = if( Debugger.DEBUG ) dbg.getRef(expr) else try dbg.getRef(expr) catch( e : Dynamic ) {
 				Sys.println("Error " + e + haxe.CallStack.toString(haxe.CallStack.exceptionStack()));
 				return true;
 			};

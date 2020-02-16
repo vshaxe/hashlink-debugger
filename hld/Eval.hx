@@ -806,7 +806,7 @@ class Eval {
 	}
 
 	function readUCS2( ptr : Pointer, length : Int ) {
-		var mem = readMem(ptr, (length + 1) << 2);
+		var mem = readMem(ptr, (length + 1) << 1);
 		return mem.readStringUCS2(0,length);
 	}
 
