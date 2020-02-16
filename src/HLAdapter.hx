@@ -783,7 +783,8 @@ class HLAdapter extends DebugSession {
 	}
 
 	override function disconnectRequest(response:DisconnectResponse, args:DisconnectArguments) {
-		if( proc != null ) proc.kill("SIGINT");
+		debug("Disconnect Request");
+		if( proc != null ) proc.kill();
 		sendResponse(response);
 		stopDebug();
 	}
