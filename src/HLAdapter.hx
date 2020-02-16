@@ -68,10 +68,12 @@ class HLAdapter extends DebugSession {
 
 		response.body.supportsConfigurationDoneRequest = true;
 		response.body.supportsFunctionBreakpoints = false;
-		response.body.supportsConditionalBreakpoints = true;
+		//response.body.supportsConditionalBreakpoints = true;
 		response.body.supportsEvaluateForHovers = true;
 		response.body.supportsStepBack = false;
 		response.body.supportsSetVariable = true;
+		//response.body.supportsDataBreakpoints = true;
+
 		response.body.exceptionBreakpointFilters = [{ filter : "all", label : "Stop on all exceptions" }];
 
 		sendResponse( response );
@@ -883,12 +885,30 @@ class HLAdapter extends DebugSession {
 		sendResponse(response);
 	}
 
+	override function setDataBreakpointsRequest(response:SetDataBreakpointsResponse, args:SetDataBreakpointsArguments) {
+		debug("Unhandled request");
+		trace(args.breakpoints);
+		sendResponse(response);
+	}
+
+	override function dataBreakpointInfoRequest(response:DataBreakpointInfoResponse, args:DataBreakpointInfoArguments) {
+		debug("Unhandled request");
+		trace(args);
+		response.body = {
+			dataId : "xxx",
+			description : "TODO",
+			accessTypes : [Write],
+		};
+		sendResponse(response);
+	}
+
 	override function stepBackRequest(response:StepBackResponse, args:StepBackArguments) { debug("Unhandled request"); }
 	override function restartFrameRequest(response:RestartFrameResponse, args:RestartFrameArguments) { debug("Unhandled request"); }
 	override function gotoRequest(response:GotoResponse, args:GotoArguments) { debug("Unhandled request"); }
 	override function stepInTargetsRequest(response:StepInTargetsResponse, args:StepInTargetsArguments) { debug("Unhandled request"); }
 	override function gotoTargetsRequest(responses:GotoTargetsResponse, args:GotoTargetsArguments) { debug("Unhandled request"); }
 	override function completionsRequest(response:CompletionsResponse, args:CompletionsArguments) { debug("Unhandled request"); }
+	override function setExpressionRequest(response:SetExpressionResponse, args:SetExpressionArguments) { debug("Unhandled request"); }
 
 	function sendToOutput(output:String, category:OutputEventCategory = Console) {
 		sendEvent(new OutputEvent(output + "\n", category));
