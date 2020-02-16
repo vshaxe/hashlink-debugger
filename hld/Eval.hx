@@ -372,8 +372,12 @@ class Eval {
 
 	public function typeStr( t : HLType ) {
 		switch( t ) {
-		case HDynObj:
+		case HDynObj, HVirtual(_):
 			return "{...}";
+		case HAbstract(name):
+			return "#"+name;
+		case HNull(t):
+			return typeStr(t);
 		default:
 			return t.toString();
 		}
@@ -391,15 +395,24 @@ class Eval {
 		case VBool(b): b?"true":"false";
 		case VPointer(p):
 			switch( v.t ) {
-			case HVirtual(_): p.toString();
-			case HBytes, HAbstract(_): typeStr(v.t)+"("+p.toString()+")";
-			default: typeStr(v.t).split(".").pop();
+			case HObj(p): p.name.split(".").pop(); // short form (no package)
+			default: typeStr(v.t);
 			}
 		case VString(s,_): "\"" + escape(s) + "\"";
 		case VClosure(f, d, _): funStr(f) + "[" + valueStr(d) + "]";
 		case VFunction(f,_): funStr(f);
 		case VArray(_, length, read, _):
-			if( length <= maxArrLength )
+			var hasDispValue = false;
+			for( i in 0...length ) {
+				var v = read(i);
+				if( !v.t.match(HDynObj | HVirtual(_)) ) {
+					hasDispValue = true;
+					break;
+				}
+			}
+			if( !hasDispValue && length > 0 )
+				"[...]"+(length > maxArrLength ? ":" + length : "");
+			else if( length <= maxArrLength )
 				"["+[for(i in 0...length) valueStr(read(i))].join(", ")+"]";
 			else {
 				var arr = [for(i in 0...maxArrLength) valueStr(read(i))];
