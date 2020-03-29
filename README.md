@@ -1,5 +1,5 @@
 # HashLink Debugger
-[![Build Status](https://travis-ci.org/vshaxe/hashlink-debugger.svg?branch=master)](https://travis-ci.org/vshaxe/hashlink-debugger) [![Version](https://vsmarketplacebadge.apphb.com/version-short/HaxeFoundation.haxe-hl.svg)](https://marketplace.visualstudio.com/items?itemName=HaxeFoundation.haxe-hl) [![Installs](https://vsmarketplacebadge.apphb.com/installs-short/HaxeFoundation.haxe-hl.svg)](https://marketplace.visualstudio.com/items?itemName=HaxeFoundation.haxe-hl)
+[![CI](https://img.shields.io/github/workflow/status/vshaxe/hashlink-debugger/CI.svg?logo=github)](https://github.com/vshaxe/hashlink-debugger/actions?query=workflow%3ACI) [![Version](https://vsmarketplacebadge.apphb.com/version-short/HaxeFoundation.haxe-hl.svg)](https://marketplace.visualstudio.com/items?itemName=HaxeFoundation.haxe-hl) [![Installs](https://vsmarketplacebadge.apphb.com/installs-short/HaxeFoundation.haxe-hl.svg)](https://marketplace.visualstudio.com/items?itemName=HaxeFoundation.haxe-hl)
 
 This VSCode extension allows you to debug [HashLink](https://hashlink.haxe.org/) JIT applications.
 
