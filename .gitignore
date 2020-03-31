@@ -1,5 +1,6 @@
 node_modules
 *.js
+*.js.map
 /package-lock.json
 /*.vsix
 /vsce_token.txt

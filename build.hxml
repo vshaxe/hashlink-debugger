@@ -5,6 +5,7 @@
 -D js-es=6
 -js adapter.js
 -main HLAdapter
+-debug
 
 --next
 

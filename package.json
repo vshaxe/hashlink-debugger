@@ -107,7 +107,7 @@
 								"description": "Enable HL code hot reload on compilation - EXPERIMENTAL.",
 								"type": "boolean"
 							},
-							"profileSamples" : {
+							"profileSamples": {
 								"type": "number",
 								"description": "Start profiling with the specified number of samples per second."
 							}

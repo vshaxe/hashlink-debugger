@@ -1,0 +1,23 @@
+{
+	"version": "0.2.0",
+	"configurations": [
+		{
+			"name": "Adapter",
+			"type": "node",
+			"request": "launch",
+			"runtimeArgs": [
+				"--nolazy"
+			],
+			"program": "${workspaceFolder}/adapter.js",
+			"cwd": "${workspaceFolder}",
+			"stopOnEntry": false,
+			"args": [
+				"--server=4711"
+			],
+			"sourceMaps": true,
+			"outFiles": [
+				"${workspaceFolder}/*.js"
+			]
+		}
+	]
+}
