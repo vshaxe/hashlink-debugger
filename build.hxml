@@ -11,6 +11,7 @@
 
 -cp src
 -lib vscode
+-lib vshaxe
 -D js-es=6
 -js extension.js
 Extension
