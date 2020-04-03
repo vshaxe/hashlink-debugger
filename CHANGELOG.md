@@ -1,6 +1,6 @@
 ## 1.1.0 (to be released)
 
-* removed the need to specify `hxml` in `launch.json`, made `program` optional (#4)
+* removed the need to specify `hxml` in `launch.json` (#4)
 
 ## 1.0.0 (February 2, 2020)
 

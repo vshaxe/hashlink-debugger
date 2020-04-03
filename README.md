@@ -16,6 +16,7 @@ You will need [Haxe 4](https://haxe.org/download/).
 Additionally, you need to install these dependencies:
 
 ```
+haxelib install vshaxe
 haxelib install vscode
 haxelib install vscode-debugadapter
 haxelib install hscript

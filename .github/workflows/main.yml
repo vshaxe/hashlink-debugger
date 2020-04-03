@@ -11,6 +11,7 @@ jobs:
     - run: |
         haxelib install format
         haxelib install hscript
+        haxelib install vshaxe
         haxelib install vscode
         haxelib install vscode-debugadapter
     - run: haxe build.hxml
