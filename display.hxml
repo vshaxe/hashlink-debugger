@@ -1,5 +1,6 @@
 -lib vscode
 -lib vscode-debugadapter
+-lib vshaxe
 -lib format
 -lib hscript
 -cp src

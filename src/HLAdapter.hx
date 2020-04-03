@@ -1,5 +1,4 @@
 import haxe.CallStack;
-import haxe.DynamicAccess;
 
 import vscode.debugProtocol.DebugProtocol;
 import vscode.debugAdapter.DebugSession;
@@ -14,19 +13,6 @@ enum VarValue {
 	VObjFields( v : hld.Value, o : format.hl.Data.ObjPrototype );
 	VMapPair( key : hld.Value, value : hld.Value );
 	VStatics( cl : String );
-}
-
-typedef Arguments = {
-	cwd: String,
-	hxml: String,
-	?hl:String,
-	?env:DynamicAccess<String>,
-	?program: String,
-	?args: Array<String>,
-	?argsFile: String,
-	?port: Int,
-	?hotReload : Bool,
-	?profileSamples : Int
 }
 
 class HLAdapter extends DebugSession {
@@ -47,7 +33,7 @@ class HLAdapter extends DebugSession {
 	var isPause : Bool;
 
 	static var DEBUG = false;
-	static var isWindow = Sys.systemName() == "Windows";
+	static var isWindows = Sys.systemName() == "Windows";
 
 	function new() {
 		super();
@@ -89,14 +75,15 @@ class HLAdapter extends DebugSession {
 
 		var args:Arguments = cast args;
 
+		setClassPath(args.classPaths);
 		workspaceDirectory = if( args.cwd == null ) haxe.io.Path.directory(args.program) else args.cwd;
 		Sys.setCwd(workspaceDirectory);
 		var port = args.port;
 		if( port == null ) port = debugPort;
 
 		try {
-			var program = launch(args, response);
-			if( doDebug && !startDebug(program, port) ) {
+			launch(args, response);
+			if( doDebug && !startDebug(args.program, port) ) {
 				proc.kill();
 				dbg = null;
 				throw "Could not initialize debugger";
@@ -114,16 +101,32 @@ class HLAdapter extends DebugSession {
 		sendResponse(response);
 	}
 
+	function setClassPath(classPath:Array<String>) {
+		if (classPath == null) {
+			throw "Missing classPath";
+		}
+		classPath.reverse();
+		// make sure the paths have the format we expect
+		this.classPath = classPath.map(function(path) {
+			path = haxe.io.Path.addTrailingSlash(haxe.io.Path.normalize(path));
+			// capitalize the drive letter on Windows
+			if (isWindows && haxe.io.Path.isAbsolute(path)) {
+				path = path.charAt(0).toUpperCase() + path.substr(1);
+			}
+			return path;
+		});
+		this.classPath.push(""); // for absolute paths
+	}
 
 	override function attachRequest(response:AttachResponse, args:AttachRequestArguments) {
 		debug("attach");
 
 		var args:Arguments = cast args;
+		setClassPath(args.classPaths);
 		workspaceDirectory = args.cwd;
 		Sys.setCwd(workspaceDirectory);
-		var program = readHXML(args.hxml);
 		try {
-			if( !startDebug(program,args.port) )
+			if( !startDebug(args.program,args.port) )
 				throw "Failed to start debugging";
 			sendEvent(new InitializedEvent());
 		} catch( e : Dynamic ) {
@@ -171,76 +174,9 @@ class HLAdapter extends DebugSession {
 		sendEvent(e);
 	}
 
-	function readHXML( hxml : String ) {
-		classPath = [];
-
-		var hxContent = try sys.io.File.getContent(hxml) catch( e : Dynamic ) throw "Missing HXML file '"+hxml+"'";
-		var program = null;
-		var libs = [];
-
-		var hxArgs = hxContent.split("\n");
-
-		function flushLibs() {
-			if( libs.length == 0 ) return;
-			var p = ChildProcess.spawnSync("haxelib", ["path"].concat(libs));
-			if( p.status != 0 ) return;
-			for( line in (p.stdout:Buffer).toString().split("\n") ) {
-				var line = StringTools.trim(line);
-				if( line == "" ) continue;
-				if( line.charCodeAt(0) == "-".code ) {
-					hxArgs.push(line);
-					continue;
-				}
-				classPath.push(line);
-			}
-		}
-
-		while( hxArgs.length > 0 ) {
-			var args = StringTools.trim(hxArgs.shift()).split(" ");
-			if( args.length == 0 ) continue;
-			var arg = args.shift();
-			var value = args.join(" ");
-			switch( arg ) {
-			case "-lib" | "-L" | "--library":
-				libs.push(value);
-			case "-cp" | "-p" | "--class-path":
-				flushLibs();
-				classPath.push(value);
-			case "-hl" | "--hl":
-				program = value;
-			default:
-				if( StringTools.endsWith(arg, ".hxml") && value == "" )
-					hxArgs = sys.io.File.getContent(arg).split("\n").concat(hxArgs);
-			}
-		}
-
-		flushLibs();
-
-		// TODO : we need locate haxe std (and std/hl/_std) class path
-
-		classPath.reverse();
-		classPath.push("./"); // default path
-		for( i in 0...classPath.length ) {
-			var c = sys.FileSystem.fullPath(classPath[i]);
-			if( c == null ) continue; // this can happen if the cwd at runtime is different from the cwd at compile time
-			c = c.split("\\").join("/");
-			if( !StringTools.endsWith(c, "/") ) c += "/";
-			classPath[i] = c;
-		}
-		classPath.push(""); // for absolute paths
-
-		return program;
-	}
-
 	function launch( args : Arguments, response : LaunchResponse ) {
 
-		var program = readHXML(args.hxml);
-		if( args.program != null )
-			program = args.program;
-		if( program == null )
-			throw args.hxml + " file does not contain -hl output";
-
-		var hlArgs = ["--debug", "" + (args.port == null ? debugPort : args.port), program];
+		var hlArgs = ["--debug", "" + (args.port == null ? debugPort : args.port), args.program];
 
 		if( doDebug )
 			hlArgs.unshift("--debug-wait");
@@ -279,7 +215,7 @@ class HLAdapter extends DebugSession {
 				hlArgs.push(w);
 			}
 		}
-		// ALLUSERSPROFILE required to spawn correctly on Windows, see vshaxe/hashlink-debugger!51.
+		// ALLUSERSPROFILE required to spawn correctly on Windows, see vshaxe/hashlink-debugger#51.
 		var hlPath = (args.hl != null) ? args.hl : 'hl';
 		proc = ChildProcess.spawn(hlPath, hlArgs, {cwd: args.cwd, env:args.env});
 		proc.stdout.setEncoding('utf8');
@@ -323,8 +259,6 @@ class HLAdapter extends DebugSession {
 			else
 				error(cast response, 'Failed to start hl process ($err)');
 		});
-
-		return program;
 	}
 
 
@@ -345,7 +279,7 @@ class HLAdapter extends DebugSession {
 			pid = proc.pid;
 		}
 		var api : hld.Api;
-		if( isWindow )
+		if( isWindows )
 			api = new hld.NodeDebugApi(pid, dbg.is64);
 		else
 			api = new hld.NodeDebugApiLinux(pid, dbg.is64);
@@ -538,7 +472,7 @@ class HLAdapter extends DebugSession {
 					name : stackStr(f),
 					source : {
 						name : f.file.split("/").pop(),
-						path : file == null ? js.Lib.undefined : (isWindow ? file.split("/").join("\\") : file),
+						path : file == null ? js.Lib.undefined : (isWindows ? file.split("/").join("\\") : file),
 						sourceReference : file == null ? allocValue(VUnkownFile(f.file)) : 0,
 					},
 					line : f.line,

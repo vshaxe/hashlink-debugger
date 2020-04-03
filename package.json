@@ -1,7 +1,7 @@
 {
 	"name": "haxe-hl",
 	"displayName": "HashLink Debugger",
-	"version": "1.0.0",
+	"version": "1.1.0",
 	"publisher": "HaxeFoundation",
 	"license": "MIT",
 	"description": "Debugger for Haxe/HashLink applications",
@@ -16,8 +16,12 @@
 		"name": "ncannasse"
 	},
 	"engines": {
-		"vscode": "^1.40.0"
+		"vscode": "^1.42.0",
+		"nadako.vshaxe": "^2.19.0"
 	},
+	"extensionDependencies": [
+		"nadako.vshaxe"
+	],
 	"icon": "icon.png",
 	"categories": [
 		"Debuggers"
@@ -55,7 +59,6 @@
 				"configurationAttributes": {
 					"launch": {
 						"required": [
-							"hxml",
 							"cwd"
 						],
 						"properties": {
@@ -68,11 +71,6 @@
 								"type": "string",
 								"description": "Working directory",
 								"default": "${workspaceFolder}"
-							},
-							"hxml": {
-								"type": "string",
-								"markdownDescription": "Path to the `.hxml` file.",
-								"default": "build.hxml"
 							},
 							"hl": {
 								"type": "string",
@@ -116,7 +114,6 @@
 					"attach": {
 						"required": [
 							"port",
-							"hxml",
 							"cwd"
 						],
 						"properties": {
@@ -124,11 +121,6 @@
 								"type": "string",
 								"description": "attach",
 								"default": "attach"
-							},
-							"hxml": {
-								"type": "string",
-								"description": "Path to the .hxml file.",
-								"default": "build.hxml"
 							},
 							"cwd": {
 								"type": "string",
@@ -148,7 +140,6 @@
 						"name": "HashLink (launch)",
 						"request": "launch",
 						"type": "hl",
-						"hxml": "build.hxml",
 						"cwd": "${workspaceFolder}",
 						"preLaunchTask": {
 							"type": "haxe",
@@ -160,7 +151,6 @@
 						"request": "attach",
 						"port": 6112,
 						"type": "hl",
-						"hxml": "build.hxml",
 						"cwd": "${workspaceFolder}",
 						"preLaunchTask": {
 							"type": "haxe",
