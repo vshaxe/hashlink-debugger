@@ -17,7 +17,7 @@
 	},
 	"engines": {
 		"vscode": "^1.42.0",
-		"nadako.vshaxe": "^2.19.0"
+		"nadako.vshaxe": "^2.19.1"
 	},
 	"extensionDependencies": [
 		"nadako.vshaxe"

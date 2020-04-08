@@ -105,7 +105,6 @@ class HLAdapter extends DebugSession {
 		if (classPath == null) {
 			throw "Missing classPath";
 		}
-		classPath.reverse();
 		// make sure the paths have the format we expect
 		this.classPath = classPath.map(function(path) {
 			path = haxe.io.Path.addTrailingSlash(haxe.io.Path.normalize(path));
