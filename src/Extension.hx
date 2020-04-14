@@ -1,4 +1,5 @@
 import js.lib.Promise;
+import js.node.Fs;
 import vscode.*;
 
 class Extension {
@@ -10,15 +11,17 @@ class Extension {
 	static function resolveDebugConfiguration(folder:Null<WorkspaceFolder>, config:DebugConfiguration,
 			?token:CancellationToken):ProviderResult<DebugConfiguration> {
 		var config:DebugConfiguration & Arguments = cast config;
-		if (Sys.systemName() == "Mac") {
-			final visitButton = "Visit GitHub Issue";
-			Vscode.window.showErrorMessage("HashLink debugging on macOS is not supported yet.", visitButton).then(function(choice) {
+
+		if (Sys.systemName() == "Mac" && !Fs.existsSync('/usr/local/lib/libhldebug.dylib')) {
+			final visitButton = "Get from GitHub";
+			Vscode.window.showErrorMessage("Your version of Hashlink does not support debugging on Mac. Install a newer version from here:", visitButton).then(function(choice) {
 				if (choice == visitButton) {
-					Vscode.env.openExternal(Uri.parse("https://github.com/vshaxe/hashlink-debugger/issues/28"));
+					Vscode.env.openExternal(Uri.parse("https://github.com/HaxeFoundation/hashlink"));
 				}
 			});
 			return null;
 		}
+
 		if (config.type == null) {
 			return null; // show launch.json
 		}

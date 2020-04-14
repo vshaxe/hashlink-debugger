@@ -1,5 +1,5 @@
 # requires compiling native extensions with electron support
-NPARAMS=--runtime=electron --target=6.1.2 --disturl=https://atom.io/download/electron
+NPARAMS=--runtime=electron --target=7.1.11 --disturl=https://atom.io/download/electron
 LINUX_VM=ncannasse@virtbuntu
 
 all:
@@ -14,6 +14,13 @@ cleanup:
 	/bin/find . -name *.pdb | xargs rm -f 
 	/bin/find . -name *.tlog | xargs rm -rf 
 	/bin/find . -name *.map | xargs rm -rf 
+
+# codesign HL on MacOS to support debugging
+ifeq ($(shell uname -s),Darwin)
+codesign:
+	@read -p "Enter name of signing certificate: " certname && \
+	codesign --entitlements ./entitlements.xml -fs "$$certname" $$(which hl)
+endif
 
 # git pull && sudo rm -rf node_modules && sudo make deps on LINUX_VM before running this
 import_linux_bindings:

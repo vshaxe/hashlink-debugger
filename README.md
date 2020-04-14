@@ -58,4 +58,4 @@ Open VSCode, go to Help / Activate Development Tools, then in the dev console wr
 
 ## OSX version
 
-Both Windows and Linux are supported. We will soon work on OSX version using Mach tasks debugging API.
+For OSX/MacOS setup please follow the [Mac Installation Guide](MacOS.md)

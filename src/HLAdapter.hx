@@ -34,6 +34,7 @@ class HLAdapter extends DebugSession {
 
 	static var DEBUG = false;
 	static var isWindows = Sys.systemName() == "Windows";
+	static var isMac = Sys.systemName() == "Mac";
 
 	function new() {
 		super();
@@ -97,7 +98,9 @@ class HLAdapter extends DebugSession {
 	}
 
 	override function setExceptionBreakPointsRequest(response:SetExceptionBreakpointsResponse, args:SetExceptionBreakpointsArguments) {
-		dbg.breakOnThrow = args.filters.indexOf("all") >= 0;
+		if( Sys.systemName() != "Mac" ) { // TODO: Fix issue with corrupted memory on Mac
+			dbg.breakOnThrow = args.filters.indexOf("all") >= 0;
+		}
 		sendResponse(response);
 	}
 
@@ -280,6 +283,8 @@ class HLAdapter extends DebugSession {
 		var api : hld.Api;
 		if( isWindows )
 			api = new hld.NodeDebugApi(pid, dbg.is64);
+		else if( isMac )
+			api = new hld.NodeDebugApiMac(pid, dbg.is64);
 		else
 			api = new hld.NodeDebugApiLinux(pid, dbg.is64);
 

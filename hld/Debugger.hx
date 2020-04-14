@@ -565,7 +565,7 @@ class Debugger {
 		if( is64 ) {
 			// on windows x64, we can't guarantee a stack pointer for our native funs...
 			var skipFirstCheck = (e == null && jit.isWinCall);
-			for( i in 0...size >> 3 ) {
+			for( i in 0...(size >> 3)-1 ) {
 				var val = mem.getPointer(i << 3, jit.align);
 				if( val > esp && val < tinf.stackTop || (inProlog && i == 0) || skipFirstCheck ) {
 					var codePtr = skipFirstCheck ? val : mem.getPointer((i + 1) << 3, jit.align);
@@ -806,8 +806,10 @@ class Debugger {
 	function removeBP( bp ) {
 		breakPoints.remove(bp);
 		setAsm(bp.codePos, bp.oldByte);
-		if( nextStep == bp.codePos )
+		if( nextStep == bp.codePos ) {
+			singleStep(currentThread, false);
 			nextStep = -1;
+		}
 	}
 
 	public function removeBreakpoint( file : String, line : Int ) {

@@ -1,6 +1,6 @@
 package hld;
 
-@:enum abstract WaitResult(Int) {
+@:enum abstract WaitResult(Int) from Int to Int {
 	public var Timeout = -1;
 	public var Exit = 0;
 	public var Breakpoint = 1;
@@ -11,7 +11,7 @@ package hld;
 	public var Watchbreak = 0x100;
 }
 
-@:enum abstract Register(Int) {
+@:enum abstract Register(Int) from Int to Int {
 	public var Esp = 0;
 	public var Ebp = 1;
 	public var Eip = 2;
