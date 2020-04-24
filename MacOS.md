@@ -1,7 +1,7 @@
 # HashLink Debugger for MacOS
 
 For general installation instructions see [README](README.md). **Note**: The debugger requires you to have newer version of Hashlink installed. 
-   * To verify compatibility type: ```ls /usr/local/lib/libhldebug.dylib``` and check it returns no error message.
+   * To verify compatibility type: ```hl --version``` and verify it returns a version **greater 1.11.0.**
 
 ## Codesign
 Due to MacOS's security model Hashlink must be codesigned in order to be used with the debugger. This can be achieved by creating a self-signed certificate and signing the `hl` executable with it.

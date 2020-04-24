@@ -36,7 +36,7 @@ class NodeDebugApiMac implements Api {
 		tmp = new Buffer(8);
 		tmpByte = new Buffer(4);
 
-		libdebug = NodeFFI.Library("/usr/local/lib/libhldebug",{
+		libdebug = NodeFFI.Library("/usr/local/lib/libhl",{
 			hl_debug_start : FDecl(bool, [int]),
 			hl_debug_stop : FDecl(bool, [int]),
 			hl_debug_breakpoint : FDecl(bool, [int]),
