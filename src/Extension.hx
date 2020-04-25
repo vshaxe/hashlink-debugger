@@ -12,7 +12,9 @@ class Extension {
 		var config:DebugConfiguration & Arguments = cast config;
 
 		if (Sys.systemName() == "Mac") {
-			var hlVersion:String = js.node.ChildProcess.execSync('hl --version');
+			final hl = config.hl != null ? config.hl : 'hl';
+
+			var hlVersion:String = js.node.ChildProcess.execSync('$hl --version');
 			if(hlVersion <= "1.11.0") {
 				final visitButton = "Get from GitHub";
 				Vscode.window.showErrorMessage('Your version of Hashlink (${hlVersion}) does not support debugging on Mac. Install a newer version from here:', visitButton).then(function(choice) {
@@ -20,6 +22,15 @@ class Extension {
 						Vscode.env.openExternal(Uri.parse("https://github.com/HaxeFoundation/hashlink"));
 					}
 				});
+				return null;
+			}
+			var validSignature = false;
+			try {
+				var entitlements:String = js.node.ChildProcess.execSync('codesign -d --entitlements - $$(which $hl)');
+				validSignature = entitlements.indexOf("com.apple.security.get-task-allow") >= 0;
+			} catch(ex: Dynamic) {}
+			if(!validSignature) {
+				Vscode.window.showErrorMessage('Your Hashlink executable is not properly codesigned. Please refer to MacOS.md readme for signing instructions.\n\nPath: ${hl}');
 				return null;
 			}
 		}

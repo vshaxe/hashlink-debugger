@@ -36,7 +36,9 @@ class NodeDebugApiMac implements Api {
 		tmp = new Buffer(8);
 		tmpByte = new Buffer(4);
 
-		libdebug = NodeFFI.Library("/usr/local/lib/libhl",{
+		final libhlPath = js.Node.process.env.get('LIBHL_PATH') == null ? "/usr/local/lib" : js.Node.process.env.get('LIBHL_PATH');
+		
+		libdebug = NodeFFI.Library(js.node.Path.join(libhlPath, 'libhl'),{
 			hl_debug_start : FDecl(bool, [int]),
 			hl_debug_stop : FDecl(bool, [int]),
 			hl_debug_breakpoint : FDecl(bool, [int]),

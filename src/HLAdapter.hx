@@ -219,6 +219,10 @@ class HLAdapter extends DebugSession {
 		}
 		// ALLUSERSPROFILE required to spawn correctly on Windows, see vshaxe/hashlink-debugger#51.
 		var hlPath = (args.hl != null) ? args.hl : 'hl';
+		if(args.hl != null && js.Node.process.env.get('LIBHL_PATH') == null) {
+			js.Node.process.env.set('LIBHL_PATH', js.node.Path.dirname(args.hl));
+		}
+
 		proc = ChildProcess.spawn(hlPath, hlArgs, {cwd: args.cwd, env:args.env});
 		proc.stdout.setEncoding('utf8');
 		var prev = "";
