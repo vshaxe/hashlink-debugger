@@ -15,13 +15,6 @@ cleanup:
 	/bin/find . -name *.tlog | xargs rm -rf 
 	/bin/find . -name *.map | xargs rm -rf 
 
-# codesign HL on MacOS to support debugging
-ifeq ($(shell uname -s),Darwin)
-codesign:
-	@read -p "Enter name of signing certificate: " certname && \
-	codesign --entitlements ./entitlements.xml -fs "$$certname" $$(which hl)
-endif
-
 # git pull && sudo rm -rf node_modules && sudo make deps on LINUX_VM before running this
 import_linux_bindings:
 	cp bindings.js node_modules/bindings/	
