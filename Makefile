@@ -5,7 +5,7 @@ LINUX_VM=ncannasse@virtbuntu
 all:
 
 deps:
-	npm install node-gyp -g
+	command -v node-gyp || npm install node-gyp -g
 	npm install $(NPARAMS)
 	(cd node_modules/deasync && rm -rf bin && node-gyp rebuild $(NPARAMS))	
 	
