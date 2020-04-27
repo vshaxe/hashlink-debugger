@@ -56,6 +56,6 @@ Before running, you need to install a few NodeJS extensions. **DO NOT** npm inst
 If the extension fails to run, maybe you are using a different version of VSCode than the one you compiled for.
 Open VSCode, go to Help / Activate Development Tools, then in the dev console write `process.versions.electron` and replace it in the `Makefile`,  remove `node_modules` and recompile.
 
-## OSX version
+### Supported Platforms
 
-For OSX/MacOS setup please follow the [Mac Installation Guide](MacOS.md)
+Supports Windows, Linux and Mac platforms. For OSX/MacOS make sure your Hashlink version is `1.12.0` or higher and you ran `make codesign_osx` during installation.

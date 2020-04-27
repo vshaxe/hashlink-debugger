@@ -30,7 +30,7 @@ class Extension {
 				validSignature = entitlements.indexOf("com.apple.security.get-task-allow") >= 0;
 			} catch(ex: Dynamic) {}
 			if(!validSignature) {
-				Vscode.window.showErrorMessage('Your Hashlink executable is not properly codesigned. Please refer to MacOS.md readme for signing instructions.\n\nPath: ${hl}');
+				Vscode.window.showErrorMessage('Your Hashlink executable is not properly codesigned. Run `make codesign_osx` during Hashlink installation.\n\nPath: ${hl}');
 				return null;
 			}
 		}

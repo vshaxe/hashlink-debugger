@@ -100,7 +100,7 @@ class NodeDebugApiMac implements Api {
 	}
 
 	public function wait( timeout : Int ) : { r : WaitResult, tid : Int } {
-		var kind : WaitResult = libdebug.hl_debug_wait(pid, tmp, timeout);
+		var kind : WaitResult = cast libdebug.hl_debug_wait(pid, tmp, timeout);
 		var tid = tmp.getI32(0);
 		return { r : kind, tid : tid };
 	}
@@ -110,13 +110,13 @@ class NodeDebugApiMac implements Api {
 	}
 
 	public function readRegister( tid : Int, register : Register ) : Pointer {
-		var v = libdebug.hl_debug_read_register(pid, tid, register, true);
+		var v = libdebug.hl_debug_read_register(pid, tid, cast register, true);
 		var a = v.ref();
 		return Pointer.make(a.readInt32LE(0), a.readInt32LE(4));
 	}
 
 	public function writeRegister( tid : Int, register : Register, v : Pointer ) : Bool {
-		return libdebug.hl_debug_write_register(pid, tid, register, makePointer(v), true);
+		return libdebug.hl_debug_write_register(pid, tid, cast register, makePointer(v), true);
 	}
 
 }
