@@ -106,6 +106,8 @@ class Main {
 			switch( Sys.systemName() ) {
 			case "Windows":
 				return new hld.NodeDebugApi(pid, dbg.is64);
+			case "Mac":
+				return new hld.NodeDebugApiMac(pid, dbg.is64);
 			default:
 				return new hld.NodeDebugApiLinux(pid,dbg.is64);
 			}

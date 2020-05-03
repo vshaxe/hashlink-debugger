@@ -34,6 +34,7 @@ class HLAdapter extends DebugSession {
 
 	static var DEBUG = false;
 	static var isWindows = Sys.systemName() == "Windows";
+	static var isMac = Sys.systemName() == "Mac";
 
 	function new() {
 		super();
@@ -97,7 +98,9 @@ class HLAdapter extends DebugSession {
 	}
 
 	override function setExceptionBreakPointsRequest(response:SetExceptionBreakpointsResponse, args:SetExceptionBreakpointsArguments) {
-		dbg.breakOnThrow = args.filters.indexOf("all") >= 0;
+		if( Sys.systemName() != "Mac" ) { // TODO: Fix issue with corrupted memory on Mac
+			dbg.breakOnThrow = args.filters.indexOf("all") >= 0;
+		}
 		sendResponse(response);
 	}
 
@@ -216,6 +219,10 @@ class HLAdapter extends DebugSession {
 		}
 		// ALLUSERSPROFILE required to spawn correctly on Windows, see vshaxe/hashlink-debugger#51.
 		var hlPath = (args.hl != null) ? args.hl : 'hl';
+		if(args.hl != null && js.Node.process.env.get('LIBHL_PATH') == null) {
+			js.Node.process.env.set('LIBHL_PATH', js.node.Path.dirname(args.hl));
+		}
+
 		proc = ChildProcess.spawn(hlPath, hlArgs, {cwd: args.cwd, env:args.env});
 		proc.stdout.setEncoding('utf8');
 		var prev = "";
@@ -280,6 +287,8 @@ class HLAdapter extends DebugSession {
 		var api : hld.Api;
 		if( isWindows )
 			api = new hld.NodeDebugApi(pid, dbg.is64);
+		else if( isMac )
+			api = new hld.NodeDebugApiMac(pid, dbg.is64);
 		else
 			api = new hld.NodeDebugApiLinux(pid, dbg.is64);
 
