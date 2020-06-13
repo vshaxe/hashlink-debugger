@@ -74,7 +74,7 @@ class CodeGraph {
 		for( a in fun.assigns ) {
 			if( a.position >= 0 ) break;
 			var vname = module.strings[a.varName];
-			if( a.position == -1 ) {
+			if( a.position == -1 && args.length < nargs ) {
 				args.push({ hasIndex : false, vars : [vname] });
 				continue;
 			}
