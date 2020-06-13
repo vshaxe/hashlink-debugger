@@ -13,6 +13,7 @@ enum VarValue {
 	VObjFields( v : hld.Value, o : format.hl.Data.ObjPrototype );
 	VMapPair( key : hld.Value, value : hld.Value );
 	VStatics( cl : String );
+	VStack( stack : Array<hld.Debugger.StackInfo> );
 }
 
 class HLAdapter extends DebugSession {
@@ -572,6 +573,8 @@ class HLAdapter extends DebugSession {
 			return { name : name, type : tstr, value : dbg.eval.valueStr(value), variablesReference : allocValue(VValue(value)), indexedVariables : len };
 		case VBytes(len, _):
 			return { name : name, type : tstr, value : tstr+":"+len, variablesReference : allocValue(VValue(value)), indexedVariables : (len+15)>>4 };
+		case VClosure(f,context,_):
+			return { name : name, type : tstr, value : dbg.eval.funStr(f), variablesReference : allocValue(VValue(value)), indexedVariables : 2 };
 		default:
 		}
 		return { name : name, type : tstr, value : dbg.eval.valueStr(value), variablesReference : 0 };
@@ -697,6 +700,25 @@ class HLAdapter extends DebugSession {
 						});
 					}
 				}
+			case VClosure(_, context, _):
+				if( context != null )
+					switch( context.t ) {
+					case HEnum(e) if( e.name.charCodeAt(0) == "$".code ):
+						vars.push({
+							name : "Context",
+							value : "",
+							variablesReference : allocValue(VValue(context))
+						});
+					default:
+						vars.push(makeVar("Context", context));
+					}
+				var stack = dbg.getClosureStack(v.v);
+				if( stack.length > 0 )
+					vars.push({
+						name : "Stack",
+						value : "",
+						variablesReference : allocValue(VStack(stack)),
+					});
 			default:
 				vars.push({
 					name : "TODO",
@@ -713,6 +735,15 @@ class HLAdapter extends DebugSession {
 		case VMapPair(key, value):
 			vars.push(makeVar("key", key));
 			vars.push(makeVar("value", value));
+		case VStack(stack):
+			for( i in 0...stack.length ) {
+				var st = stack[i];
+				vars.push({
+					name : ""+i,
+					value : st.file+":"+st.line+(st.context == null ? "" : " ("+st.context.obj.name+"."+st.context.field+")"),
+					variablesReference: 0,
+				});
+			}
 		case VUnkownFile(_):
 			throw "assert";
 		}

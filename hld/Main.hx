@@ -265,6 +265,13 @@ class Main {
 					var fv = dbg.eval.readField(v, f);
 					Sys.println("  " + f + " = " + dbg.eval.valueStr(fv) + " : " + fv.t.toString());
 				}
+			switch( v.v ) {
+			case VClosure(_):
+				var stack = dbg.getClosureStack(v.v);
+				for( s in stack )
+					Sys.println("  "+frameStr(s));
+			default:
+			}
 		case "watch", "rwatch":
 			var expr = args.shift();
 			var v = if( Debugger.DEBUG ) dbg.getRef(expr) else try dbg.getRef(expr) catch( e : Dynamic ) {

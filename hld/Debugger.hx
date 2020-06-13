@@ -633,6 +633,18 @@ class Debugger {
 		return stackInfo(f);
 	}
 
+	public function getClosureStack( value ) : Array<StackInfo> {
+		var stack = @:privateAccess eval.getClosureStack(value);
+		var out = [];
+		for( ptr in stack ) {
+			var codePos = ptr.sub(jit.codeStart);
+			var e = jit.resolveAsmPos(codePos);
+			if( e == null || !module.isValid(e.fidx,e.fpos) || e.fpos < 0 ) continue;
+			out.push(stackInfo({ fidx : e.fidx, fpos : e.fpos, ebp: null }));
+		}
+		return out;
+	}
+
 	function stackInfo( f ) {
 		var s = module.resolveSymbol(f.fidx, f.fpos);
 		return { file : s.file, line : s.line, ebp : f.ebp, context : module.getMethodContext(f.fidx) };

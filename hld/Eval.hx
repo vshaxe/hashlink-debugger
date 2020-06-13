@@ -128,6 +128,16 @@ class Eval {
 		}
 	}
 
+	function getClosureStack( v : ValueRepr ) : Array<Pointer> {
+		switch( v ) {
+		case VClosure(_, context, p) if( align.is64 && context != null ):
+			var stackCount = readI32(p.offset(20));
+			return [for( i in 0...stackCount ) readPointer(p.offset(32 + i * 8))];
+		default:
+		}
+		return [];
+	}
+
 	function evalExpr( e : hscript.Expr ) : Value {
 		switch( e ) {
 		case EConst(c):
@@ -449,7 +459,7 @@ class Eval {
 		return str;
 	}
 
-	function funStr( f : FunRepr ) {
+	public function funStr( f : FunRepr ) {
 		return switch( f ) {
 		case FUnknown(p): "fun(" + p.toString() + ")";
 		case FIndex(i): "fun(" + getFunctionName(i) + ")";
