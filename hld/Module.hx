@@ -36,6 +36,7 @@ class Module {
 	var methods : Array<{ obj : ObjPrototype, field : String }>;
 	var functionsIndexes : Map<Int,Int>;
 	var isWindows : Bool;
+	var closureContextId : Int = 0;
 
 	public function new() {
 		protoCache = new Map();
@@ -200,6 +201,8 @@ class Module {
 	}
 
 	public function getEnumProto( e : EnumPrototype ) : ModuleEProto {
+		if( e.name == null )
+			e.name = "$Closure:"+closureContextId++;
 		var p = eprotoCache.get(e.name);
 		if( p != null )
 			return p;
