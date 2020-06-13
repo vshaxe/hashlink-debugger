@@ -1,6 +1,10 @@
-## 1.1.0 (to be released)
+## 1.1.0 (June 6, 2020)
 
 * removed the need to specify `hxml` in `launch.json` (#4)
+* added OSX support (contributed by @rcstuber, thanks!)
+* added closures context display
+* added closures stack (requires HL 1.12+)
+* bug fixes
 
 ## 1.0.0 (February 2, 2020)
 
