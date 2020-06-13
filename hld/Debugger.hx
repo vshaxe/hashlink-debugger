@@ -200,7 +200,9 @@ class Debugger {
 	}
 
 	public function getClassStatics( cl : String ) {
+		eval.globalContext = true;
 		var v = getValue(cl);
+		eval.globalContext = false;
 		if( v == null )
 			throw "No such class "+cl;
 		var fields = eval.getFields(v);

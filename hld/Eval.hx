@@ -20,6 +20,7 @@ class Eval {
 	public var maxStringRec : Int = 3;
 	public var maxArrLength : Int = 10;
 	public var maxBytesLength : Int = 128;
+	public var globalContext = false;
 
 	static var HASH_PREFIX = "$_h$";
 
@@ -269,7 +270,7 @@ class Eval {
 	function getVarAddress( name : String ) {
 		// locals
 		var loc = module.getGraph(funIndex).getLocal(name, codePos);
-		if( loc != null ) {
+		if( loc != null && !globalContext ) {
 			var v = readRegAddress(loc.rid);
 			if( loc.index != null ) {
 				if( v.ptr == null )
@@ -285,7 +286,7 @@ class Eval {
 			return readRegAddress(Std.parseInt(name.substr(1)));
 
 		// this variable
-		if( module.getGraph(funIndex).getLocal("this", codePos) != null ) {
+		if( module.getGraph(funIndex).getLocal("this", codePos) != null && !globalContext ) {
 			var vthis = getVar("this");
 			if( vthis != null ) {
 				var f = readFieldAddress(vthis, name);
@@ -307,7 +308,7 @@ class Eval {
 		// static
 		var ctx = module.getMethodContext(funIndex);
 		var tpack = null;
-		if( ctx != null ) {
+		if( ctx != null && !globalContext ) {
 			var t = ctx.obj;
 			if( t.globalValue != null )
 				t = switch( module.code.globals[t.globalValue] ) {
