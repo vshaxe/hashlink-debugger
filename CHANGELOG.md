@@ -1,4 +1,4 @@
-## 1.1.0 (June 6, 2020)
+## 1.1.0 (June 13, 2020)
 
 * removed the need to specify `hxml` in `launch.json` (#4)
 * added OSX support (contributed by @rcstuber, thanks!)
