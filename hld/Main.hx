@@ -155,11 +155,11 @@ class Main {
 	function handleResult( r : hld.Api.WaitResult ) {
 		switch( r ) {
 		case Exit:
-			#if nodejs
+			#if !nodejs
+			dbg.resume();
+			#end
 			Sys.println("Process has exit");
 			Sys.exit(0);
-			#end
-			dbg.resume();
 		case Breakpoint:
 			Sys.println("Thread " + dbg.stoppedThread + " paused " + frameStr(dbg.getStackFrame()));
 			var exc = dbg.getException();
