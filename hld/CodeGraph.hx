@@ -96,8 +96,6 @@ class CodeGraph {
 
 		if( args.length == nargs - 1 )
 			args.unshift({ hasIndex : false, vars : ["this"] });
-		if( args.length != nargs )
-			throw "assert";
 
 		// init assigns
 		assigns = new Map();
