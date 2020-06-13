@@ -751,7 +751,10 @@ class Debugger {
 
 	public function end() {
 		if( stoppedThread != null ) resume();
-		api.stop();
+		if( api != null ) {
+			api.stop();
+			api = null;
+		}
 	}
 
 	function readMem( addr : Pointer, size : Int ) {
