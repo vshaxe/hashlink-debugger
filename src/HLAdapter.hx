@@ -471,7 +471,7 @@ class HLAdapter extends DebugSession {
 		//debug("Stacktrace Request");
 		var bt = dbg.getBackTrace();
 		var start = args.startFrame;
-		var count = args.levels + start > bt.length ? bt.length - start : args.levels;
+		var count = args.levels == null || args.levels + start > bt.length ? bt.length - start : args.levels;
 		response.body = {
 			stackFrames : [for( i in 0...count ) {
 				var f = bt[start + i];
