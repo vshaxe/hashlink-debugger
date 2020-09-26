@@ -493,10 +493,13 @@ class Debugger {
 				var st = makeStack(tid,1)[0];
 				if( isRet ) {
 					if( op == 0xC3 ) {
-						// ret on final main() - run till exit
 						if( st == null ) {
-							resume();
-							return wait();
+							// ret on final main() ? - run till exit
+							prepareStack();
+							if( currentStack.length == 0 ) {
+								resume();
+								return wait();
+							}
 						}
 						break;
 					}
