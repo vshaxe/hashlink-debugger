@@ -17,7 +17,6 @@ class Eval {
 	var codePos : Int;
 	var ebp : Pointer;
 
-	public var maxStringRec : Int = 3;
 	public var maxArrLength : Int = 10;
 	public var maxBytesLength : Int = 128;
 	public var globalContext = false;
@@ -394,7 +393,7 @@ class Eval {
 		}
 	}
 
-	public function valueStr( v : Value ) {
+	public function valueStr( v : Value, maxStringRec = 3 ) {
 		if( maxStringRec < 0 && v.t.isPtr() )
 			return "<...>";
 		maxStringRec--;
@@ -410,7 +409,7 @@ class Eval {
 			default: typeStr(v.t);
 			}
 		case VString(s,_): "\"" + escape(s) + "\"";
-		case VClosure(f, d, _): funStr(f) + "[" + valueStr(d) + "]";
+		case VClosure(f, d, _): funStr(f) + "[" + valueStr(d,maxStringRec) + "]";
 		case VFunction(f,_): funStr(f);
 		case VArray(_, length, read, _):
 			var hasDispValue = false;
@@ -424,9 +423,9 @@ class Eval {
 			if( !hasDispValue && length > 0 )
 				"[...]"+(length > maxArrLength ? ":" + length : "");
 			else if( length <= maxArrLength )
-				"["+[for(i in 0...length) valueStr(read(i))].join(", ")+"]";
+				"["+[for(i in 0...length) valueStr(read(i),maxStringRec)].join(", ")+"]";
 			else {
-				var arr = [for(i in 0...maxArrLength) valueStr(read(i))];
+				var arr = [for(i in 0...maxArrLength) valueStr(read(i),maxStringRec)];
 				arr.push("...");
 				"["+arr.join(",")+"]:"+length;
 			}
@@ -441,7 +440,7 @@ class Eval {
 			str;
 		case VMap(_, nkeys, readKey, readValue, _):
 			var max = nkeys < maxArrLength ? nkeys : maxArrLength;
-			var content = [for( i in 0...max ) { var k = readKey(i); valueStr(k) + "=>" + valueStr(readValue(i)); }];
+			var content = [for( i in 0...max ) { var k = readKey(i); valueStr(k,maxStringRec) + "=>" + valueStr(readValue(i),maxStringRec); }];
 			if( max != nkeys ) {
 				content.push("...");
 				content.toString() + ":" + nkeys;
@@ -453,9 +452,8 @@ class Eval {
 			if( values.length == 0 )
 				c
 			else
-				c + "(" + [for( v in values ) valueStr(v)].join(", ") + ")";
+				c + "(" + [for( v in values ) valueStr(v,maxStringRec)].join(", ") + ")";
 		}
-		maxStringRec++;
 		return str;
 	}
 
