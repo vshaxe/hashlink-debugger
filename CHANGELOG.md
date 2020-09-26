@@ -1,3 +1,10 @@
+## 1.1.1 (September 26, 2020)
+
+* fixed pause was broken again
+* improved multithread support
+* fixed some vars displayed as <...> after some time
+* fixed bug when stepping out of some functions
+
 ## 1.1.0 (June 13, 2020)
 
 * removed the need to specify `hxml` in `launch.json` (#4)
