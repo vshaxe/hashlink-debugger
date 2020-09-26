@@ -183,6 +183,10 @@ class Debugger {
 		return eval.readVal(exc, HDyn);
 	}
 
+	public function hasStack() {
+		return currentStack.length > 0;
+	}
+
 	public function getCurrentVars( args : Bool ) {
 		var s = currentStack[currentStackFrame];
 		if( s == null ) return [];

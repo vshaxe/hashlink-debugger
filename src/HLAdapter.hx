@@ -32,6 +32,7 @@ class HLAdapter extends DebugSession {
 
 	var varsValues : Map<Int,VarValue>;
 	var isPause : Bool;
+	var threads : Map<Int,Bool>;
 
 	static var DEBUG = false;
 	static var isWindows = Sys.systemName() == "Windows";
@@ -41,6 +42,7 @@ class HLAdapter extends DebugSession {
 		super();
 		debugPort = 6112;
 		doDebug = true;
+		threads = new Map();
 		startTime = haxe.Timer.stamp();
 	}
 
@@ -296,10 +298,7 @@ class HLAdapter extends DebugSession {
 		if( !dbg.init(api) )
 			throw "Failed to initialize debugger";
 
-		// send initial threads (allow pauseRequest to be fired)
-		for( t in dbg.getThreads() )
-			sendEvent(new ThreadEvent("started",t));
-
+		syncThreads();
 		debug("connected");
 		return true;
 	}
@@ -367,6 +366,27 @@ class HLAdapter extends DebugSession {
 		return ret;
 	}
 
+	function syncThreads() {
+		var prev = threads.copy();
+		threads = new Map();
+		for( t in dbg.getThreads() ) {
+			// skipped stopped thread with no stack (thread allocated for breaking on windows)
+			if( t == dbg.currentThread && !dbg.hasStack() ) {
+				debug("Skip thread "+t);
+				continue;
+			}
+			if( !prev.remove(t) ) {
+				debug("Started thread "+t);
+				sendEvent(new ThreadEvent("started",t));
+			}
+			threads.set(t, true);
+		}
+		for( t in prev.keys() ) {
+			debug("Exited thread "+t);
+			sendEvent(new ThreadEvent("exited",t));
+		}
+	}
+
 	function handleWait( msg : hld.Api.WaitResult ) {
 		switch( msg ) {
 		case Breakpoint:
@@ -380,9 +400,25 @@ class HLAdapter extends DebugSession {
 				};
 				debug("Exception: " + str);
 			}
+
+			syncThreads();
+
 			beforeStop();
 			var msg = exc == null ? (isPause ? "paused" : "breakpoint") : "exception";
-			var ev = new StoppedEvent(msg, dbg.currentThread, str);
+			var tid = dbg.currentThread;
+			debug(msg+" on "+tid);
+			if( isPause && tid != dbg.mainThread && !dbg.hasStack() ) {
+				tid = dbg.mainThread;
+				dbg.setCurrentThread(tid);
+				debug("switch thread "+tid);
+			}
+			// stop all threads
+			for( t in threads.keys() )
+				if( t != tid ) {
+					var ev = new StoppedEvent(msg, t);
+					sendEvent(ev);
+				}
+			var ev = new StoppedEvent(msg, tid, str);
 			ev.allThreadsStopped = true;
 			sendEvent(ev);
 		case Error, StackOverflow:
@@ -455,11 +491,13 @@ class HLAdapter extends DebugSession {
 		//debug("Threads request");
 		var threads = [];
 		if( dbg != null ) {
-			for( t in dbg.getThreads() )
+			for( t in dbg.getThreads() ) {
+				if( !this.threads.exists(t) ) continue;
 				threads.push({
-					name : threads.length == 0 ? "Main thread" : "Thread "+t,
+					name : t == dbg.mainThread ? "Main thread" : "Thread "+t,
 					id : t,
 				});
+			}
 		}
 		response.body = {
 			threads : threads,
@@ -467,8 +505,13 @@ class HLAdapter extends DebugSession {
 		sendResponse(response);
 	}
 
+	function setThread( tid : Int ) {
+		if( tid != dbg.currentThread ) dbg.setCurrentThread(tid);
+	}
+
 	override function stackTraceRequest(response:StackTraceResponse, args:StackTraceArguments) {
 		//debug("Stacktrace Request");
+		setThread(args.threadId);
 		var bt = dbg.getBackTrace();
 		var start = args.startFrame;
 		var count = args.levels == null || args.levels + start > bt.length ? bt.length - start : args.levels;
@@ -776,18 +819,21 @@ class HLAdapter extends DebugSession {
 	override function nextRequest(response:NextResponse, args:NextArguments) {
 		debug("Next");
 		sendResponse(response);
+		setThread(args.threadId);
 		safe(() -> handleWait(dbg.step(Next)));
 	}
 
 	override function stepInRequest(response:StepInResponse, args:StepInArguments) {
 		debug("StepIn");
 		sendResponse(response);
+		setThread(args.threadId);
 		safe(() -> handleWait(dbg.step(Into)));
 	}
 
 	override function stepOutRequest(response:StepOutResponse, args:StepOutArguments) {
 		debug("StepOut");
 		sendResponse(response);
+		setThread(args.threadId);
 		safe(() -> handleWait(dbg.step(Out)));
 	}
 
