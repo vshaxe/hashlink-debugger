@@ -1,5 +1,5 @@
 # requires compiling native extensions with electron support
-NPARAMS=--runtime=electron --target=7.1.11 --disturl=https://atom.io/download/electron
+NPARAMS=--runtime=electron --target=12.0.4 --disturl=https://atom.io/download/electron
 LINUX_VM=ncannasse@virtbuntu
 PREBUILT_OSX_BINDINGS=https://gist.github.com/rcstuber/9f60840ccc371c8d53b18c6331b2bf7f/raw/4b5772d40fdae3c9c0f776ea53a43a71810db8b8/ffi_bindings_osx.tar.gz
 

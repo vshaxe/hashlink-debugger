@@ -1,3 +1,7 @@
+## 1.1.2 (May 6, 2021)
+
+* fixed support for VSCode 1.56 (Electron 12.0)
+
 ## 1.1.1 (September 26, 2020)
 
 * fixed pause was broken again
