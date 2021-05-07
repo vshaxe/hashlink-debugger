@@ -16,8 +16,8 @@ class Extension {
 
 			var hlVersion:String = js.node.ChildProcess.execSync('$hl --version');
 			if(hlVersion <= "1.11.0") {
-				final visitButton = "Get from GitHub";
-				Vscode.window.showErrorMessage('Your version of Hashlink (${hlVersion}) does not support debugging on Mac. Install a newer version from here:', visitButton).then(function(choice) {
+				final visitButton:String = "Get from GitHub";
+				Vscode.window.showErrorMessage('Your version of Hashlink (${hlVersion}) does not support debugging on Mac. Install a newer version from here:', null, visitButton).then(function(choice) {
 					if (choice == visitButton) {
 						Vscode.env.openExternal(Uri.parse("https://github.com/HaxeFoundation/hashlink"));
 					}
