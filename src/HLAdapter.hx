@@ -266,7 +266,7 @@ class HLAdapter extends DebugSession {
 			if( err.message == "spawn hl ENOENT" )
 				error(cast response, "Could not start 'hl' process, executable was not found in PATH.\nRestart VSCode or computer.");
 			else
-				error(cast response, 'Failed to start hl process ($err)');
+				error(cast response, 'Failed to start hl process (${err.message})');
 		});
 	}
 
