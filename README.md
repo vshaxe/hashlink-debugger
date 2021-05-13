@@ -51,11 +51,6 @@ node debugger.js /my/path/filetodebug.hl
 
 Please note that VSCode does not allow users to have a specific directory for a single extension, so it's easier to clone this repository directly into the `extensions` directory of VSCode (`C:\Users\<you>\.vscode\extensions` on Windows).
 
-Before running, you need to install a few NodeJS extensions. **DO NOT** npm install, as this will install the native extensions for your current NodeJS version and not for the Electron version of VSCode (if you did this already, simply remove the node_modules directory). Instead, run `make deps`, which will npm install & compile the extensions for the latest version of VSCode.
-
-If the extension fails to run, maybe you are using a different version of VSCode than the one you compiled for.
-Open VSCode, go to Help / Activate Development Tools, then in the dev console write `process.versions.electron` and replace it in the `Makefile`,  remove `node_modules` and recompile.
-
 ### Supported Platforms
 
 Supports Windows, Linux and Mac platforms. For OSX/MacOS make sure your Hashlink version is `1.12.0` or higher and you ran `make codesign_osx` during installation.
