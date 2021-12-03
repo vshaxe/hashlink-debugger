@@ -733,10 +733,12 @@ class Debugger {
 				var rid = HW_REGS.indexOf(r.r);
 				dr7 |= 1 << (rid * 2);
 				dr7 |= ((w.forReadWrite ? 3 : 1) | (r.bits << 2)) << (16 + rid * 4);
-				api.writeRegister(currentThread, r.r, w.addr.ptr.offset(r.offset));
 			}
 		}
 		api.writeRegister(currentThread, Dr7, Pointer.make(dr7, 0));
+		for( w in watches )
+			for( r in w.regs )
+				api.writeRegister(currentThread, r.r, w.addr.ptr.offset(r.offset));
 		if( wasPaused )
 			resume();
 	}
