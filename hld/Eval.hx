@@ -103,8 +103,13 @@ class Eval {
 			return null;
 		if( safeCastTo(v.t, t) )
 			return v;
-		if( v.v == VNull && t.isPtr() )
+		switch( [v.v, t] ) {
+		case [VInt(i), HF64|HF32]:
+			return { v : VFloat(i), t : t };
+		case [VNull, _] if( t.isPtr() ):
 			return { v : VNull, t : t };
+		default:
+		}
 		throw "Don't know how to cast "+v.t.toString()+" to "+t.toString();
 	}
 
@@ -174,9 +179,9 @@ class Eval {
 		case EBinop(op, e1, e2):
 			switch( op ) {
 			case "&&":
-				return { v : VBool(toBool(evalExpr(e1)) && toBool(evalExpr(e2))), t : HBool };
+				return mkBool(toBool(evalExpr(e1)) && toBool(evalExpr(e2)));
 			case "||":
-				return { v : VBool(toBool(evalExpr(e1)) || toBool(evalExpr(e2))), t : HBool };
+				return mkBool(toBool(evalExpr(e1)) || toBool(evalExpr(e2)));
 			default:
 				return evalBinop(op, evalExpr(e1), evalExpr(e2));
 			}
@@ -225,15 +230,80 @@ class Eval {
 		}
 	}
 
+	function getNum( v : Value ) : Float {
+		return switch( v.v ) {
+		case VInt(i): i;
+		case VFloat(f): f;
+		default: throw valueStr(v)+" should be a number";
+		}
+	}
+
+	function getInt( v : Value ) : Int {
+		return switch( v.v ) {
+		case VInt(i): i;
+		default: throw valueStr(v)+" should be a number";
+		}
+	}
+
+	function compare(a:Value,b:Value) : Int {
+		var d = getNum(a) - getNum(b);
+		return d == 0 ? 0 : d > 0 ? 1 : -1;
+	}
+
+	function mkBool(b) : Value {
+		return { v : VBool(b), t : HBool };
+	}
+
 	function evalBinop(op, v1:Value, v2:Value) : Value {
-		switch( op ) {
+		inline function numOp(f:Float->Float->Float) {
+			var f1 = getNum(v1);
+			var f2 = getNum(v2);
+			var ret = f(f1,f2);
+			var iret = Std.int(ret);
+			return iret == ret ? { v : VInt(iret), t : HI32 } : { v : VFloat(ret), t : HF64 };
+		}
+		inline function iop(f:Int->Int->Int) {
+			var f1 = getInt(v1);
+			var f2 = getInt(v2);
+			var ret = f(f1,f2);
+			return { v : VInt(ret), t : HI32 };
+		}
+		return switch( op ) {
+		case "+": numOp((a,b)->a+b);
+		case "-": numOp((a,b)->a-b);
+		case "*": numOp((a,b)->a*b);
+		case "/": numOp((a,b)->a/b);
+		case "%": numOp((a,b)->a%b);
+		case ">>": iop((a,b)->a>>b);
+		case ">>>": iop((a,b)->a>>>b);
+		case "<<": iop((a,b)->a<<b);
+		case "|": iop((a,b)->a|b);
+		case "&": iop((a,b)->a&b);
+		case "^": iop((a,b)->a^b);
+		case "==": mkBool(compare(v1,v2) == 0);
+		case ">": mkBool(compare(v1,v2) > 0);
+		case "<": mkBool(compare(v1,v2) < 0);
+		case ">=": mkBool(compare(v1,v2) >= 0);
+		case "<=": mkBool(compare(v1,v2) <= 0);
 		default:
 			throw "Can't eval " + valueStr(v1) + " " + op + " " + valueStr(v2);
 		}
 	}
 
 	function evalUnop(op, prefix:Bool, v:Value) : Value {
-		switch( op ) {
+		return switch( op ) {
+		case "-":
+			switch( v.v ) {
+			case VInt(i): { v : VInt(-i), t : v.t };
+			case VFloat(f): { v : VFloat(-f), t : v.t };
+			default: getNum(v); throw "assert";
+			}
+		case "!":
+			switch( v.v ) {
+			case VBool(b): mkBool(!b);
+			case VNull: mkBool(true);
+			default: throw "Can't do !"+valueStr(v);
+			}
 		default:
 			throw "Can't eval " + (prefix ? op + valueStr(v) : valueStr(v) + op);
 		}
@@ -274,8 +344,8 @@ class Eval {
 
 	function getVar( name : String ) : Value {
 		return switch( name ) {
-		case "true": { v : VBool(true), t : HBool };
-		case "false": { v : VBool(false), t : HBool };
+		case "true": mkBool(true);
+		case "false": mkBool(false);
 		case "null": { v : VNull, t : HDyn };
 		default:
 			fetch(getVarAddress(name));
