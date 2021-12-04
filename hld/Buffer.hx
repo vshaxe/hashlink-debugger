@@ -2,7 +2,7 @@ package hld;
 
 #if hl
 
-@:forward(getI32, getUI8, setI32, setUI8, getUI16, getF32, getF64)
+@:forward(getI32, getUI8, setI32, setUI8, getUI16, getF32, getF64, setF64)
 abstract Buffer(hl.Bytes) {
 
 	public function new(size) {
@@ -75,6 +75,10 @@ abstract Buffer(js.node.Buffer) {
 
 	public inline function setI32(pos,value) {
 		this.writeInt32LE(value, pos);
+	}
+
+	public inline function setF64(pos,value) {
+		this.writeDoubleLE(value, pos);
 	}
 
 	public inline function setUI16(pos,value) {
