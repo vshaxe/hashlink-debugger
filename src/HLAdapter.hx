@@ -630,7 +630,7 @@ class HLAdapter extends DebugSession {
 			}].join(", ")+")";
 			return { name : name, type : tstr, value : str, variablesReference : allocValue(VValue(value)), namedVariables : values.length };
 		case VArray(_, len, _, _), VMap(_, len, _, _):
-			return { name : name, type : tstr, value : dbg.eval.valueStr(value), variablesReference : allocValue(VValue(value)), indexedVariables : len };
+			return { name : name, type : tstr, value : dbg.eval.valueStr(value), variablesReference : len == 0 ? 0 : allocValue(VValue(value)), indexedVariables : len };
 		case VBytes(len, _):
 			return { name : name, type : tstr, value : tstr+":"+len, variablesReference : allocValue(VValue(value)), indexedVariables : (len+15)>>4 };
 		case VClosure(f,context,_):

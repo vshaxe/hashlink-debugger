@@ -438,6 +438,8 @@ class Eval {
 			if( length > maxBytesLength )
 				str += "...";
 			str;
+		case VMap(_, 0, _):
+			"{}";
 		case VMap(_, nkeys, readKey, readValue, _):
 			var max = nkeys < maxArrLength ? nkeys : maxArrLength;
 			var content = [for( i in 0...max ) { var k = readKey(i); valueStr(k,maxStringRec) + "=>" + valueStr(readValue(i),maxStringRec); }];
@@ -902,7 +904,10 @@ class Eval {
 				return t;
 			// vclosure !
 			var tfun = readPointer(p.offset(align.ptr));
-			var tparent = readType(tfun.offset(align.ptr * 3));
+			var pparent = tfun.offset(align.ptr * 3);
+			if( p.i64 == readPointer(pparent).i64 )
+				return HFun({args:[],ret:HDyn}); // varargs !
+			var tparent = readType(pparent);
 			return switch( tparent ) {
 			case HFun(f): var args = f.args.copy(); args.shift(); HFun({ args : args, ret: f.ret });
 			default: throw "assert";
