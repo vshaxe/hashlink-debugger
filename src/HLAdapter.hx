@@ -906,10 +906,13 @@ class HLAdapter extends DebugSession {
 
 	override function setVariableRequest(response:SetVariableResponse, args:SetVariableArguments) {
 		try {
-			var v = dbg.setValue(args.name, args.value);
-			if( v == null )
-				throw "Can't set "+args.name+" to "+args.value;
-			response.body = makeVar(args.name, v);
+			var ptr = getVarAddress(args.variablesReference, args.name);
+			if( ptr == null ) throw "Can't get address for "+args.name;
+			var value = dbg.eval.eval(args.value);
+			if( value != null ) {
+				dbg.eval.setPtr(ptr, value);
+				response.body = makeVar(args.name, value);
+			}
 		} catch( e : Dynamic ) {
 			errorMessage(""+e);
 		}
@@ -951,27 +954,34 @@ class HLAdapter extends DebugSession {
 		sendResponse(response);
 	}
 
-	override function dataBreakpointInfoRequest(response:DataBreakpointInfoResponse, args:DataBreakpointInfoArguments) {
-		var v = varsValues.get(args.variablesReference);
-		var ptr = null;
-		var desc = "";
-		switch( v ) {
+	function getVarAddress( varRef : Int, name : String ) {
+		var ref = varsValues.get(varRef);
+		if( ref == null )
+			return null;
+		switch( ref ) {
 		case VScope(k):
-			desc = "local "+args.name;
 			dbg.currentStackFrame = k;
-			ptr = dbg.getRef(args.name);
+			return dbg.getRef(name);
 		case VValue(v):
-			switch( v.v ) {
-			case VArray(_):
-				desc = "["+args.name+"]";
-				ptr = dbg.eval.readArrayAddress(v, Std.parseInt(args.name));
-			default:
-				desc = "field "+args.name;
-				ptr = dbg.eval.readFieldAddress(v, args.name);
-			}
+			if( v.v.match(VArray(_)) )
+				return dbg.eval.readArrayAddress(v, Std.parseInt(name));
+			return dbg.eval.readFieldAddress(v, name);
+		case VStatics(cl):
+			var value = dbg.eval.eval(cl);
+			return dbg.eval.readFieldAddress(value, name);
 		default:
+			return null;
 		}
+	}
+
+	override function dataBreakpointInfoRequest(response:DataBreakpointInfoResponse, args:DataBreakpointInfoArguments) {
+		var ptr = getVarAddress(args.variablesReference, args.name);
 		if( ptr != null ) {
+			var desc = switch( varsValues.get(args.variablesReference) ) {
+			case VScope(_): "local "+args.name;
+			case VValue({ v : VArray(_) } ): "["+args.name+"]";
+			default: "field "+args.name;
+			}
 			response.body = {
 				dataId : cast allocPtr(ptr),
 				description : "Write "+desc+":"+ptr.ptr.toString(),

@@ -57,12 +57,15 @@ class Eval {
 	}
 
 	public function setValue( expr : String, value : String ) {
-		var ref = ref(expr);
+		var v = eval(value);
+		if( v == null ) return null;
+		setPtr(ref(expr),v);
+		return v;
+	}
+
+	public function setPtr( ref : { ptr : Pointer, t : HLType }, value : Value ) : Void {
 		if( ref.ptr.isNull() )
 			throw "Can't set null ptr";
-		var value = eval(value);
-		if( value == null )
-			return null;
 		value = castTo(value, ref.t);
 		switch( [ref.t, value.v] ) {
 		case [HI32, VInt(i)]:
@@ -71,17 +74,20 @@ class Eval {
 			var b = new Buffer(1);
 			b.setUI8(0, flag ? 1 : 0);
 			writeMem(ref.ptr, b, 1);
+		case [HF64,VInt(i)]:
+			writeF64(ref.ptr, i);
+		case [HF64,VFloat(f)]:
+			writeF64(ref.ptr, f);
 		default:
 			if( ref.t.isPtr() ) {
 				var ptr = getPtr(value);
 				if( ptr != null || value.v == VNull ) {
 					writePointer(ref.ptr, ptr);
-					return value;
+					return;
 				}
 			}
 			throw "Don't know how to set "+ref.t.toString();
 		}
-		return value;
 	}
 
 	function getPtr( v : Value ) {
@@ -867,6 +873,12 @@ class Eval {
 		var buf = new Buffer(4);
 		buf.setI32(0,v);
 		writeMem(p, buf, 4);
+	}
+
+	public function writeF64( p : Pointer, v : Float ) {
+		var buf = new Buffer(8);
+		buf.setF64(0,v);
+		writeMem(p, buf, 8);
 	}
 
 	function writeMem( p : Pointer, b : Buffer, size : Int ) {
