@@ -512,6 +512,17 @@ class Eval {
 		return { v : v, t : t };
 	}
 
+	public function readArrayAddress( value : Value, index : Int ) {
+		return switch( value.v ) {
+		case VArray(t,len,_,ptr) if( index >= 0 && index < len ):
+			var content = readPointer(ptr.offset(align.ptr * 2));
+			var offset = align.typeSize(t) * index;
+			if( t.isPtr() ) offset += sizeofVArray;
+			return { ptr : content.offset(offset), t : t };
+		default: null;
+		}
+	}
+
 	function valueCast( p : Pointer, t : HLType ) {
 		if( p.isNull() )
 			return { v : VNull, t : t };

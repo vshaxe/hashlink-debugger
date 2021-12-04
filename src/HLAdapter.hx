@@ -31,6 +31,8 @@ class HLAdapter extends DebugSession {
 	var timer : haxe.Timer;
 
 	var varsValues : Map<Int,VarValue>;
+	var ptrValues : Array<hld.Debugger.Address>;
+	var watchedPtrs : Array<hld.Debugger.WatchPoint>;
 	var isPause : Bool;
 	var threads : Map<Int,Bool>;
 
@@ -44,6 +46,8 @@ class HLAdapter extends DebugSession {
 		doDebug = true;
 		threads = new Map();
 		startTime = haxe.Timer.stamp();
+		ptrValues = [];
+		watchedPtrs = [];
 	}
 
 	override function initializeRequest(response:InitializeResponse, args:InitializeRequestArguments) {
@@ -62,7 +66,7 @@ class HLAdapter extends DebugSession {
 		response.body.supportsEvaluateForHovers = true;
 		response.body.supportsStepBack = false;
 		response.body.supportsSetVariable = true;
-		//response.body.supportsDataBreakpoints = true;
+		response.body.supportsDataBreakpoints = true;
 
 		response.body.exceptionBreakpointFilters = [{ filter : "all", label : "Stop on all exceptions" }];
 
@@ -389,7 +393,7 @@ class HLAdapter extends DebugSession {
 
 	function handleWait( msg : hld.Api.WaitResult ) {
 		switch( msg ) {
-		case Breakpoint:
+		case Breakpoint, Watchbreak:
 			//debug("Thread " + dbg.currentThread + " paused " + frameStr(dbg.getStackFrame()));
 			var exc = dbg.getException();
 			var str = null;
@@ -404,7 +408,14 @@ class HLAdapter extends DebugSession {
 			syncThreads();
 
 			beforeStop();
-			var msg = exc == null ? (isPause ? "paused" : "breakpoint") : "exception";
+			var msg = if( msg == Watchbreak )
+				"data breakpoint"
+			else if( exc != null )
+				"exception"
+			else if( isPause )
+				"paused"
+			else
+				"breakpoint";
 			var tid = dbg.currentThread;
 			debug(msg+" on "+tid);
 			if( isPause && tid != dbg.mainThread && !dbg.hasStack() ) {
@@ -437,8 +448,6 @@ class HLAdapter extends DebugSession {
 			dbg.resume();
 			stopDebug();
 			sendEvent(new TerminatedEvent());
-		case Watchbreak:
-			debug("Watch "+dbg.watchBreak.ptr.toString());
 		case Handled, Timeout:
 			// nothing
 		default:
@@ -540,6 +549,14 @@ class HLAdapter extends DebugSession {
 		var id = ++UID;
 		varsValues.set(id, v);
 		return id;
+	}
+
+	function allocPtr( a : hld.Debugger.Address ) {
+		for( i => p in ptrValues )
+			if( p != null && p.ptr.i64 == a.ptr.i64 )
+				return i + 1;
+		ptrValues.push(a);
+		return ptrValues.length;
 	}
 
 	override function scopesRequest(response:ScopesResponse, args:ScopesArguments) {
@@ -905,19 +922,62 @@ class HLAdapter extends DebugSession {
 	}
 
 	override function setDataBreakpointsRequest(response:SetDataBreakpointsResponse, args:SetDataBreakpointsArguments) {
-		debug("Unhandled request");
-		trace(args.breakpoints);
+		debug("DataBreakpointsRequest");
+		var current = watchedPtrs.copy();
+		for( a in args.breakpoints ) {
+			if( a.dataId == null ) continue;
+			var ptr = ptrValues[(cast a.dataId:Int) - 1];
+			for( w in current ) {
+				if( w.addr.ptr.i64 == ptr.ptr.i64 ) {
+					current.remove(w);
+					ptr = null;
+					break;
+				}
+			}
+			if( ptr == null ) continue;
+			try {
+				var w = dbg.watch(ptr);
+				debug("WATCHING "+ptr.ptr.toString()+":"+dbg.eval.typeStr(ptr.t));
+				watchedPtrs.push(w);
+			} catch( e : Dynamic ) {
+				errorMessage(""+e);
+			}
+		}
+		for( w in current ) {
+			debug("UNWATCH "+w.addr.ptr.toString());
+			watchedPtrs.remove(w);
+			dbg.unwatch(w.addr);
+		}
 		sendResponse(response);
 	}
 
 	override function dataBreakpointInfoRequest(response:DataBreakpointInfoResponse, args:DataBreakpointInfoArguments) {
-		debug("Unhandled request");
-		trace(args);
-		response.body = {
-			dataId : "xxx",
-			description : "TODO",
-			accessTypes : [Write],
-		};
+		var v = varsValues.get(args.variablesReference);
+		var ptr = null;
+		var desc = "";
+		switch( v ) {
+		case VScope(k):
+			desc = "local "+args.name;
+			dbg.currentStackFrame = k;
+			ptr = dbg.getRef(args.name);
+		case VValue(v):
+			switch( v.v ) {
+			case VArray(_):
+				desc = "["+args.name+"]";
+				ptr = dbg.eval.readArrayAddress(v, Std.parseInt(args.name));
+			default:
+				desc = "field "+args.name;
+				ptr = dbg.eval.readFieldAddress(v, args.name);
+			}
+		default:
+		}
+		if( ptr != null ) {
+			response.body = {
+				dataId : cast allocPtr(ptr),
+				description : "Write "+desc+":"+ptr.ptr.toString(),
+				accessTypes : [Write],
+			};
+		}
 		sendResponse(response);
 	}
 
