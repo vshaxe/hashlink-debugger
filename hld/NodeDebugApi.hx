@@ -11,7 +11,9 @@ class NodeDebugApi implements Api {
 	var is64 : Bool;
 	var isNode64 : Bool;
 
-	var winApi : Dynamic;
+	static var winApi : Dynamic;
+	static var winApi32 : Dynamic;
+
 	var debugEvent : CValue;
 	var context : js.node.Buffer;
 
@@ -29,28 +31,28 @@ class NodeDebugApi implements Api {
 
 		tmp = new Buffer(8);
 		tmpByte = new Buffer(4);
-		winApi = NodeFFI.Library("Kernel32.dll", {
-			DebugActiveProcess : FDecl(bool, [int]),
-			DebugActiveProcessStop : FDecl(bool, [int]),
-			DebugBreakProcess : FDecl(bool,[pointer]),
-			WaitForDebugEvent : FDecl(bool, [pointer, int]),
-			ContinueDebugEvent : FDecl(bool, [int, int, int]),
-			GetThreadContext : FDecl(bool, [pointer, pointer]),
-			SetThreadContext : FDecl(bool, [pointer, pointer]),
-			OpenThread : FDecl(pointer, [int, int, int]),
-			OpenProcess : FDecl(pointer, [int, int, int]),
-			ReadProcessMemory : FDecl(bool,[pointer,pointer,pointer,size_t,pointer]),
-			WriteProcessMemory : FDecl(bool, [pointer, pointer, pointer, size_t, pointer]),
-			FlushInstructionCache : FDecl(bool, [pointer, pointer, size_t]),
-		});
 
-		if( isNode64 && !is64 ) {
-			var wow64 = NodeFFI.Library("Kernel32.dll", {
-				Wow64GetThreadContext : FDecl(bool, [pointer, pointer]),
-				Wow64SetThreadContext : FDecl(bool, [pointer, pointer]),
+		if( winApi == null ) {
+			winApi = NodeFFI.Library("Kernel32.dll", {
+				DebugActiveProcess : FDecl(bool, [int]),
+				DebugActiveProcessStop : FDecl(bool, [int]),
+				DebugBreakProcess : FDecl(bool,[pointer]),
+				WaitForDebugEvent : FDecl(bool, [pointer, int]),
+				ContinueDebugEvent : FDecl(bool, [int, int, int]),
+				GetThreadContext : FDecl(bool, [pointer, pointer]),
+				SetThreadContext : FDecl(bool, [pointer, pointer]),
+				OpenThread : FDecl(pointer, [int, int, int]),
+				OpenProcess : FDecl(pointer, [int, int, int]),
+				ReadProcessMemory : FDecl(bool,[pointer,pointer,pointer,size_t,pointer]),
+				WriteProcessMemory : FDecl(bool, [pointer, pointer, pointer, size_t, pointer]),
+				FlushInstructionCache : FDecl(bool, [pointer, pointer, size_t]),
 			});
-			winApi.GetThreadContext = wow64.Wow64GetThreadContext;
-			winApi.SetThreadContext = wow64.Wow64SetThreadContext;
+			if( isNode64 ) {
+				winApi32 = NodeFFI.Library("Kernel32.dll", {
+					Wow64GetThreadContext : FDecl(bool, [pointer, pointer]),
+					Wow64SetThreadContext : FDecl(bool, [pointer, pointer]),
+				});
+			}
 		}
 
 		phandle = winApi.OpenProcess(0xF0000 | 0x100000 | 0xFFFF, 0, pid);
@@ -171,8 +173,20 @@ class NodeDebugApi implements Api {
 		return winApi.ContinueDebugEvent(pid, tid, 0x00010002/*DBG_CONTINUE*/);
 	}
 
+	function getThreadContext( handle : CValue, context : js.node.Buffer ) : Bool {
+		if( isNode64 && !is64 )
+			return winApi32.Wow64GetThreadContext(handle,context);
+		return winApi.GetThreadContext(handle,context);
+	}
+
+	function setThreadContext( handle : CValue, context : js.node.Buffer ) : Bool {
+		if( isNode64 && !is64 )
+			return winApi32.Wow64SetThreadContext(handle,context);
+		return winApi.SetThreadContext(handle,context);
+	}
+
 	public function readRegister( tid : Int, register : Register ) : Pointer {
-		if( !winApi.GetThreadContext(openThread(tid), context) )
+		if( !getThreadContext(openThread(tid), context) )
 			throw "Failed to read registers for thread " + tid;
 		var pos = regPositions[register.toInt()];
 		if( register == EFlags )
@@ -183,14 +197,14 @@ class NodeDebugApi implements Api {
 	}
 
 	public function writeRegister( tid : Int, register : Register, v : Pointer ) : Bool {
-		if( !winApi.GetThreadContext(openThread(tid), context) )
+		if( !getThreadContext(openThread(tid), context) )
 			return false;
 		var pos = regPositions[register.toInt()];
 		if( register == EFlags )
 			context.writeUInt16LE(v.toInt(), pos);
 		context.writeInt32LE(v.i64.low, pos);
 		if( is64 ) context.writeInt32LE(v.i64.high, pos + 4);
-		return winApi.SetThreadContext(openThread(tid), context);
+		return setThreadContext(openThread(tid), context);
 	}
 
 }
