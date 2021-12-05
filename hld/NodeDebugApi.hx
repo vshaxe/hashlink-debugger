@@ -72,7 +72,7 @@ class NodeDebugApi implements Api {
 		for( i in 0...44 - 5 )
 			dev.defineProperty('pad' + i, int);
 
-		context = new js.node.Buffer(2048);
+		context = js.node.Buffer.alloc(2048);
 		var flagsPos = is64 ? 0x30 : 0;
 		var flags = 1 | 2 | 8 | 0x10;
 		if( is64 )
