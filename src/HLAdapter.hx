@@ -19,6 +19,7 @@ enum VarValue {
 class HLAdapter extends DebugSession {
 
 	static var UID = 0;
+	static var inst : HLAdapter;
 
 	var proc : ChildProcessObject;
 	var workspaceDirectory : String;
@@ -48,6 +49,7 @@ class HLAdapter extends DebugSession {
 		startTime = haxe.Timer.stamp();
 		ptrValues = [];
 		watchedPtrs = [];
+		inst = this;
 	}
 
 	override function initializeRequest(response:InitializeResponse, args:InitializeRequestArguments) {
@@ -312,7 +314,7 @@ class HLAdapter extends DebugSession {
 		debug("init done");
 		timer = new haxe.Timer(16);
 		timer.run = function() {
-			if( dbg.stoppedThread != null )
+			if( dbg == null || dbg.stoppedThread != null )
 				return;
 			run();
 		};
@@ -1008,6 +1010,12 @@ class HLAdapter extends DebugSession {
 	}
 
 	static function main() {
+		if( DEBUG ) {
+			js.Node.process.on("uncaughtException", function(e:js.lib.Error) {
+				if( inst != null ) inst.sendEvent(new OutputEvent("*** ERROR *** " +e.message+"\n"+e.stack, Stderr));
+				Sys.exit(1);
+			});
+		}
 		DebugSession.run( HLAdapter );
 	}
 
