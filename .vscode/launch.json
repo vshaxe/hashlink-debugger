@@ -17,7 +17,11 @@
 			"sourceMaps": true,
 			"outFiles": [
 				"${workspaceFolder}/*.js"
-			]
+			],
+			"preLaunchTask":  {
+				"type" : "haxe",
+				"args" : "active configuration"
+			}
 		}
 	]
 }
