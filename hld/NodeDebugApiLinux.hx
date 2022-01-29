@@ -41,6 +41,7 @@ class NodeDebugApiLinux implements Api {
 		111,
 		112,
 		113,
+		10, // Eax
 	];
 
 	public function new( pid : Int, is64 : Bool ) {

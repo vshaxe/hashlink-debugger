@@ -22,6 +22,7 @@ package hld;
 	public var Dr3 = 7;
 	public var Dr6 = 8;
 	public var Dr7 = 9;
+	public var Eax = 10;
 	public inline function toInt() return this;
 }
 
