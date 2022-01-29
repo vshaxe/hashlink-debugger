@@ -587,9 +587,17 @@ class Debugger {
 							e.ebp = getReg(tid, Ebp);
 							// this ebp might not be good, so let's look for
 							// the first potential ebp backup starting after our esi
-							var k = i - 1;
 							var validEsp = esp.offset(i << 3);
 							if( e.ebp < validEsp || e.ebp > tinf.stackTop ) {
+								var k = i - 1;
+								if( is64 && jit.isWinCall ) {
+									// look first at saved RBP at prev RSP+10h
+									var val = mem.getPointer((i + 2) << 3, jit.align);
+									if( val > validEsp && val < tinf.stackTop ) {
+										e.ebp = val;
+										k = -1;
+									}
+								}
 								while( k >= 0 ) {
 									var val = mem.getPointer((k--) << 3, jit.align);
 									if( val > validEsp && val < tinf.stackTop ) {
