@@ -1,5 +1,6 @@
-## 1.2.0 (Jan 29, 2022)
+## 1.2.2 (Jan 29, 2022)
 
+* added support for return value display
 * added support for data breakpoints
 * fixed display of empty array/map and closure
 * improved set variable
