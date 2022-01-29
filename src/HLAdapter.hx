@@ -654,6 +654,7 @@ class HLAdapter extends DebugSession {
 			for( v in vnames ) {
 				try {
 					var value = dbg.getValue(v);
+					if( v == "$ret" ) v = "(return)";
 					vars.push(makeVar(v, value));
 				} catch( e : Dynamic ) {
 					vars.push({

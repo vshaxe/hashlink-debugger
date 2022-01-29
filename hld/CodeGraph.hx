@@ -166,6 +166,15 @@ class CodeGraph {
 		return [for( a in arr ) module.strings[a]];
 	}
 
+	public function getReturnReg( pos : Int ) : Null<HLType> {
+		switch( fun.ops[pos] ) {
+		case OCallClosure(dst,_,_), OCallMethod(dst,_,_), OCallThis(dst,_,_), OCall0(dst,_), OCall1(dst,_,_), OCall2(dst,_,_,_), OCall3(dst,_,_,_,_), OCall4(dst,_,_,_,_), OCallN(dst,_,_):
+			if( fun.regs[dst] != HVoid ) return fun.regs[dst];
+		default:
+		}
+		return null;
+	}
+
 	public function getLocal( name : String, pos : Int ) : LocalAccess {
 		var b = getBlock(pos);
 		currentTag++;

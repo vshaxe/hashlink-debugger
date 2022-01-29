@@ -52,6 +52,7 @@ class Debugger {
 	var currentStack : Array<{ fidx : Int, fpos : Int, codePos : Int, ebp : hld.Pointer }>;
 	var watches : Array<WatchPoint>;
 	var threads : Map<Int,{ id : Int, stackTop : Pointer, exception : Pointer }>;
+	var afterStep = false;
 
 	public var is64(get, never) : Bool;
 
@@ -61,7 +62,7 @@ class Debugger {
 	public var stackFrameCount(get, never) : Int;
 	public var mainThread(default, null) : Int = 0;
 	public var stoppedThread(default,set) : Null<Int>;
-	public var currentThread(default,null) : Null<Int>;
+	public var currentThread(default,set) : Null<Int>;
 
 	public var customTimeout : Null<Float>;
 
@@ -75,6 +76,12 @@ class Debugger {
 	function set_nextStep(v:Int) {
 		if( DEBUG ) trace("NEXT STEP "+v);
 		return nextStep = v;
+	}
+
+	function set_currentThread(v) {
+		currentThread = v;
+		eval.currentThread = v;
+		return v;
 	}
 
 	function set_stoppedThread(v) {
@@ -127,6 +134,7 @@ class Debugger {
 	}
 
 	public function run() {
+		afterStep = false;
 		// closing the socket will unlock waiting thread
 		if( sock != null ) {
 			sock.close();
@@ -191,7 +199,12 @@ class Debugger {
 		var s = currentStack[currentStackFrame];
 		if( s == null ) return [];
 		var g = module.getGraph(s.fidx);
-		return args ? g.getArgs() : g.getLocals(s.fpos);
+		if( args )
+			return g.getArgs();
+		var locals = g.getLocals(s.fpos);
+		if( afterStep && g.getReturnReg(s.fpos) != null )
+			locals.push("$ret");
+		return locals;
 	}
 
 	public function getCurrentClass() {
@@ -513,6 +526,7 @@ class Debugger {
 			break;
 		}
 		cleanup();
+		afterStep = true;
 		return Breakpoint;
 	}
 

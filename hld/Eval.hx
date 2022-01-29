@@ -20,6 +20,7 @@ class Eval {
 	public var maxArrLength : Int = 10;
 	public var maxBytesLength : Int = 128;
 	public var globalContext = false;
+	public var currentThread : Int;
 
 	static var HASH_PREFIX = "$_h$";
 
@@ -347,6 +348,11 @@ class Eval {
 		case "true": mkBool(true);
 		case "false": mkBool(false);
 		case "null": { v : VNull, t : HDyn };
+		case "$ret":
+			var t = module.getGraph(funIndex).getReturnReg(codePos);
+			if( t == null )
+				return null;
+			return convertVal(api.readRegister(currentThread,t == HF64 || t == HF32 ? Xmm0 : Eax), t);
 		default:
 			fetch(getVarAddress(name));
 		}
@@ -558,6 +564,24 @@ class Eval {
 
 	function readReg(index) {
 		return fetch(readRegAddress(index));
+	}
+
+	function convertVal( p : Pointer, t : HLType ) : Value {
+		var v = switch( t ) {
+		case HVoid:
+			VNull;
+		case HUi8, HUi16, HI32:
+			VInt(p.i64.low);
+		case HI64:
+			throw "TODO:"+t;
+		case HF64, HF32:
+			VFloat(haxe.io.FPHelper.i64ToDouble(p.i64.low,p.i64.high));
+		case HBool:
+			VBool(p.toInt() != 0);
+		default:
+			return valueCast(p, t);
+		};
+		return { v : v, t : t };
 	}
 
 	public function readVal( p : Pointer, t : HLType ) : Value {
