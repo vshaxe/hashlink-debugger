@@ -1,3 +1,11 @@
+## 1.2.0 (Jan 29, 2022)
+
+* added support for data breakpoints
+* fixed display of empty array/map and closure
+* improved set variable
+* allow numeric operations in expression eval
+* bug fixes
+
 ## 1.1.2 (May 6, 2021)
 
 * fixed support for VSCode 1.56 (Electron 12.0)
