@@ -15,5 +15,6 @@ package: cleanup
 # - visit https://dev.azure.com/ncannasse/
 # - login (@hotmail)
 # - click user / security / Personal Access token
+# - select Organization:All + Full Access
 publish:
 	vsce publish -p `cat vsce_token.txt`
