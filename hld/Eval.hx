@@ -803,7 +803,7 @@ class Eval {
 			return null;
 		}
 		switch( v.t ) {
-		case HObj(o):
+		case HObj(o), HStruct(o):
 			function getRec(o:format.hl.Data.ObjPrototype) {
 				var fields = o.tsuper == null ? [] : getRec(switch( o.tsuper ) { case HObj(o): o; default: throw "assert"; });
 				for( f in o.fields )
@@ -860,11 +860,13 @@ class Eval {
 			return null;
 		}
 		switch( v.t ) {
-		case HObj(o):
+		case HObj(o), HStruct(o):
 			var f = module.getObjectProto(o).fields.get(name);
 			if( f == null )
 				return null;
-			return { ptr : ptr == null ? null : ptr.offset(f.offset), t : f.t };
+			var offset = f.offset;
+			if( v.t.match(HStruct(_)) ) offset -= jit.align.ptr;
+			return { ptr : ptr == null ? null : ptr.offset(offset), t : f.t };
 		case HVirtual(fl):
 			for( i in 0...fl.length )
 				if( fl[i].name == name ) {

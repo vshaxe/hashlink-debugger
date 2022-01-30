@@ -59,7 +59,7 @@ class Module {
 
 		for( t in code.types )
 			switch( t ) {
-			case HObj(o):
+			case HObj(o), HStruct(o):
 				for( f in o.proto )
 					methods[f.findex] = { obj : o, field : f.name };
 				for( b in o.bindings )
