@@ -202,7 +202,7 @@ class Debugger {
 		if( args )
 			return g.getArgs();
 		var locals = g.getLocals(s.fpos);
-		if( afterStep && g.getReturnReg(s.fpos) != null )
+		if( afterStep && currentStackFrame == 0 && g.getReturnReg(s.fpos) != null )
 			locals.push("$ret");
 		return locals;
 	}
