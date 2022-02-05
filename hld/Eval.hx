@@ -1028,7 +1028,7 @@ class Eval {
 			return HRef(readType(p.offset(align.ptr)));
 		case 16:
 			return HDynObj;
-		case 11, 15, 17, 18: // HObj, HVirtual, HAbstract, HEnum
+		case 11, 15, 17, 18, 21: // HObj, HVirtual, HAbstract, HEnum, HStruct
 			return typeFromAddr(p);
 		case 19:
 			return HNull(readType(p.offset(align.ptr)));
