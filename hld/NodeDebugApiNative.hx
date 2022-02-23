@@ -81,7 +81,7 @@ class NodeDebugApiNative implements Api {
 
 	public function wait( timeout : Int ) : { r : WaitResult, tid : Int } {
 		var tid = 0;
-		var arr = new js.node.Buffer(4);
+		var arr = js.node.Buffer.alloc(4);
 		var r = Native.debugWait(pid, arr, timeout);
 		return { r : cast r, tid : arr.readInt32LE(0) };
 	}
@@ -103,9 +103,5 @@ class NodeDebugApiNative implements Api {
 
 	public function writeRegister( tid : Int, register : Register, v : Pointer ) : Bool {
 		return Native.debugWriteRegister(pid, tid, register, makePointer(v).toBinaryString(), is64);
-	}
-
-	public function getProfilers() : Map<String, Float> {
-		return [for( p in Profiler.all) p.name => p.sum ];
 	}
 }

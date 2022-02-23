@@ -37,7 +37,7 @@ class HLAdapter extends DebugSession {
 	var isPause : Bool;
 	var threads : Map<Int,Bool>;
 
-	static var DEBUG = true;
+	static var DEBUG = false;
 	static var isWindows = Sys.systemName() == "Windows";
 	static var isMac = Sys.systemName() == "Mac";
 

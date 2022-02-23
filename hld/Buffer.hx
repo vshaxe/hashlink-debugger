@@ -114,7 +114,7 @@ class Buffer {
 
 	public static function fromBinaryString(str : String) : Buffer {
 		var b = new Buffer();
-		b.buf = new js.node.Buffer(str, 'utf16le');
+		b.buf = js.node.Buffer.from(str, 'utf16le');
 		return b;
 	}
 
