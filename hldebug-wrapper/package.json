@@ -1,0 +1,16 @@
+{
+  "name": "hldebug",
+  "version": "1.0.0",
+  "description": "C++ wrapper to the hashlink debugging API",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Maurice Doison",
+  "license": "MIT",
+  "dependencies": {
+    "node-addon-api": "1.7.2",
+    "node-gyp": "^8.4.1",
+    "ref-napi": "^3.0.3"
+  }
+}

@@ -37,7 +37,7 @@ class HLAdapter extends DebugSession {
 	var isPause : Bool;
 	var threads : Map<Int,Bool>;
 
-	static var DEBUG = false;
+	static var DEBUG = true;
 	static var isWindows = Sys.systemName() == "Windows";
 	static var isMac = Sys.systemName() == "Mac";
 
@@ -294,12 +294,13 @@ class HLAdapter extends DebugSession {
 			pid = proc.pid;
 		}
 		var api : hld.Api;
-		if( isWindows )
+		/*if( isWindows )
 			api = new hld.NodeDebugApi(pid, dbg.is64);
 		else if( isMac )
 			api = new hld.NodeDebugApiMac(pid, dbg.is64);
 		else
-			api = new hld.NodeDebugApiLinux(pid, dbg.is64);
+			api = new hld.NodeDebugApiLinux(pid, dbg.is64);*/
+		api = new hld.NodeDebugApiNative(pid, dbg.is64);
 
 		if( !dbg.init(api) )
 			throw "Failed to initialize debugger";
