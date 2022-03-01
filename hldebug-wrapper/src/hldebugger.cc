@@ -18,7 +18,7 @@ extern "C" {
 using namespace Napi;
 
 inline Napi::String data_to_napi_string(Napi::Env env, void* in_data, int in_len) {
-	return Napi::String::New(env, (const char16_t*)in_data, in_len);
+	return Napi::String::New(env, (const char16_t*)in_data, in_len/2);
 }
 
 inline std::u16string data_from_napi_string(Napi::String napi_string) {
@@ -56,9 +56,13 @@ Napi::String debugRead(const Napi::CallbackInfo& info) {
 	std::u16string ptr = data_from_napi_string(info[1].ToString());
 	int size = info[2].As<Napi::Number>().Int32Value();
 
-	vbyte* rbuf = (vbyte*) malloc(size);
+	int bufsize = size;
+	if (bufsize % 2 == 1)
+		bufsize++;
+	vbyte* rbuf = (vbyte*) malloc(bufsize);
+	rbuf[bufsize-1] = 0;
 	Napi::Boolean r = Napi::Boolean::New(env, hl_debug_read(pid, *(vbyte**)ptr.c_str(), rbuf, size));
-	Napi::String ostr = data_to_napi_string(env, rbuf, size);
+	Napi::String ostr = data_to_napi_string(env, rbuf, bufsize);
 	free(rbuf);
 
 	return ostr;
