@@ -234,11 +234,9 @@ HL_API int hl_debug_wait( int pid, int *thread, int timeout ) {
 		switch( e.u.Exception.ExceptionRecord.ExceptionCode ) {
 		case EXCEPTION_BREAKPOINT:
 		case 0x4000001F: // STATUS_WX86_BREAKPOINT
-			dbg_printf("hl_debug_wait %d %0llX %d -> %d\n", pid, (unsigned long long)thread, timeout, 1);
 			return 1;
 		case EXCEPTION_SINGLE_STEP:
 		case 0x4000001E: // STATUS_WX86_SINGLE_STEP
-			dbg_printf("hl_debug_wait %d %0llX %d -> %d\n", pid, (unsigned long long)thread, timeout, 2);
 			return 2;
 		case 0x406D1388: // MS_VC_EXCEPTION (see SetThreadName)
 			ContinueDebugEvent(e.dwProcessId, e.dwThreadId, DBG_CONTINUE);
@@ -248,20 +246,21 @@ HL_API int hl_debug_wait( int pid, int *thread, int timeout ) {
 			ContinueDebugEvent(e.dwProcessId, e.dwThreadId, DBG_EXCEPTION_NOT_HANDLED);
 			break;
 		case EXCEPTION_STACK_OVERFLOW:
-			dbg_printf("hl_debug_wait %d %0llX %d -> %d\n", pid, (unsigned long long)thread, timeout, 5);
 			return 5;
 		default:
-			dbg_printf("hl_debug_wait %d %0llX %d -> %d\n", pid, (unsigned long long)thread, timeout, 3);
 			return 3;
 		}
+	case CREATE_THREAD_DEBUG_EVENT:
+	case LOAD_DLL_DEBUG_EVENT:
+	case EXIT_THREAD_DEBUG_EVENT:
+		ContinueDebugEvent(e.dwProcessId, e.dwThreadId, DBG_CONTINUE);
+		break;
 	case EXIT_PROCESS_DEBUG_EVENT:
-		dbg_printf("hl_debug_wait %d %0llX %d -> %d\n", pid, (unsigned long long)thread, timeout, 0);
 		return 0;
 	default:
 		ContinueDebugEvent(e.dwProcessId, e.dwThreadId, DBG_CONTINUE);
 		break;
 	}
-	dbg_printf("hl_debug_wait %d %0llX %d -> %d\n", pid, (unsigned long long)thread, timeout, 4);
 	return 4;
 #	elif defined(HL_MAC)
 	return mdbg_session_wait(pid, thread, timeout);
