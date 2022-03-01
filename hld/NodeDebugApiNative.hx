@@ -95,7 +95,7 @@ class NodeDebugApiNative implements Api {
 		if(buf == null)
 			return null;
 		if( register == EFlags )
-			return Pointer.make(buf.getI32(0), 0);
+			return Pointer.make(buf.getUI16(0), 0);
 		if( !is64 )
 			return Pointer.make(buf.getI32(0), 0);
 		return Pointer.make(buf.getI32(0), buf.getI32(4));
