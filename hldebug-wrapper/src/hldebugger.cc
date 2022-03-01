@@ -87,14 +87,19 @@ Napi::Boolean debugFlush(const Napi::CallbackInfo& info) {
 	return r;
 }
 
-Napi::Number debugWait(const Napi::CallbackInfo& info) {
+Napi::Buffer<int> debugWait(const Napi::CallbackInfo& info) {
 	Napi::Env env = info.Env();
 
 	int pid = info[0].As<Napi::Number>().Int32Value();
 	int* threadId = info[1].As<Napi::Buffer<int>>().Data();
 	int size = info[2].As<Napi::Number>().Int32Value();
-
-	return Napi::Number::New(env, hl_debug_wait(pid, threadId, size));
+	
+	int r = hl_debug_wait(pid, threadId, size);
+	
+	Napi::Buffer<int> buffer = Napi::Buffer<int>::New(env, 2);
+	buffer.Data()[0] = r;
+	buffer.Data()[1] = *threadId;
+	return buffer;
 }
 
 Napi::Boolean debugResume(const Napi::CallbackInfo& info) {
