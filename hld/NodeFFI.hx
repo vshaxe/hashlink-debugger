@@ -58,7 +58,7 @@ extern class Ref {
 
 	public static function refType( t : CType ) : CType;
 	public static function alloc( t : CType ) : CValue;
-	public static function readPointer( buf : Buffer, offset : Int, ?length : Int ) : CValue;
+	public static function readPointer( buf : js.node.Buffer, offset : Int, ?length : Int ) : CValue;
 
 }
 

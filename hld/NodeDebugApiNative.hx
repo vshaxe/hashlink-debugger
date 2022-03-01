@@ -11,7 +11,7 @@ extern class Native {
 	static function debugRead( pid : Int, ptr : String, size : Int ) : String;
 	static function debugWrite( pid : Int, ptr : String, buffer : String, size : Int ) : Bool;
 	static function debugFlush( pid : Int, ptr : String, size : Int ) : Bool;
-	static function debugWait( pid : Int, threadId : js.node.Buffer, timeout : Int ) : Int;
+	static function debugWait( pid : Int, timeout : Int ) : js.node.Buffer;
 	static function debugResume( pid : Int, tid : Int ) : Bool;
 	static function debugReadRegister( pid : Int, tid : Int, register : Register, is64 : Bool ) : String;
 	static function debugWriteRegister( pid : Int, tid : Int, register : Register, v : String, is64 : Bool ) : Bool;
@@ -80,10 +80,10 @@ class NodeDebugApiNative implements Api {
 	}
 
 	public function wait( timeout : Int ) : { r : WaitResult, tid : Int } {
-		var tid = 0;
-		var arr = js.node.Buffer.alloc(4);
-		var r = Native.debugWait(pid, arr, timeout);
-		return { r : cast r, tid : arr.readInt32LE(0) };
+		var buf = Native.debugWait(pid, timeout);
+		var r = buf.readInt32LE(0);
+		var tid = buf.readInt32LE(4);
+		return { r: cast r, tid: tid };
 	}
 
 	public function resume( tid : Int ) : Bool {

@@ -98,11 +98,11 @@ class NodeDebugApi implements Api {
 	function makePointer( ptr : Pointer ) : CValue {
 		tmp.setI32(0, ptr.i64.low);
 		tmp.setI32(4, ptr.i64.high);
-		return Ref.readPointer(tmp, 0);
+		return Ref.readPointer(tmp.toNodeBuffer(), 0);
 	}
 
 	public function read( ptr : Pointer, buffer : Buffer, size : Int ) : Bool {
-		return winApi.ReadProcessMemory(phandle, makePointer(ptr), buffer, size, null);
+		return winApi.ReadProcessMemory(phandle, makePointer(ptr), buffer.toNodeBuffer(), size, null);
 	}
 
 	public function readByte( ptr : Pointer, pos : Int ) : Int {
@@ -112,7 +112,7 @@ class NodeDebugApi implements Api {
 	}
 
 	public function write( ptr : Pointer, buffer : Buffer, size : Int ) : Bool {
-		return winApi.WriteProcessMemory(phandle, makePointer(ptr), buffer, size, null);
+		return winApi.WriteProcessMemory(phandle, makePointer(ptr), buffer.toNodeBuffer(), size, null);
 	}
 
 	public function writeByte( ptr : Pointer, pos : Int, value : Int ) : Void {

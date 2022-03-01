@@ -111,7 +111,7 @@ class Main {
 			default:
 				return new hld.NodeDebugApiLinux(pid,dbg.is64);
 			}*/
-			return new hld.NodeDebugApiNative(pid, dbg.is64);
+			return new hld.NodeDebugApiWrapper(pid, dbg.is64);
 			#else
 			throw "This platform does not have a debug API";
 			return null;

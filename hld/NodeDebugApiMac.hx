@@ -16,10 +16,10 @@ class NodeDebugApiMac implements Api {
 		function hl_debug_start(pid:Int):Bool;
 		function hl_debug_stop(pid:Int):Void;
 		function hl_debug_breakpoint(pid:Int):Bool;
-		function hl_debug_read(pid:Int,ptr:CValue,buffer:Buffer,size:Int):Bool;
-		function hl_debug_write(pid:Int,ptr:CValue,buffer:Buffer,size:Int):Bool;
+		function hl_debug_read(pid:Int,ptr:CValue,buffer:js.node.Buffer,size:Int):Bool;
+		function hl_debug_write(pid:Int,ptr:CValue,buffer:js.node.Buffer,size:Int):Bool;
 		function hl_debug_flush(pid:Int,ptr:CValue,size:Int):Bool;
-		function hl_debug_wait(pid:Int,threadId:Buffer,timeout:Int):Int;
+		function hl_debug_wait(pid:Int,threadId:js.node.Buffer,timeout:Int):Int;
 		function hl_debug_resume(pid:Int,tid:Int):Bool;
 		function hl_debug_read_register(pid:Int,tid:Int,register:Int,is64:Bool):CValue;
 		function hl_debug_write_register(pid:Int,tid:Int,register:Int,v:CValue,is64:Bool):Bool;
@@ -68,7 +68,7 @@ class NodeDebugApiMac implements Api {
 	function makePointer( ptr : Pointer ) : CValue {
 		tmp.setI32(0, ptr.i64.low);
 		tmp.setI32(4, ptr.i64.high);
-		return Ref.readPointer(tmp, 0);
+		return Ref.readPointer(tmp.toNodeBuffer(), 0);
 	}
 
 	function intPtr( i : Int ) : CValue {
@@ -76,7 +76,7 @@ class NodeDebugApiMac implements Api {
 	}
 
 	public function read( ptr : Pointer, buffer : Buffer, size : Int ) : Bool {
-		return libdebug.hl_debug_read(pid, makePointer(ptr), buffer, size);
+		return libdebug.hl_debug_read(pid, makePointer(ptr), buffer.toNodeBuffer(), size);
 	}
 
 	public function readByte( ptr : Pointer, pos : Int ) : Int {
@@ -86,7 +86,7 @@ class NodeDebugApiMac implements Api {
 	}
 
 	public function write( ptr : Pointer, buffer : Buffer, size : Int ) : Bool {
-		return libdebug.hl_debug_write(pid, makePointer(ptr), buffer, size);
+		return libdebug.hl_debug_write(pid, makePointer(ptr), buffer.toNodeBuffer(), size);
 	}
 
 	public function writeByte( ptr : Pointer, pos : Int, value : Int ) : Void {
@@ -100,7 +100,7 @@ class NodeDebugApiMac implements Api {
 	}
 
 	public function wait( timeout : Int ) : { r : WaitResult, tid : Int } {
-		var kind : WaitResult = cast libdebug.hl_debug_wait(pid, tmp, timeout);
+		var kind : WaitResult = cast libdebug.hl_debug_wait(pid, tmp.toNodeBuffer(), timeout);
 		var tid = tmp.getI32(0);
 		return { r : kind, tid : tid };
 	}

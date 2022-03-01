@@ -23,7 +23,7 @@ class NodeDebugApiLinux implements Api {
 	var context : js.node.Buffer;
 	var libc : {
 		function ptrace(req:PTraceReq,pid:Int,addr:CValue,data:CValue) : CValue;
-		function waitpid(pid:Int,status:Buffer,options:Int) : Int;
+		function waitpid(pid:Int,status:js.node.Buffer,options:Int) : Int;
 	};
 
 	// indexes of registers in "struct user", see <sys/user.h>
@@ -76,7 +76,7 @@ class NodeDebugApiLinux implements Api {
 	function makePointer( ptr : Pointer ) : CValue {
 		tmp.setI32(0, ptr.i64.low);
 		tmp.setI32(4, ptr.i64.high);
-		return Ref.readPointer(tmp, 0);
+		return Ref.readPointer(tmp.toNodeBuffer(), 0);
 	}
 
 	function intPtr( i : Int ) : CValue {
@@ -168,7 +168,7 @@ class NodeDebugApiLinux implements Api {
 	}
 
 	public function wait( timeout : Int ) : { r : WaitResult, tid : Int } {
-		var tid = libc.waitpid(pid,tmp,0);
+		var tid = libc.waitpid(pid,tmp.toNodeBuffer(),0);
 		var status = tmp.getI32(0);
 		var kind : WaitResult = Error;
 		if( WIFEXITED(status) )
