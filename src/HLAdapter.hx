@@ -300,8 +300,8 @@ class HLAdapter extends DebugSession {
 			api = new hld.NodeDebugApiMac(pid, dbg.is64);
 		else
 			api = new hld.NodeDebugApiLinux(pid, dbg.is64);*/
-		//api = new hld.NodeDebugApiNative(pid, dbg.is64);
-		api = new hld.NodeDebugApiWrapper(pid, dbg.is64);
+		api = new hld.NodeDebugApiNative(pid, dbg.is64);
+		//api = new hld.NodeDebugApiWrapper(pid, dbg.is64);
 
 		if( !dbg.init(api) )
 			throw "Failed to initialize debugger";
