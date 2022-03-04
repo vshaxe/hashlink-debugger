@@ -1,6 +1,5 @@
 package hld;
 import hld.Api;
-import hld.NodeFFI;
 
 @:jsRequire("hldebug")
 extern class Native {

@@ -293,15 +293,7 @@ class HLAdapter extends DebugSession {
 			if( proc == null ) throw "Process attach requires HL 1.7+";
 			pid = proc.pid;
 		}
-		var api : hld.Api;
-		/*if( isWindows )
-			api = new hld.NodeDebugApi(pid, dbg.is64);
-		else if( isMac )
-			api = new hld.NodeDebugApiMac(pid, dbg.is64);
-		else
-			api = new hld.NodeDebugApiLinux(pid, dbg.is64);*/
-		api = new hld.NodeDebugApiNative(pid, dbg.is64);
-		//api = new hld.NodeDebugApiWrapper(pid, dbg.is64);
+		var api = new hld.NodeDebugApiNative(pid, dbg.is64);
 
 		if( !dbg.init(api) )
 			throw "Failed to initialize debugger";

@@ -103,14 +103,6 @@ class Main {
 			#if hl
 			return new hld.HLDebugApi(pid, dbg.is64);
 			#elseif nodejs
-			/*switch( Sys.systemName() ) {
-			case "Windows":
-				return new hld.NodeDebugApi(pid, dbg.is64);
-			case "Mac":
-				return new hld.NodeDebugApiMac(pid, dbg.is64);
-			default:
-				return new hld.NodeDebugApiLinux(pid,dbg.is64);
-			}*/
 			return new hld.NodeDebugApiNative(pid, dbg.is64);
 			#else
 			throw "This platform does not have a debug API";
