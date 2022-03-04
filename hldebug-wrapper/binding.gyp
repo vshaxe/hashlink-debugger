@@ -23,13 +23,13 @@
       }
     },
     {
-      "target_name": "action_after_build",
+      "target_name": "copy_binary",
       "type": "none",
-      "dependencies": [ "<(module_name)" ],
+      "dependencies": [ "hldebug" ],
       "copies": [
         {
-          "files": [ "<(PRODUCT_DIR)/<(module_name).node" ],
-          "destination": "<(module_path)"
+          "files": [ "<(PRODUCT_DIR)/hldebug.node" ],
+          "destination": "./lib/<(OS)"
         }
       ]
     }
