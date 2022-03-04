@@ -2,15 +2,25 @@
   "name": "hldebug",
   "version": "1.0.0",
   "description": "C++ wrapper to the hashlink debugging API",
-  "main": "index.js",
+  "main": "./index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "install": "node-pre-gyp install --fallback-to-build"
   },
   "author": "Maurice Doison",
   "license": "MIT",
   "dependencies": {
+    "@mapbox/node-pre-gyp": "^1.0.8",
+    "bindings": "^1.5.0",
     "node-addon-api": "1.7.2",
-    "node-gyp": "^8.4.1",
-    "ref-napi": "^3.0.3"
+    "node-gyp": "^8.4.1"
+  },
+  "devDependency": {
+    "aws-sdk": "2.x"
+  },
+  "binary": {
+    "module_name": "hldebug",
+    "module_path": "./lib/{platform}/",
+    "host": "https://hldebug.s3-us-west-1.amazonaws.com",
+    "remote_path": "./{name}/v{version}"
   }
 }

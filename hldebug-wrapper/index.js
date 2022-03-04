@@ -1,1 +1,1 @@
-module.exports = require('./build/Release/hldebugger');
+module.exports = require('hldebug/lib/' + process.platform + '/hldebug.node');

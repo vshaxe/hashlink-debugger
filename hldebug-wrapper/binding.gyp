@@ -1,9 +1,14 @@
 {
   'targets': [
     {
-      'target_name': 'hldebugger',
+      'target_name': 'hldebug',
       'sources': [ 'src/debug.c', 'src/hldebugger.cc' ],
       'include_dirs': ["<!@(node -p \"require('node-addon-api').include\")", 'src/' ],
+      'conditions': [
+        [ "OS=='mac'", { 
+          "sources": [ 'src/mdbg/mdbg.c', 'src/mdbg/mach_excServer.c', 'src/mdbg/mach_excUser.c' ]
+	}]
+      ],
       'dependencies': ["<!(node -p \"require('node-addon-api').gyp\")"],
       'defines': [ 'LIBHL_STATIC' ],
       'cflags!': [ '-fno-exceptions' ],
@@ -16,6 +21,17 @@
       'msvs_settings': {
         'VCCLCompilerTool': { 'ExceptionHandling': 1 },
       }
+    },
+    {
+      "target_name": "action_after_build",
+      "type": "none",
+      "dependencies": [ "<(module_name)" ],
+      "copies": [
+        {
+          "files": [ "<(PRODUCT_DIR)/<(module_name).node" ],
+          "destination": "<(module_path)"
+        }
+      ]
     }
   ]
 }
