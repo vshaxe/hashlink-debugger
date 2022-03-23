@@ -280,12 +280,14 @@ class HLAdapter extends DebugSession {
 	function startDebug( program : String, port : Int ) {
 		dbg = new hld.Debugger();
 
+		Sys.sleep(0.01); // make sure the process is started
+
 		// TODO : load & validate after run() -- save some precious time
 		debug("load module");
 		dbg.loadModule(sys.io.File.getBytes(program));
 
 		debug("connecting");
-		if( !dbg.connect("127.0.0.1", port) )
+		if( !dbg.connect("127.0.0.1", port, 1) ) // no retry because it fails with latest nodejs
 			throw "Failed to connect on debug port";
 
 		var pid = @:privateAccess dbg.jit.pid;
