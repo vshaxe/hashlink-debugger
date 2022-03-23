@@ -8,3 +8,4 @@ node_modules
 /debugger/debug.hl
 /debugger/package-lock.json
 /debugger/*.map
+/hldebug-wrapper/build
