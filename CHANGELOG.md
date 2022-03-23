@@ -1,3 +1,8 @@
+## 1.3.1 (March 23, 2022)
+
+* changed to native API (no longer FFI, super fast)
+* fixed timing issue at startup with latest node
+
 ## 1.2.2 (Jan 29, 2022)
 
 * added support for return value display
