@@ -35,11 +35,11 @@
 		"hashlink"
 	],
 	"dependencies": {
-		"bindings": "^1.5.0",
 		"deasync": "^0.1.24",
-		"ffi-napi": "^4.0.3",
-		"ref-napi": "^3.0.3",
-		"ref-struct-napi": "^1.1.1",
+		"hldebug": "file:hldebug-wrapper",
+		"node-addon-api": "1.7.2",
+		"node-gyp": "^8.4.1",
+		"source-map-support": "^0.5.21",
 		"vscode-debugadapter": "^1.51.0",
 		"vscode-debugprotocol": "^1.51.0"
 	},

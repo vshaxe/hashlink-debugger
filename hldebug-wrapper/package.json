@@ -1,0 +1,12 @@
+{
+  "name": "hldebug",
+  "version": "1.0.0",
+  "description": "C++ wrapper to the hashlink debugging API",
+  "main": "./index.js",
+  "author": "Maurice Doison",
+  "license": "MIT",
+  "dependencies": {
+    "node-addon-api": "1.7.2",
+    "node-gyp": "^8.4.1"
+  }
+}

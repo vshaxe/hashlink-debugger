@@ -32,10 +32,25 @@ abstract Buffer(hl.Bytes) {
 
 #else
 
-abstract Buffer(js.node.Buffer) {
 
-	public function new(size) {
-		this = js.node.Buffer.alloc(size);
+class Buffer {
+	var buf : js.node.Buffer;
+
+	public function new(?size : Int) {
+		if(size != null)
+			buf = js.node.Buffer.alloc(size);
+	}
+
+	public static function fromNodeBuffer(buffer : js.node.Buffer) : Buffer {
+		var b = new Buffer();
+		b.buf = buffer;
+		return b;
+	}
+
+	public static function fromArrayBuffer(buffer : js.lib.ArrayBuffer) : Buffer {
+		var b = new Buffer();
+		b.buf = js.node.Buffer.from(buffer);
+		return b;
 	}
 
 	public function getPointer( pos : Int, align : Align ) {
@@ -54,39 +69,53 @@ abstract Buffer(js.node.Buffer) {
 	}
 
 	public inline function getI32(pos) {
-		return this.readInt32LE(pos);
+		return buf.readInt32LE(pos);
 	}
 
 	public inline function getUI8(pos) {
-		return this.readUInt8(pos);
+		return buf.readUInt8(pos);
 	}
 
 	public inline function getUI16(pos) {
-		return this.readUInt16LE(pos);
+		return buf.readUInt16LE(pos);
 	}
 
 	public inline function getF32(pos) {
-		return this.readFloatLE(pos);
+		return buf.readFloatLE(pos);
 	}
 
 	public inline function getF64(pos) {
-		return this.readDoubleLE(pos);
+		return buf.readDoubleLE(pos);
 	}
 
 	public inline function setI32(pos,value) {
-		this.writeInt32LE(value, pos);
+		buf.writeInt32LE(value, pos);
 	}
 
 	public inline function setF64(pos,value) {
-		this.writeDoubleLE(value, pos);
+		buf.writeDoubleLE(value, pos);
 	}
 
 	public inline function setUI16(pos,value) {
-		this.writeUInt16LE(value, pos);
+		buf.writeUInt16LE(value, pos);
 	}
 
 	public inline function setUI8(pos,value) {
-		this.writeUInt8(value, pos);
+		buf.writeUInt8(value, pos);
+	}
+
+	public function toBinaryString() : String {
+		return buf.toString("utf16le");
+	}
+
+	public function toNodeBuffer() : js.node.Buffer {
+		return buf;
+	}
+
+	public static function fromBinaryString(str : String) : Buffer {
+		var b = new Buffer();
+		b.buf = js.node.Buffer.from(str, 'utf16le');
+		return b;
 	}
 
 	public function readStringUCS2(pos, length) {
@@ -98,7 +127,6 @@ abstract Buffer(js.node.Buffer) {
 		}
 		return str;
 	}
-
 }
 
 #end
