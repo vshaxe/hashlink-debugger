@@ -110,15 +110,16 @@ class Main {
 			#end
 		}
 
-		if( !dbg.connect("127.0.0.1", debugPort) || !dbg.init(getAPI()) ) {
-			dumpProcessOut();
-			error("Failed to access process #" + pid + " on port " + debugPort + " for debugging");
-			return;
-		}
-
-		while( command() ) {
-		}
-
+		dbg.connectTries("127.0.0.1", debugPort, 10, function(b) {
+			if( !b || !dbg.init(getAPI()) ) {
+				dumpProcessOut();
+				error("Failed to access process #" + pid + " on port " + debugPort + " for debugging");
+				return;
+			}
+			while( command() ) {
+			}
+			Sys.exit(0);
+		});
 	}
 
 	function frameStr( f : Debugger.StackInfo, ?debug ) {
@@ -398,7 +399,6 @@ class Main {
 
 	static function main() {
 		new Main().init();
-		Sys.exit(0);
 	}
 
 }

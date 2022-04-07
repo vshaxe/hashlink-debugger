@@ -97,31 +97,66 @@ class Debugger {
 		module.load(content);
 	}
 
-	public function connect( host : String, port : Int, retries = 10 ) {
+	public function connectTries( host : String, port : Int, tries : Int, onResult : Bool -> Void ) {
+		if( tries <= 0 ) {
+			onResult(false);
+			return;
+		}
+		connect(host,port,function(b) {
+			if( b ) {
+				onResult(true);
+				return;
+			}
+			haxe.Timer.delay(function() {
+				connectTries(host, port, --tries, onResult);
+			},20);
+		});
+	}
+
+	public function connect( host : String, port : Int, onResult : Bool -> Void ) {
 		sock = new sys.net.Socket();
 
-		var connected = false;
-		for( i in 0...retries ) {
-			try {
-				sock.connect(new sys.net.Host(host), port);
-				connected = true;
-				break;
-			} catch( e : Dynamic ) {
-				Sys.sleep(0.1);
+		function done() {
+			jit = new JitInfo();
+			if( !jit.read(sock.input, module) ) {
+				sock.close();
+				onResult(false);
+				return;
 			}
-		}
-		if( !connected ) {
-			sock.close();
-			return false;
+			module.init(jit.align);
+			onResult(true);
 		}
 
-		jit = new JitInfo();
-		if( !jit.read(sock.input, module) ) {
-			sock.close();
-			return false;
+		#if hxnodejs
+		@:privateAccess {
+			sock.s = new js.node.net.Socket();
+			sock.s.on("data", function(buf:js.node.Buffer) sock.inputData.push(buf));
+			js.node.Dns.lookup(host, {family: 4}, function(err, address:String, family) {
+				if( err != null ) {
+					onResult(false);
+					return;
+				}
+				sock.s.on("error", function(err) {
+					if( onResult != null ) {
+						sock.close();
+						onResult(false);
+						return;
+					}
+				});
+				sock.s.connect(port, address, function() done());
+			});
 		}
-		module.init(jit.align);
-		return true;
+		#else
+		try {
+			sock.connect(new sys.net.Host(host), port);
+		} catch( e : Dynamic ) {
+			sock.close();
+			Sys.sleep(0.1);
+			onResult(false);
+			return;
+		}
+		done();
+		#end
 	}
 
 	public function init( api : Api ) {

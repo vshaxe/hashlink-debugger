@@ -91,19 +91,28 @@ class HLAdapter extends DebugSession {
 		var port = args.port;
 		if( port == null ) port = debugPort;
 
-		try {
-			launch(args, response);
-			if( doDebug && !startDebug(args.program, port) ) {
-				proc.kill();
-				dbg = null;
-				throw "Could not initialize debugger";
-			}
-			sendEvent(new InitializedEvent());
-		} catch( e : Dynamic ) {
+		function onError(e) {
 			error(cast response, e + "\n" + CallStack.toString(CallStack.exceptionStack()));
 			sendEvent(new TerminatedEvent());
 		}
-		sendResponse(response);
+
+		try {
+			launch(args, response);
+			if( doDebug ) {
+				startDebug(args.program, port, function(msg) {
+					if( msg != null ) {
+						proc.kill();
+						dbg = null;
+						onError(msg);
+						return;
+					}
+					sendEvent(new InitializedEvent());
+					sendResponse(response);
+				});
+			}
+		} catch( e : Dynamic ) {
+			onError(e + "\n" + CallStack.toString(CallStack.exceptionStack()));
+		}
 	}
 
 	override function setExceptionBreakPointsRequest(response:SetExceptionBreakpointsResponse, args:SetExceptionBreakpointsArguments) {
@@ -136,15 +145,15 @@ class HLAdapter extends DebugSession {
 		setClassPath(args.classPaths);
 		workspaceDirectory = args.cwd;
 		Sys.setCwd(workspaceDirectory);
-		try {
-			if( !startDebug(args.program,args.port) )
-				throw "Failed to start debugging";
+		startDebug(args.program,args.port, function(msg) {
+			if( msg != null ) {
+				error(cast response, msg);
+				sendEvent(new TerminatedEvent());
+				return;
+			}
 			sendEvent(new InitializedEvent());
-		} catch( e : Dynamic ) {
-			error(cast response, e);
-			sendEvent(new TerminatedEvent());
-		}
-		sendResponse(response);
+			sendResponse(response);
+		});
 	}
 
 	function error<T>(response:Response<T>, message:Dynamic) {
@@ -277,7 +286,7 @@ class HLAdapter extends DebugSession {
 	}
 
 
-	function startDebug( program : String, port : Int ) {
+	function startDebug( program : String, port : Int, onError : String -> Void ) {
 		dbg = new hld.Debugger();
 
 		Sys.sleep(0.01); // make sure the process is started
@@ -287,22 +296,30 @@ class HLAdapter extends DebugSession {
 		dbg.loadModule(sys.io.File.getBytes(program));
 
 		debug("connecting");
-		if( !dbg.connect("127.0.0.1", port, 1) ) // no retry because it fails with latest nodejs
-			throw "Failed to connect on debug port";
+		dbg.connectTries("127.0.0.1", port, 10, function(b) {
+			if( !b ) {
+				onError("Failed to connect on debug port");
+				return;
+			}
 
-		var pid = @:privateAccess dbg.jit.pid;
-		if( pid == 0 ) {
-			if( proc == null ) throw "Process attach requires HL 1.7+";
-			pid = proc.pid;
-		}
-		var api = new hld.NodeDebugApiNative(pid, dbg.is64);
+			var pid = @:privateAccess dbg.jit.pid;
+			if( pid == 0 ) {
+				if( proc == null ) {
+					onError("Process attach requires HL 1.7+");
+					return;
+				}
+				pid = proc.pid;
+			}
+			var api = new hld.NodeDebugApiNative(pid, dbg.is64);
+			if( !dbg.init(api) ) {
+				onError("Failed to initialize debugger");
+				return;
+			}
 
-		if( !dbg.init(api) )
-			throw "Failed to initialize debugger";
-
-		syncThreads();
-		debug("connected");
-		return true;
+			syncThreads();
+			debug("connected");
+			onError(null);
+		});
 	}
 
 	override function configurationDoneRequest(response:ConfigurationDoneResponse, args:ConfigurationDoneArguments) {
