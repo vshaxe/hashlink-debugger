@@ -607,6 +607,8 @@ class Eval {
 		case HBool:
 			var m = readMem(p, 1);
 			VBool(m.getUI8(0) != 0);
+		case HPacked(t):
+			return { v : VPointer(p), t : t };
 		default:
 			p = readPointer(p);
 			return valueCast(p, t);
@@ -861,11 +863,10 @@ class Eval {
 		}
 		switch( v.t ) {
 		case HObj(o), HStruct(o):
-			var f = module.getObjectProto(o).fields.get(name);
+			var f = module.getObjectProto(o,v.t.match(HStruct(_))).fields.get(name);
 			if( f == null )
 				return null;
 			var offset = f.offset;
-			if( v.t.match(HStruct(_)) ) offset -= jit.align.ptr;
 			return { ptr : ptr == null ? null : ptr.offset(offset), t : f.t };
 		case HVirtual(fl):
 			for( i in 0...fl.length )

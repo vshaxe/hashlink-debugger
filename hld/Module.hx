@@ -172,20 +172,47 @@ class Module {
 			}
 	}
 
-	public function getObjectProto( o : ObjPrototype ) : ModuleProto {
+	public function getObjectProto( o : ObjPrototype, isStruct : Bool ) : ModuleProto {
 
 		var p = protoCache.get(o.name);
 		if( p != null )
 			return p;
 
-		var parent = o.tsuper == null ? null : switch( o.tsuper ) { case HObj(o): getObjectProto(o); default: throw "assert"; };
-		var size = parent == null ? align.ptr : parent.size;
+		var parent = o.tsuper == null ? null : switch( o.tsuper ) { case HObj(o), HStruct(o): getObjectProto(o,isStruct); default: throw "assert"; };
+		var size = parent == null ? (isStruct ? 0 : align.ptr) : parent.size;
 		var fields = parent == null ? new Map() : [for( k in parent.fields.keys() ) k => parent.fields.get(k)];
 
 		for( f in o.fields ) {
-			size += align.padStruct(size, f.t);
+			var pad = f.t;
+			// locate first field
+			while( true ) {
+				switch( pad ) {
+				case HPacked(t):
+					switch( t ) {
+					case HStruct(o):
+						while( o.tsuper != null ) {
+							switch( o.tsuper ) {
+							case HStruct(o2):
+								if( getObjectProto(o2,isStruct).size == 0 )
+									break;
+								o = o2;
+							default: throw "assert";
+							}
+						}
+						pad = o.fields[0].t;
+					default: throw "assert";
+					}
+				default:
+					break;
+				}
+			}
+			size += align.padStruct(size, pad);
 			fields.set(f.name, { name : f.name, t : f.t, offset : size });
-			size += align.typeSize(f.t);
+			size += switch( f.t ) {
+			case HPacked(HStruct(o)): getObjectProto(o,true).size;
+			case HPacked(_): throw "assert";
+			default: align.typeSize(f.t);
+			}
 		}
 
 		p = {
