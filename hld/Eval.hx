@@ -608,7 +608,7 @@ class Eval {
 			var m = readMem(p, 1);
 			VBool(m.getUI8(0) != 0);
 		case HPacked(t):
-			return { v : VPointer(p), t : t };
+			return { v : VPointer(p), t : t.v };
 		default:
 			p = readPointer(p);
 			return valueCast(p, t);

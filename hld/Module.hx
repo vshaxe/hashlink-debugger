@@ -188,7 +188,7 @@ class Module {
 			while( true ) {
 				switch( pad ) {
 				case HPacked(t):
-					switch( t ) {
+					switch( t.v ) {
 					case HStruct(o):
 						while( o.tsuper != null ) {
 							switch( o.tsuper ) {
@@ -209,7 +209,7 @@ class Module {
 			size += align.padStruct(size, pad);
 			fields.set(f.name, { name : f.name, t : f.t, offset : size });
 			size += switch( f.t ) {
-			case HPacked(HStruct(o)): getObjectProto(o,true).size;
+			case HPacked({ v : HStruct(o) }): getObjectProto(o,true).size;
 			case HPacked(_): throw "assert";
 			default: align.typeSize(f.t);
 			}
