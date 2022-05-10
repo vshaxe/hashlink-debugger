@@ -298,7 +298,10 @@ class HLAdapter extends DebugSession {
 		debug("connecting");
 		dbg.connectTries("127.0.0.1", port, 10, function(b) {
 			if( !b ) {
-				onError("Failed to connect on debug port");
+				// wait a bit (keep eventual HL error message)
+				haxe.Timer.delay(function() {
+					onError("Failed to connect on debug port");
+				},2000);
 				return;
 			}
 
