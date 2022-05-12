@@ -715,6 +715,12 @@ class Eval {
 			var index = readI32(p.offset(align.ptr));
 			var c = module.getEnumProto(e)[index];
 			v = VEnum(c.name,[for( a in c.params ) readVal(p.offset(a.offset),a.t)], p);
+		case HAbstract("hl_carray"):
+			var type = readType(p);
+			var stride = readI32(p.offset(align.ptr));
+			var size = readI32(p.offset(align.ptr+4));
+			var data = p.offset(align.ptr+8 + (type.match(HStruct(_)) ? size * 16 : 0));
+			v = VArray(type,size,function(i) return valueCast(data.offset(i*stride), type), p);
 		default:
 		}
 		return { v : v, t : t };
@@ -807,7 +813,7 @@ class Eval {
 		switch( v.t ) {
 		case HObj(o), HStruct(o):
 			function getRec(o:format.hl.Data.ObjPrototype) {
-				var fields = o.tsuper == null ? [] : getRec(switch( o.tsuper ) { case HObj(o): o; default: throw "assert"; });
+				var fields = o.tsuper == null ? [] : getRec(switch( o.tsuper ) { case HObj(o), HStruct(o): o; default: throw "assert"; });
 				for( f in o.fields )
 					if( f.name != "" )
 						fields.push(f.name);
