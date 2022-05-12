@@ -719,8 +719,8 @@ class Eval {
 			var type = readType(p);
 			var stride = readI32(p.offset(align.ptr));
 			var size = readI32(p.offset(align.ptr+4));
-			var data = p.offset(align.ptr+8 + (type.match(HStruct(_)) ? size * 16 : 0));
-			v = VArray(type,size,function(i) return valueCast(data.offset(i*stride), type), p);
+			var data = p.offset(align.ptr+8);
+			v = VArray(type,size,function(i) return valueCast(data.offset(i*stride), HDyn), p);
 		default:
 		}
 		return { v : v, t : t };
