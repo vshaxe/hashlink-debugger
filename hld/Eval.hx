@@ -483,6 +483,7 @@ class Eval {
 		case VUndef: "undef"; // null read / outside bounds
 		case VNull: "null";
 		case VInt(i): "" + i;
+		case VInt64(i): "" + i;
 		case VFloat(v): "" + v;
 		case VBool(b): b?"true":"false";
 		case VPointer(p):
@@ -597,7 +598,7 @@ class Eval {
 		case HI32:
 			VInt(readI32(p));
 		case HI64:
-			throw "TODO:readI64";
+			VInt64(haxe.Int64.make(readI32(p.offset(4)),readI32(p)));
 		case HF32:
 			var m = readMem(p, 4);
 			VFloat(m.getF32(0));

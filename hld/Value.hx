@@ -4,6 +4,7 @@ enum ValueRepr {
 	VUndef;
 	VNull;
 	VInt( i : Int );
+	VInt64( i : haxe.Int64 );
 	VFloat( v : Float );
 	VBool( b : Bool );
 	VPointer( v : Pointer );
