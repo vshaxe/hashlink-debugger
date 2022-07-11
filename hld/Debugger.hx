@@ -647,11 +647,16 @@ class Debugger {
 										k = -1;
 									}
 								}
-								while( k >= 0 ) {
+								var first = true;
+								while( k > 0 ) {
 									var val = mem.getPointer((k--) << 3, jit.align);
 									if( val > validEsp && val < tinf.stackTop ) {
-										e.ebp = val;
-										break;
+										var code = readMem(val.offset(jit.align.ptr),jit.align.ptr).getPointer(0, jit.align);
+										if( code < jit.codeStart || code > jit.codeEnd ) continue;
+										if( first || val < e.ebp ) {
+											e.ebp = val;
+											first = false;
+										}
 									}
 								}
 							}
