@@ -97,18 +97,19 @@ class Debugger {
 		module.load(content);
 	}
 
-	public function connectTries( host : String, port : Int, tries : Int, onResult : Bool -> Void ) {
-		if( tries <= 0 ) {
+	public function connectTries( host : String, port : Int, timeout : Float, onResult : Bool -> Void ) {
+		if( timeout <= 0 ) {
 			onResult(false);
 			return;
 		}
+		var ts = Sys.time();
 		connect(host,port,function(b) {
 			if( b ) {
 				onResult(true);
 				return;
 			}
 			haxe.Timer.delay(function() {
-				connectTries(host, port, --tries, onResult);
+				connectTries(host, port, timeout - (Sys.time()-ts), onResult);
 			},20);
 		});
 	}

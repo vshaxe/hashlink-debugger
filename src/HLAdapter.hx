@@ -296,7 +296,7 @@ class HLAdapter extends DebugSession {
 		dbg.loadModule(sys.io.File.getBytes(program));
 
 		debug("connecting");
-		dbg.connectTries("127.0.0.1", port, 10, function(b) {
+		dbg.connectTries("127.0.0.1", port, 2, function(b) {
 			if( !b ) {
 				// wait a bit (keep eventual HL error message)
 				haxe.Timer.delay(function() {
