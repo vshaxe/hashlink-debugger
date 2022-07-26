@@ -722,6 +722,8 @@ class Eval {
 			var size = readI32(p.offset(align.ptr+4));
 			var data = p.offset(align.ptr+8);
 			v = VArray(type,size,function(i) return valueCast(data.offset(i*stride), HDyn), p);
+		case HAbstract("hl_int64_map"):
+			v = makeMap(p, HI64);
 		default:
 		}
 		return { v : v, t : t };
@@ -747,7 +749,7 @@ class Eval {
 		var curCell = 0;
 
 		var keyInValue;
-		var keyPos, valuePos, keyStride, valueStride;
+		var keyPos, valuePos, keyStride, valueStride, keyPadding = 0;
 		switch( tkey ) {
 		case HBytes:
 			keyInValue = true;
@@ -767,6 +769,13 @@ class Eval {
 			valuePos = align.ptr;
 			keyStride = 4;
 			valueStride = align.ptr * 2;
+		case HI64:
+			keyInValue = false;
+			keyPos = 0;
+			valuePos = 0;
+			keyStride = 16;
+			keyPadding = 4;
+			valueStride = align.ptr;
 		default:
 			throw "Unsupported map " + tkey.toString();
 		}
@@ -784,13 +793,15 @@ class Eval {
 						{ v : VString(readUCSBytes(readPointer(keyPtr)), null), t : t_string };
 					case HI32:
 						{ v : VInt(readI32(keyPtr)), t : HI32 };
+					case HI64:
+						{ v : VInt64(readI64(keyPtr)), t : HI64 };
 					case HDyn:
 						readVal(keyPtr,HDyn);
 					default:
 						throw "Unsupported map " + tkey.toString();
 					}
 					content.push({ key : key, value : value });
-					c = readI32(entries.offset(c * keyStride + keyStride - 4));
+					c = readI32(entries.offset(c * keyStride + keyStride - 4 - keyPadding));
 				}
 			}
 			return content[k];
@@ -971,6 +982,11 @@ class Eval {
 
 	public function readI32( p : Pointer ) {
 		return readMem(p, 4).getI32(0);
+	}
+
+	public function readI64( p : Pointer ) {
+		var mem = readMem(p, 8);
+		return haxe.Int64.make(mem.getI32(4),mem.getI32(0));
 	}
 
 	public function writeI32( p : Pointer, v : Int ) {
