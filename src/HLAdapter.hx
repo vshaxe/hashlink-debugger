@@ -441,12 +441,6 @@ class HLAdapter extends DebugSession {
 				dbg.setCurrentThread(tid);
 				debug("switch thread "+tid);
 			}
-			// stop all threads
-			for( t in threads.keys() )
-				if( t != tid ) {
-					var ev = new StoppedEvent(msg, t);
-					sendEvent(ev);
-				}
 			var ev = new StoppedEvent(msg, tid, str);
 			ev.allThreadsStopped = true;
 			sendEvent(ev);
@@ -831,6 +825,17 @@ class HLAdapter extends DebugSession {
 
 	override function pauseRequest(response:PauseResponse, args:PauseArguments):Void {
 		debug("Pause Request");
+		if( dbg.stoppedThread != null ) {
+			// already paused, stop all threads
+			sendResponse(response);
+			for( tid in threads.keys() ) {
+				if( tid != dbg.currentThread ) {
+					var ev = new StoppedEvent("paused", tid);
+					sendEvent(ev);
+				}
+			}
+			return;
+		}
 		isPause = true;
 		sendResponse(response);
 		handleWait(dbg.pause());
