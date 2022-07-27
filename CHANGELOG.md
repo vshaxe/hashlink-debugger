@@ -1,3 +1,14 @@
+## 1.3.3 (July 27, 2022)
+
+* improved multithread support
+* added int64 support
+* added @:packed and improved @:struct support
+* (again) fixed timeout issue when connecting on debug port
+
+## 1.3.2 (April 14, 2022)
+
+* fixed timeout issue when connecting on debug port
+
 ## 1.3.1 (March 23, 2022)
 
 * changed to native API (no longer FFI, super fast)
