@@ -1,4 +1,4 @@
-## 1.3.3 (July 27, 2022)
+## 1.3.4 (July 27, 2022)
 
 * improved multithread support
 * added int64 support
