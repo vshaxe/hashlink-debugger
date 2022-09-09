@@ -162,7 +162,7 @@ class Eval {
 			}
 		case EIdent(i):
 			var v = getVar(i);
-			if( v == null ) return null;
+			if( v == null ) throw "Unknown identifier "+i;
 			return v;
 		case EArray(v, i):
 			var v = evalExpr(v);
@@ -210,8 +210,9 @@ class Eval {
 				}
 			}
 			for( f in path ) {
-				if( v == null ) break;
-				v = readField(v, f);
+				var vf = readField(v, f);
+				if( vf == null ) throw valueStr(v)+" has no field "+f;
+				v = vf;
 			}
 			return v;
 		case EIf(econd, e1, e2), ETernary(econd, e1, e2):
@@ -440,7 +441,9 @@ class Eval {
 			path.shift();
 			return v;
 		}
-		return fetch(getGlobalAddress(path));
+		var v = getGlobalAddress(path);
+		if( v == null ) throw "Unknown value "+path.join(".");
+		return fetch(v);
 	}
 
 	function getGlobalAddress( path : Array<String> ) {
