@@ -982,20 +982,22 @@ class HLAdapter extends DebugSession {
 		var ref = varsValues.get(varRef);
 		if( ref == null )
 			return null;
-		switch( ref ) {
+		var addr = switch( ref ) {
 		case VScope(k):
 			dbg.currentStackFrame = k;
 			return dbg.getRef(name);
 		case VValue(v):
 			if( v.v.match(VArray(_)) )
-				return dbg.eval.readArrayAddress(v, Std.parseInt(name));
-			return dbg.eval.readFieldAddress(v, name);
+				dbg.eval.readArrayAddress(v, Std.parseInt(name));
+			else
+				dbg.eval.readFieldAddress(v, name);
 		case VStatics(cl):
 			var value = dbg.eval.eval(cl);
-			return dbg.eval.readFieldAddress(value, name);
+			dbg.eval.readFieldAddress(value, name);
 		default:
 			return null;
 		}
+		return switch( addr ) { case AAddr(ptr,t): { ptr : ptr, t : t }; default: null; };
 	}
 
 	override function dataBreakpointInfoRequest(response:DataBreakpointInfoResponse, args:DataBreakpointInfoArguments) {

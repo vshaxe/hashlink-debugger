@@ -867,8 +867,9 @@ class Eval {
 			var content = readPointer(ptr.offset(align.ptr * 2));
 			var offset = align.typeSize(t) * index;
 			if( t.isPtr() ) offset += sizeofVArray;
-			return { ptr : content.offset(offset), t : t };
-		default: null;
+			return AAddr(content.offset(offset),t);
+		default:
+			return ANone;
 		}
 	}
 
