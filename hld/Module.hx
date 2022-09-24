@@ -222,11 +222,7 @@ class Module {
 			var idx = functionsIndexes.get(m.findex);
 			var f = code.functions[idx];
 			// todo : fix method index wrt subclasses & prototypes
-			var ft = switch( f.t ) {
-			case HFun(p): HMethod(p);
-			default: throw "assert";
-			}
-			methods.set(m.name, { t : ft, index : mindex++, pindex : m.pindex });
+			methods.set(m.name, { t : f.t, index : mindex++, pindex : m.pindex });
 		}
 
 		p = {

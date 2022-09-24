@@ -11,6 +11,7 @@ enum ValueRepr {
 	VString( v : String, p : Pointer );
 	VClosure( f : FunRepr, d : Value, p : Pointer );
 	VFunction( f : FunRepr, p : Pointer );
+	VMethod( f : FunRepr, obj : Value, p : Pointer );
 	VArray( t : HLType, length : Int, read : Int -> Value, p : Pointer );
 	VMap( tkey : HLType, nkeys : Int, readKey : Int -> Value, readValue : Int -> Value, p : Pointer );
 	VType( t : HLType );
