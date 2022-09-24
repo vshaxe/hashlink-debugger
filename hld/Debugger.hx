@@ -163,10 +163,16 @@ class Debugger {
 	public function init( api : Api ) {
 		this.api = api;
 		eval = new Eval(module, api, jit);
+		eval.resumeDebug = evalResumeDebug;
 		if( !api.start() )
 			return false;
 		wait(); // wait first break
 		return true;
+	}
+
+	function evalResumeDebug() {
+		resume();
+		wait();
 	}
 
 	public function run() {

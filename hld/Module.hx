@@ -16,6 +16,7 @@ typedef ModuleProto = {
 		var t : HLType;
 		var offset : Int;
 	}>;
+	var methods : Map<String,{ t : HLType, index : Int, pindex : Int }>;
 }
 
 typedef ModuleEProto = Array<{ name : String, size : Int, params : Array<{ offset : Int, t : HLType }> }>;
@@ -181,6 +182,7 @@ class Module {
 		var parent = o.tsuper == null ? null : switch( o.tsuper ) { case HObj(o), HStruct(o): getObjectProto(o,isStruct); default: throw "assert"; };
 		var size = parent == null ? (isStruct ? 0 : align.ptr) : parent.size;
 		var fields = parent == null ? new Map() : [for( k in parent.fields.keys() ) k => parent.fields.get(k)];
+		var methods = parent == null ? new Map() : [for( k in parent.methods.keys() ) k => parent.methods.get(k)];
 
 		for( f in o.fields ) {
 			var pad = f.t;
@@ -215,11 +217,24 @@ class Module {
 			}
 		}
 
+		var mindex = 0;
+		for( m in o.proto ) {
+			var idx = functionsIndexes.get(m.findex);
+			var f = code.functions[idx];
+			// todo : fix method index wrt subclasses & prototypes
+			var ft = switch( f.t ) {
+			case HFun(p): HMethod(p);
+			default: throw "assert";
+			}
+			methods.set(m.name, { t : ft, index : mindex++, pindex : m.pindex });
+		}
+
 		p = {
 			name : o.name,
 			size : size,
 			parent : parent,
 			fields : fields,
+			methods : methods,
 			fieldNames : [for( o in o.fields ) o.name],
 		};
 		protoCache.set(p.name, p);

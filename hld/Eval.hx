@@ -2,6 +2,29 @@ package hld;
 import hld.Value;
 import format.hl.Data.HLType;
 
+enum abstract NativeReg(Int) from Int {
+	var Eax = 0;
+	var Ecx = 1;
+	var Edx = 2;
+	var Ebx = 3;
+	var Esp = 4;
+	var Ebp = 5;
+	var Esi = 6;
+	var Edi = 7;
+	var R8 = 8;
+	var R9 = 9;
+	var R10	= 10;
+	var R11	= 11;
+	var R12	= 12;
+	var R13	= 13;
+	var R14	= 14;
+	var R15	= 15;
+	public static function XMM(v:Int) return v + 16;
+	public inline function toInt() return this;
+	public inline function isFpu() return this >= 16;
+	public inline function is64() return this >= 8 && this < 16;
+}
+
 class Eval {
 
 	var align : Align;
@@ -94,7 +117,7 @@ class Eval {
 	function getPtr( v : Value ) {
 		return switch (v.v) {
 		case VNull: Pointer.make(0,0);
-		case VPointer(p), VString(_, p), VClosure(_,_,p), VFunction(_,p), VArray(_, _, _, p), VMap(_, _, _, _, p), VEnum(_, _, p), VBytes(_,_,p): p;
+		case VPointer(p), VString(_, p), VClosure(_,_,p), VArray(_, _, _, p), VMap(_, _, _, _, p), VEnum(_, _, p), VBytes(_,_,p): p;
 		default: null;
 		}
 	}
@@ -227,9 +250,148 @@ class Eval {
 			return evalUnop(op, prefix, evalExpr(e));
 		case EMeta(_, _, e):
 			return evalExpr(e);
+		case ECall(efun, eargs):
+			var vargs = [for( e in eargs ) evalExpr(e)];
+			var vfun = evalExpr(efun);
+			switch( vfun ) {
+			case { v : VFunction(f, _), t : HFun(ft) | HMethod(ft) }:
+				var isStatic = vfun.t.match(HFun(_));
+				if( !isStatic ) {
+					switch( efun ) {
+					case EField(obj,_):
+						vargs.unshift(evalExpr(obj));
+					case EIdent(v):
+						vargs.unshift(getVar("this"));
+					default:
+						throw "assert";
+					}
+				}
+				for( i => v in vargs ) {
+					var at = ft.args[i];
+					if( at == null )
+						throw "Too many arguments";
+					vargs[i] = castTo(v,at);
+				}
+				while( vargs.length < ft.args.length ) {
+					var at = ft.args[vargs.length];
+					if( at.isPtr() )
+						vargs.push({ v : VNull, t : at });
+					else
+						throw "Missing argument";
+				}
+				return evalCall(vfun, vargs);
+			default:
+				throw hscript.Printer.toString(e)+" is not a function";
+			}
 		default:
 			throw "Unsupported expression `" + hscript.Printer.toString(e) + "`";
 		}
+	}
+
+	inline function isFloat(t:HLType) {
+		return t == HF32 || t == HF64;
+	}
+
+	function evalCall( vfun : Value, vargs : Array<Value> ) {
+		if( !jit.is64 )
+			throw "Can't call function in x32 mode : not implemented";
+		var tret = switch( vfun.t ) {
+		case HFun(f), HMethod(f): f.ret;
+		default: throw "Not a function";
+		}
+		var addr = switch( vfun.v ) {
+		case VFunction(f, addr): addr;
+		default: throw "Not a function";
+		}
+		// align stack
+		var stackValue = api.readRegister(currentThread, Esp);
+		var oldStack = stackValue;
+		stackValue = stackValue.offset(-100);
+		stackValue = stackValue.offset((-stackValue.toInt() & 0xFF));
+		// read previous asm
+		var eip = api.readRegister(currentThread, Eip);
+		var asmSize = 256;
+		var prevAsm = new Buffer(asmSize);
+		if( !api.read(eip, prevAsm, asmSize) )
+			throw "assert";
+		// set registers
+		var asmOut = new haxe.io.BytesBuffer();
+
+		function setReg(r:NativeReg, ptr:Pointer) {
+			var r64 = 8;
+			if( r.is64() ) r64 |= 1;
+			asmOut.addByte(0x40 | r64);
+			asmOut.addByte(0xB8 + (r.toInt()&7));
+			asmOut.addInt64(ptr.i64);
+		}
+
+		function pushReg(r:NativeReg) {
+			if( r.is64() ) asmOut.addByte(0x41);
+			asmOut.addByte(0x50 + (r.toInt()&7));
+		}
+
+		function popReg(r:NativeReg) {
+			if( r.is64() ) asmOut.addByte(0x41);
+			asmOut.addByte(0x58 + (r.toInt()&7));
+		}
+
+		var nextCpu = 0, nextFpu = 0;
+		var callRegs = jit.isWinCall ? [Ecx, Edx, R8, R9] : [Edi, Esi, Edx, Ecx, R8, R9];
+		for( r in callRegs )
+			pushReg(r);
+		for( i in 0...vargs.length ) {
+			var v = vargs[vargs.length - i - 1];
+			var isFpu = isFloat(v.t);
+			var r = jit.isWinCall || !isFpu ? callRegs[nextCpu++] : (nextFpu >= callRegs.length ? null : NativeReg.XMM(nextFpu++));
+			if( r == null )
+				throw "TODO : stack arguments";
+			switch( [v.t, v.v] ) {
+			case [HI32, VInt(i)]:
+				setReg(r, Pointer.make(i,0));
+			case [_, VNull] if( v.t.isPtr() ):
+				setReg(r, Pointer.make(0,0));
+			case [_, VPointer(p)] if( v.t.isPtr() ):
+				setReg(r, p);
+			default:
+				throw "Unsupported arg "+valueStr(v)+":"+typeStr(v.t);
+			}
+		}
+		// insert call asm
+		var prevEax = api.readRegister(currentThread, Eax);
+		setReg(Eax, addr);
+		asmOut.addByte(0xFF); // call eax
+		asmOut.addByte(0xD0);
+		for( i in 0...callRegs.length )
+			popReg(callRegs[callRegs.length - 1 - i]);
+		asmOut.addByte(0xCC); // break
+		// patch the code
+		var bytes = asmOut.getBytes();
+		if( Debugger.DEBUG )
+			trace("ASM Eval code = "+bytes.toHex());
+		if( bytes.length > asmSize )
+			throw "Too much ASM";
+		var buffer = new Buffer(bytes.length);
+		for( i in 0...bytes.length )
+			buffer.setUI8(i, bytes.get(i));
+		if( !api.write(eip, buffer, bytes.length) )
+			throw "assert";
+		api.flush(eip, bytes.length);
+		resumeDebug();
+		// restore
+		api.write(eip, prevAsm, bytes.length);
+		api.flush(eip, bytes.length);
+		var ptr = api.readRegister(currentThread, Eax);
+		var nip = api.readRegister(currentThread, Eip).sub(eip);
+		var hasError = nip != bytes.length;
+		if( hasError )
+			throw "Exception has occured";
+		api.writeRegister(currentThread, Eax, prevEax);
+		api.writeRegister(currentThread, Eip, eip);
+		return convertVal(ptr, tret);
+	}
+
+	public dynamic function resumeDebug() {
+		throw "Not implemented";
 	}
 
 	function getNum( v : Value ) : Float {
@@ -698,7 +860,11 @@ class Eval {
 				var value = readVal(p.offset(align.ptr * 3), HDyn);
 				v = VClosure(fval, value, p);
 			} else
-				v = VFunction(fval, p);
+				v = VFunction(fval, funPtr);
+		case HMethod(_):
+			var fidx = jit.functionFromAddr(p);
+			var fval = fidx == null ? FUnknown(p) : FIndex(fidx);
+			v = VFunction(fval, p);
 		case HType:
 			v = VType(readType(p,true));
 		case HBytes:
@@ -884,11 +1050,26 @@ class Eval {
 		}
 		switch( v.t ) {
 		case HObj(o), HStruct(o):
-			var f = module.getObjectProto(o,v.t.match(HStruct(_))).fields.get(name);
-			if( f == null )
-				return null;
-			var offset = f.offset;
-			return { ptr : ptr == null ? null : ptr.offset(offset), t : f.t };
+			var p = module.getObjectProto(o,v.t.match(HStruct(_)));
+			var f = p.fields.get(name);
+			if( f != null ) {
+				var offset = f.offset;
+				return { ptr : ptr == null ? null : ptr.offset(offset), t : f.t };
+			}
+			var f = p.methods.get(name);
+			if( f != null && ptr != null ) {
+				// HMethod
+				var vt = readPointer(ptr);
+				if( f.pindex >= 0 ) {
+					var vp = readPointer(vt.offset(align.ptr*2));
+					return { ptr : vp.offset(f.index * align.ptr), t : f.t };
+				}
+				var vobj = readPointer(vt.offset(align.ptr));
+				var vrt = readPointer(vobj.offset(4 * 2 + align.ptr + align.ptr * 7));
+				var vmethods = readPointer(vrt.offset(align.ptr + 4 * 6));
+				return { ptr : vmethods.offset(f.index * align.ptr), t : f.t };
+			}
+			return null;
 		case HVirtual(fl):
 			for( i in 0...fl.length )
 				if( fl[i].name == name ) {
