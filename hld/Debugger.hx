@@ -51,7 +51,7 @@ class Debugger {
 	var nextStep(default,set): Int = -1;
 	var currentStack : Array<{ fidx : Int, fpos : Int, codePos : Int, ebp : hld.Pointer }>;
 	var watches : Array<WatchPoint>;
-	var threads : Map<Int,{ id : Int, stackTop : Pointer, exception : Pointer }>;
+	var threads : Map<Int,{ id : Int, stackTop : Pointer, exception : Pointer, name : String }>;
 	var afterStep = false;
 
 	public var is64(get, never) : Bool;
@@ -373,17 +373,23 @@ class Debugger {
 		return cmd.r;
 	}
 
+	public function getThreadName( id : Int, ?opt ) {
+		var t = threads.get(id);
+		return t == null || t.name == null ? (opt == null ? "Thread "+id : opt) : t.name+":"+id;
+	}
+
 	function readThreads() {
 		var old = jit.oldThreadInfos;
 		threads = new Map();
 		if( old != null ) {
-			threads.set(old.id, { id : old.id, stackTop : old.stackTop, exception : eval.readPointer(old.debugExc) });
+			threads.set(old.id, { id : old.id, stackTop : old.stackTop, exception : eval.readPointer(old.debugExc), name : "Main" });
 			return;
 		}
 		var count = eval.readI32(jit.threads);
 		var tinfos = eval.readPointer(jit.threads.offset(8));
 		var flagsPos = jit.align.ptr * 6 + 8;
 		var excPos = jit.align.ptr * 5 + 8;
+		var namePos = jit.hlVersion >= 0x10C00 /*1.13*/ ? flagsPos + 8 : -1;
 		for( i in 0...count ) {
 			var tinf = eval.readPointer(tinfos.offset(jit.align.ptr * i));
 			var tid = eval.readI32(tinf);
@@ -393,15 +399,22 @@ class Debugger {
 				tid = mainThread;
 			else if( mainThread <= 0 )
 				mainThread = tid;
+			var name = null;
+			if( namePos >= 0 ) {
+				var tname = @:privateAccess eval.readMem(tinf.offset(namePos), 128).readStringUTF8();
+				if( tname != "" )
+					name = tname;
+			}
 			var t = {
 				id : tid,
 				stackTop : eval.readPointer(tinf.offset(8)),
 				exception : flags & 4 == 0 ? null : tinf.offset(excPos),
+				name : name,
 			};
 			threads.set(tid, t);
 		}
 		if( !threads.exists(currentThread) )
-			threads.set(currentThread,{ id : currentThread, stackTop: null, exception: null });
+			threads.set(currentThread,{ id : currentThread, stackTop: null, exception: null, name : null });
 	}
 
 	function prepareStack() {

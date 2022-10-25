@@ -13,6 +13,10 @@ abstract Buffer(hl.Bytes) {
 		return @:privateAccess String.fromUCS2(this.sub(pos,(length + 1) << 1));
 	}
 
+	public function readStringUTF8() {
+		return @:privateAccess String.fromUTF8(this);
+	}
+
 	public function getPointer( pos : Int, align : Align ) {
 		if( align.is64 )
 			return Pointer.make(this.getI32(pos), this.getI32(pos + 4));
@@ -127,6 +131,18 @@ class Buffer {
 		}
 		return str;
 	}
+
+	public function readStringUTF8() {
+		var b = new haxe.io.BytesBuffer();
+		var pos = 0;
+		while( true ) {
+			var c = getUI8(pos++);
+			if( c == 0 ) break;
+			b.addByte(c);
+		}
+		return b.getBytes().toString();
+	}
+
 }
 
 #end

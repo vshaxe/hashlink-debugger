@@ -515,7 +515,7 @@ class HLAdapter extends DebugSession {
 			for( t in dbg.getThreads() ) {
 				if( !this.threads.exists(t) ) continue;
 				threads.push({
-					name : t == dbg.mainThread ? "Main thread" : "Thread "+t,
+					name : t == dbg.mainThread ? "Main thread" : dbg.getThreadName(t),
 					id : t,
 				});
 			}

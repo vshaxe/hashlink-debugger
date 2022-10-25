@@ -155,7 +155,7 @@ class Main {
 			Sys.println("Process has exit");
 			Sys.exit(0);
 		case Breakpoint:
-			Sys.println("Thread " + dbg.stoppedThread + " paused " + frameStr(dbg.getStackFrame()));
+			Sys.println(dbg.getThreadName(dbg.stoppedThread) + " paused " + frameStr(dbg.getStackFrame()));
 			var exc = dbg.getException();
 			if( exc != null )
 				Sys.println("Exception: "+dbg.eval.valueStr(exc));
@@ -327,7 +327,7 @@ class Main {
 				if( tid != null ) tid = dbg.getThreads()[tid];
 				if( tid != null ) dbg.setCurrentThread(tid);
 			}
-			Sys.println("Thread "+dbg.getThreads().indexOf(dbg.currentThread));
+			Sys.println(dbg.getThreadName(dbg.currentThread));
 		case "info":
 			function printVar( name : String ) {
 				var v = dbg.getValue(name);
