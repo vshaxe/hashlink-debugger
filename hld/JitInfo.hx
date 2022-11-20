@@ -20,7 +20,7 @@ class JitInfo {
 
 	public var oldThreadInfos : { id : Int, stackTop : Pointer, debugExc : Pointer };
 
-	public var hlVersion : Int;
+	public var hlVersion : Float;
 	public var globals : Pointer;
 	public var codeStart : Pointer;
 	public var codeEnd : Pointer;
@@ -65,10 +65,11 @@ class JitInfo {
 			var debugExc = readPointer();
 			var stackTop = readPointer();
 			oldThreadInfos = { id : mainThread, stackTop : stackTop, debugExc : debugExc };
-			hlVersion = 0x150;
+			hlVersion = 1.05;
 		} else {
-			hlVersion = input.readInt32();
-			if( hlVersion >= 0x170 )
+			var ver = input.readInt32();
+			hlVersion = (ver >> 16) + ((ver >> 8) & 0xFF) / 100;
+			if( hlVersion >= 1.07 )
 				pid = input.readInt32();
 			threads = readPointer();
 			globals = readPointer();
