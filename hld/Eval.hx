@@ -372,7 +372,7 @@ class Eval {
 		var regs = [];
 		for( v in vargs ) {
 			var isCpu = !isFloat(v.t);
-			var r = if( isCpu )
+			var r : Null<NativeReg> = if( isCpu )
 				callRegs[nextCpu++]
 			else if( jit.isWinCall )
 				nextCpu >= callRegs.length ? null : NativeReg.XMM(nextCpu++)
@@ -982,57 +982,59 @@ class Eval {
 	}
 
 	function makeMap( p : Pointer, tkey : HLType ) {
+		var isV13 = jit.hlVersion >= 1.13;
 		var cells = readPointer(p);
-		var entries = readPointer(p.offset(align.ptr));
-		var values = readPointer(p.offset(align.ptr * 2));
+		var nexts = isV13 ? readPointer(p.offset(align.ptr)) : null;
+		var offset = isV13 ? align.ptr * 2 : align.ptr;
+		var entries = readPointer(p.offset(offset));
+		var values = readPointer(p.offset(offset + align.ptr));
 		var freelist_size = align.ptr + 4 + 4;
-		var pos = align.ptr * 3 + freelist_size;
+		var pos = offset + align.ptr * 2 + freelist_size;
 		var ncells = readI32(p.offset(pos));
 		var nentries = readI32(p.offset(pos + 4));
-		var content : Array<{ key : Value, value : Value }> = [];
-
-		var curCell = 0;
-
+		var maxEntries = readI32(p.offset(pos + 8));
 		var keyInValue;
-		var keyPos, valuePos, keyStride, valueStride, keyPadding = 0;
+		var valuePos, keyStride, valueStride, keyPadding = 0;
 		switch( tkey ) {
 		case HBytes:
 			keyInValue = true;
-			keyPos = 0;
 			valuePos = align.ptr;
-			keyStride = 8;
+			keyStride = isV13 ? 4 : 8;
 			valueStride = align.ptr * 2;
 		case HI32:
 			keyInValue = false;
-			keyPos = 0;
 			valuePos = 0;
-			keyStride = 8;
+			keyStride = isV13 ? 4 : 8;
 			valueStride = align.ptr;
 		case HDyn:
 			keyInValue = true;
-			keyPos = 0;
 			valuePos = align.ptr;
-			keyStride = 4;
+			keyStride = isV13 ? 0 : 4;
 			valueStride = align.ptr * 2;
 		case HI64:
 			keyInValue = false;
-			keyPos = 0;
 			valuePos = 0;
-			keyStride = 16;
+			keyStride = isV13 ? 8 : 16;
 			keyPadding = 4;
 			valueStride = align.ptr;
 		default:
 			throw "Unsupported map " + tkey.toString();
 		}
 
+		var isSmall = isV13 && nentries < 128;
+
+		var content : Array<{ key : Value, value : Value }> = [];
+		var curCell = 0;
 
 		function fetch(k) {
 			while( content.length <= k ) {
 				if( curCell == ncells ) throw "assert";
-				var c = readI32(cells.offset((curCell++) << 2));
+				var c = isSmall ? readByte(cells.offset(curCell++)) : readI32(cells.offset((curCell++) << 2));
 				while( c >= 0 ) {
+					if( isSmall && c == 255 )
+						break;
 					var value = readVal(values.offset(c * valueStride + valuePos), HDyn);
-					var keyPtr = keyInValue ? values.offset(c * valueStride + keyPos) : entries.offset(c * keyStride + keyPos);
+					var keyPtr = keyInValue ? values.offset(c * valueStride) : entries.offset(c * keyStride);
 					var key : Value = switch( tkey ) {
 					case HBytes:
 						{ v : VString(readUCSBytes(readPointer(keyPtr)), null), t : t_string };
@@ -1046,7 +1048,10 @@ class Eval {
 						throw "Unsupported map " + tkey.toString();
 					}
 					content.push({ key : key, value : value });
-					c = readI32(entries.offset(c * keyStride + keyStride - 4 - keyPadding));
+					if( isV13 )
+						c = isSmall ? readByte(nexts.offset(c)) : readI32(nexts.offset(c<<2));
+					else
+						c = readI32(entries.offset(c * keyStride + keyStride - 4 - keyPadding));
 				}
 			}
 			return content[k];
@@ -1251,6 +1256,10 @@ class Eval {
 			len++;
 		}
 		return readUCS2(ptr, len);
+	}
+
+	public function readByte( p : Pointer ) {
+		return readMem(p, 1).getUI8(0);
 	}
 
 	public function readI32( p : Pointer ) {
