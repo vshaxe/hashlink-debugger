@@ -389,7 +389,7 @@ class Debugger {
 		var tinfos = eval.readPointer(jit.threads.offset(8));
 		var flagsPos = jit.align.ptr * 6 + 8;
 		var excPos = jit.align.ptr * 5 + 8;
-		var namePos = jit.hlVersion >= 0x10D00 /*1.13*/ ? flagsPos + 8 : -1;
+		var namePos = jit.hlVersion >= 1.13 ? flagsPos + 8 : -1;
 		for( i in 0...count ) {
 			var tinf = eval.readPointer(tinfos.offset(jit.align.ptr * i));
 			var tid = eval.readI32(tinf);
