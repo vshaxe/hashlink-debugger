@@ -1,3 +1,10 @@
+## 1.4.0 (January 28, 2023)
+
+* added support of hl 1.13 maps and @:packed
+* added named threads support
+* added evaluation of method calls
+* object getter resolution
+
 ## 1.3.4 (July 27, 2022)
 
 * improved multithread support
