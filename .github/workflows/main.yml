@@ -6,12 +6,13 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-    - uses: krdlab/setup-haxe@v1.1.2
+    - uses: actions/checkout@v3
+    - uses: krdlab/setup-haxe@v1
     - run: |
-        haxelib install format
+        haxelib git format https://github.com/HaxeFoundation/format.git
         haxelib install hscript
         haxelib install vshaxe
         haxelib install vscode
         haxelib install vscode-debugadapter
     - run: haxe build.hxml
+
