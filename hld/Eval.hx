@@ -52,6 +52,7 @@ class Eval {
 	public var maxBytesLength : Int = 128;
 	public var globalContext = false;
 	public var currentThread : Int;
+	public var allowEvalCalls = true;
 
 	static var HASH_PREFIX = "$_h$";
 
@@ -288,6 +289,8 @@ class Eval {
 				else
 					throw "Missing argument";
 			}
+			if( Debugger.DEBUG )
+				trace("EVAL "+hscript.Printer.toString(e));
 			return evalCall(vfun, vargs);
 		default:
 			throw "Unsupported expression `" + hscript.Printer.toString(e) + "`";
@@ -299,6 +302,8 @@ class Eval {
 	}
 
 	function evalCall( vfun : Value, vargs : Array<Value> ) {
+		if( !allowEvalCalls )
+			throw "Can't eval calls";
 		if( !jit.is64 )
 			throw "Can't call function in x32 mode : not implemented";
 		var tret = switch( vfun.t ) {
@@ -619,12 +624,6 @@ class Eval {
 				var f = readFieldAddress(vthis, name);
 				if( f != ANone )
 					return f;
-				var f = readFieldAddress(vthis, "get_"+name);
-				switch( f ) {
-				case AMethod(obj, ptr, HFun(ft)) if( ft.args.length == 1 ):
-					return AEvaled(evalCall(fetchAddr(f),[obj]));
-				default:
-				}
 				// static var
 				switch( vthis.t ) {
 				case HObj(o) if( o.globalValue != null ):
@@ -1162,6 +1161,17 @@ class Eval {
 				var vrt = readPointer(vobj.offset(4 * 2 + align.ptr + align.ptr * 7));
 				var vmethods = readPointer(vrt.offset(align.ptr + 4 * 6));
 				return AMethod(v, readPointer(vmethods.offset(f.index * align.ptr)), f.t);
+			}
+			var f = p.methods.get("get_"+name);
+			if( f != null && ptr != null ) {
+				var f = readFieldAddress(v, "get_"+name);
+				switch( f ) {
+				case AMethod(obj, ptr, HFun(ft)) if( ft.args.length == 1 ):
+					if( Debugger.DEBUG )
+						trace("EVAL "+valueStr(v)+".get_"+name+"()");
+					return AEvaled(evalCall(fetchAddr(f),[obj]));
+				default:
+				}
 			}
 			return ANone;
 		case HVirtual(fl):

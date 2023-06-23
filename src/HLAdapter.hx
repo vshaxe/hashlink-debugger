@@ -36,6 +36,7 @@ class HLAdapter extends DebugSession {
 	var watchedPtrs : Array<hld.Debugger.WatchPoint>;
 	var isPause : Bool;
 	var threads : Map<Int,Bool>;
+	var allowEvalCalls : Bool;
 
 	static var DEBUG = false;
 	static var isWindows = Sys.systemName() == "Windows";
@@ -90,6 +91,7 @@ class HLAdapter extends DebugSession {
 		Sys.setCwd(workspaceDirectory);
 		var port = args.port;
 		if( port == null ) port = debugPort;
+		if( args.allowEval ) allowEvalCalls = true;
 
 		function onError(e) {
 			error(cast response, e + "\n" + CallStack.toString(CallStack.exceptionStack()));
@@ -318,7 +320,7 @@ class HLAdapter extends DebugSession {
 				onError("Failed to initialize debugger");
 				return;
 			}
-
+			dbg.eval.allowEvalCalls = allowEvalCalls;
 			syncThreads();
 			debug("connected");
 			onError(null);
@@ -607,7 +609,7 @@ class HLAdapter extends DebugSession {
 			try {
 				var fields = dbg.getClassStatics(cl);
 				for( f in fields.copy() ) {
-					var v = dbg.getValue(cl+"."+f);
+					var v = try dbg.getValue(cl+"."+f) catch( e : Dynamic ) { trace(e+" ("+cl+"."+f+")"); continue; };
 					if( v == null || v.t.match(HFun(_)) )
 						fields.remove(f);
 				}

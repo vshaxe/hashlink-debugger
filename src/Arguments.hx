@@ -10,5 +10,6 @@ typedef Arguments = {
 	?argsFile:String,
 	?port:Int,
 	?hotReload:Bool,
-	?profileSamples:Int
+	?profileSamples:Int,
+	?allowEval:Bool
 }
