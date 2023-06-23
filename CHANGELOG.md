@@ -1,3 +1,7 @@
+## 1.4.2 (June 23, 2023)
+
+* fixed some eval calls causing crashes on node
+
 ## 1.4.0 (January 28, 2023)
 
 * added support of hl 1.13 maps and @:packed
