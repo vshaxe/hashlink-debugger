@@ -58,7 +58,25 @@ class Main {
 				Sys.setCwd(args.shift());
 			case "--input":
 				var file = args.shift();
-				args = StringTools.trim(sys.io.File.getContent(file)).split("\n").map(StringTools.trim).concat(args);
+				var inputArgs = ~/[ \n\r\t]+/g.split(StringTools.trim(sys.io.File.getContent(file)));
+				while( inputArgs.length > 0 ) {
+					var a = inputArgs.pop();
+					if( StringTools.endsWith(a,'"') ) {
+						var arg = [a.substr(0,-1)];
+						while( true ) {
+							var a = inputArgs.pop();
+							if( a == null ) break;
+							if( StringTools.startsWith(a,'"') ) {
+								arg.unshift(a.substr(1));
+								break;
+							}
+							arg.unshift(a);
+						}
+						args.unshift(arg.join(" "));
+						continue;
+					}
+					args.unshift(a);
+				}
 			case "--debug":
 				Debugger.DEBUG = true;
 			default:
@@ -193,6 +211,11 @@ class Main {
 			Sys.println(r);
 		var args = ~/[ \t\r\n]+/g.split(r);
 		var cmd = args.shift();
+		inline function nextArg() {
+			var a = args.shift();
+			if( a == null ) throw cmd+" is mising argument";
+			return a;
+		}
 		switch( cmd ) {
 		case "q", "quit":
 			dumpProcessOut();
@@ -229,7 +252,7 @@ class Main {
 				dbg.currentStackFrame = 0;
 			Sys.println(frameStr(dbg.getStackFrame()));
 		case "b", "break":
-			var fileLine = args.shift().split(":");
+			var fileLine = nextArg().split(":");
 			var line = Std.parseInt(fileLine.pop());
 			var file = fileLine.join(":");
 			line = dbg.addBreakpoint(file, line);
@@ -239,7 +262,7 @@ class Main {
 			} else
 				Sys.println("No breakpoint set");
 		case "p", "print":
-			var expr = args.shift();
+			var expr = nextArg();
 			if( expr == null ) {
 				Sys.println("Requires expression");
 				return true;
@@ -267,7 +290,7 @@ class Main {
 			default:
 			}
 		case "watch", "rwatch":
-			var expr = args.shift();
+			var expr = nextArg();
 			var v = if( Debugger.DEBUG ) dbg.getRef(expr) else try dbg.getRef(expr) catch( e : Dynamic ) {
 				Sys.println("Error " + e + haxe.CallStack.toString(haxe.CallStack.exceptionStack()));
 				return true;
@@ -288,7 +311,7 @@ class Main {
 			}
 			Sys.println("Watching " + v.ptr.toString() + ":" + v.t.toString() + " " + dbg.eval.valueStr(dbg.eval.fetch(v)));
 		case "unwatch":
-			var param = args.shift();
+			var param = nextArg();
 			var count = 0;
 			for( w in dbg.getWatches() )
 				if( param == null || w.ptr.toString() == param ) {
