@@ -259,9 +259,7 @@ class Debugger {
 	}
 
 	public function getClassStatics( cl : String ) {
-		eval.globalContext = true;
-		var v = getValue(cl);
-		eval.globalContext = false;
+		var v = getValue(cl, true);
 		if( v == null )
 			throw "No such class "+cl;
 		var fields = eval.getFields(v);
@@ -739,11 +737,14 @@ class Debugger {
 		return { file : s.file, line : s.line, ebp : f.ebp, context : module.getMethodContext(f.fidx) };
 	}
 
-	public function getValue( expr : String ) : Value {
+	public function getValue( expr : String, global = false ) : Value {
 		var cur = currentStack[currentStackFrame];
 		if( cur == null ) return null;
+		eval.globalContext = global;
 		eval.setContext(cur.fidx, cur.fpos, cur.ebp);
-		return eval.eval(expr);
+		var v = eval.eval(expr);
+		eval.globalContext = false;
+		return v;
 	}
 
 	public function setValue( expr : String, value : String ) : Value {
@@ -753,11 +754,14 @@ class Debugger {
 		return eval.setValue(expr, value);
 	}
 
-	public function getRef( expr : String ) : Address {
+	public function getRef( expr : String, global = false ) : Address {
 		var cur = currentStack[currentStackFrame];
 		if( cur == null ) return null;
+		eval.globalContext = global;
 		eval.setContext(cur.fidx, cur.fpos, cur.ebp);
-		return eval.ref(expr);
+		var v = eval.ref(expr);
+		eval.globalContext = global;
+		return v;
 	}
 
 	public function getWatches() {

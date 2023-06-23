@@ -261,13 +261,14 @@ class Main {
 				Sys.println("Breakpoint set line "+line);
 			} else
 				Sys.println("No breakpoint set");
-		case "p", "print":
+		case "p", "print", "global":
 			var expr = nextArg();
 			if( expr == null ) {
 				Sys.println("Requires expression");
 				return true;
 			}
-			var v = if( Debugger.DEBUG ) dbg.getValue(expr) else try dbg.getValue(expr) catch( e : Dynamic ) {
+			var global = cmd == "global";
+			var v = if( Debugger.DEBUG ) dbg.getValue(expr, global) else try dbg.getValue(expr, global) catch( e : Dynamic ) {
 				Sys.println("Error " + e + haxe.CallStack.toString(haxe.CallStack.exceptionStack()));
 				return true;
 			}

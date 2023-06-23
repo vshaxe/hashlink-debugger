@@ -46,6 +46,7 @@ class HLAdapter extends DebugSession {
 		super();
 		debugPort = 6112;
 		doDebug = true;
+		allowEvalCalls = true;
 		threads = new Map();
 		startTime = haxe.Timer.stamp();
 		ptrValues = [];
@@ -609,7 +610,7 @@ class HLAdapter extends DebugSession {
 			try {
 				var fields = dbg.getClassStatics(cl);
 				for( f in fields.copy() ) {
-					var v = try dbg.getValue(cl+"."+f) catch( e : Dynamic ) { trace(e+" ("+cl+"."+f+")"); continue; };
+					var v = try dbg.getValue(cl+"."+f, true) catch( e : Dynamic ) { trace(e+" ("+cl+"."+f+")"); continue; };
 					if( v == null || v.t.match(HFun(_)) )
 						fields.remove(f);
 				}
@@ -803,7 +804,7 @@ class HLAdapter extends DebugSession {
 			}
 		case VStatics(cl):
 			for( f in dbg.getClassStatics(cl) ) {
-				var v = dbg.getValue(cl+"."+f);
+				var v = dbg.getValue(cl+"."+f, true);
 				if( v.t.match(HFun(_)) ) continue;
 				vars.push(makeVar(f,v));
 			}
@@ -994,7 +995,7 @@ class HLAdapter extends DebugSession {
 			else
 				dbg.eval.readFieldAddress(v, name);
 		case VStatics(cl):
-			var value = dbg.eval.eval(cl);
+			var value = dbg.getValue(cl, true);
 			dbg.eval.readFieldAddress(value, name);
 		default:
 			return null;
