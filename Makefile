@@ -9,6 +9,7 @@ cleanup:
 	/bin/find . -name *.map | xargs rm -rf 
 package: cleanup
 	#npm install vsce -g
+	haxe -cp src -lib vscode -lib vshaxe -D js-es=6 -js extension.js Extension
 	vsce package
 	
 # to get token : 
