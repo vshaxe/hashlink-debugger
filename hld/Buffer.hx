@@ -109,6 +109,12 @@ class Buffer {
 	}
 
 	public function toBinaryString() : String {
+		if( buf.length%2 == 1 ) {
+			// bugfix with utf16 with odd size (1 char gets ignored)
+			var nbuf = new js.node.Buffer(buf.length+1);
+			buf.copy(nbuf);
+			return nbuf.toString("utf16le");
+		}
 		return buf.toString("utf16le");
 	}
 
