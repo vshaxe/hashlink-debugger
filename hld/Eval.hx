@@ -149,7 +149,13 @@ class Eval {
 	function safeCastTo( t : HLType, to : HLType ) {
 		if( t == to )
 			return true;
-		// TODO
+		if( to == HDyn )
+			return t.isDynamic();
+		switch( [t,to] ) {
+		case [HObj(p), HObj(_)], [HStruct(p), HStruct(_)] if( p.tsuper != null ):
+			return safeCastTo(p.tsuper, to);
+		default:
+		}
 		return false;
 	}
 
