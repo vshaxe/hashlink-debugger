@@ -92,7 +92,7 @@ class HLAdapter extends DebugSession {
 		Sys.setCwd(workspaceDirectory);
 		var port = args.port;
 		if( port == null ) port = debugPort;
-		if( args.allowEval ) allowEvalCalls = true;
+		if( args.allowEval != null ) allowEvalCalls = args.allowEval;
 
 		function onError(e) {
 			error(cast response, e + "\n" + CallStack.toString(CallStack.exceptionStack()));
