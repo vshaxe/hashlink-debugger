@@ -402,6 +402,8 @@ class CodeGraph {
 			write(r);
 		case ONop:
 			// nothing
+		case OPrefetch(r,_,_):
+			read(r);
 		}
 	}
 
