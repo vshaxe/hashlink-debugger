@@ -39,7 +39,7 @@ class Debugger {
 		"ArrayObj" // special
 	];
 
-	var sock : sys.net.Socket;
+	var sock : #if hxnodejs js.node.net.Socket #else sys.net.Socket #end;
 
 	var api : Api;
 	var module : Module;
@@ -115,12 +115,10 @@ class Debugger {
 	}
 
 	public function connect( host : String, port : Int, onResult : Bool -> Void ) {
-		sock = new sys.net.Socket();
-
-		function done() {
+		function done(input) {
 			jit = new JitInfo();
-			if( !jit.read(sock.input, module) ) {
-				sock.close();
+			if( !jit.read(input, module) ) {
+				close();
 				onResult(false);
 				return;
 			}
@@ -129,24 +127,32 @@ class Debugger {
 		}
 
 		#if hxnodejs
-		@:privateAccess {
-			sock.s = new js.node.net.Socket();
-			sock.s.on("data", function(buf:js.node.Buffer) sock.inputData.push(buf));
-			js.node.Dns.lookup(host, {family: 4}, function(err, address:String, family) {
-				if( err != null ) {
+		var inputData = new haxe.io.BytesBuffer();
+		sock = new js.node.net.Socket();
+		sock.on("data", function(buf:js.node.Buffer) {
+			inputData.add(haxe.io.Bytes.ofData(buf.buffer));
+			try {
+				done(new haxe.io.BytesInput(inputData.getBytes()));
+			} catch( e : haxe.io.Eof ) {
+				// wait for more data
+			}
+		});
+		js.node.Dns.lookup(host, {family: 4}, function(err, address:String, family) {
+			if( err != null ) {
+				onResult(false);
+				return;
+			}
+			sock.on("error", function(err) {
+				if( onResult != null ) {
+					close();
 					onResult(false);
 					return;
 				}
-				sock.s.on("error", function(err) {
-					if( onResult != null ) {
-						sock.close();
-						onResult(false);
-						return;
-					}
-				});
-				sock.s.connect(port, address, function() done());
 			});
-		}
+			sock.connect(port, address, function() {
+				// wait data
+			});
+		});
 		#else
 		try {
 			sock.connect(new sys.net.Host(host), port);
@@ -156,7 +162,7 @@ class Debugger {
 			onResult(false);
 			return;
 		}
-		done();
+		done(sock.input);
 		#end
 	}
 
@@ -175,13 +181,17 @@ class Debugger {
 		wait();
 	}
 
+	function close() {
+		if( sock != null ) {
+			#if hxnodejs sock.destroy() #else sock.close() #end;
+			sock = null;
+		}
+	}
+
 	public function run() {
 		afterStep = false;
 		// closing the socket will unlock waiting thread
-		if( sock != null ) {
-			sock.close();
-			sock = null;
-		}
+		close();
 		if( stoppedThread != null )
 			resume();
 		return wait();

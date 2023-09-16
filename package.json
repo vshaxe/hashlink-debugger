@@ -35,7 +35,6 @@
 		"hashlink"
 	],
 	"dependencies": {
-		"deasync": "^0.1.24",
 		"hldebug": "file:hldebug-wrapper",
 		"node-addon-api": "1.7.2",
 		"node-gyp": "^8.4.1",
