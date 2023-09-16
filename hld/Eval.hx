@@ -52,7 +52,7 @@ class Eval {
 	public var maxBytesLength : Int = 128;
 	public var globalContext = false;
 	public var currentThread : Int;
-	public var allowEvalCalls = true;
+	public var allowEvalGetters = true;
 
 	static var HASH_PREFIX = "$_h$";
 
@@ -308,8 +308,6 @@ class Eval {
 	}
 
 	function evalCall( vfun : Value, vargs : Array<Value> ) {
-		if( !allowEvalCalls )
-			throw "Can't eval calls";
 		if( !jit.is64 )
 			throw "Can't call function in x32 mode : not implemented";
 		var tret = switch( vfun.t ) {
@@ -1169,7 +1167,7 @@ class Eval {
 				return AMethod(v, readPointer(vmethods.offset(f.index * align.ptr)), f.t);
 			}
 			var f = p.methods.get("get_"+name);
-			if( f != null && ptr != null ) {
+			if( f != null && ptr != null && allowEvalGetters ) {
 				var f = readFieldAddress(v, "get_"+name);
 				switch( f ) {
 				case AMethod(obj, ptr, HFun(ft)) if( ft.args.length == 1 ):
