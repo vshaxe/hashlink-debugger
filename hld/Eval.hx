@@ -1091,12 +1091,19 @@ class Eval {
 			var lookup = readPointer(ptr.offset(align.ptr));
 			var nfields = readI32(ptr.offset(align.ptr * 4));
 			var fields = [];
+			var hasIndex = false;
 			for( i in 0...nfields ) {
 				var l = lookup.offset(i * (align.ptr + 8));
 				var h = readI32(l.offset(align.ptr)); // hashed_name
+				var index = readI32(l.offset(align.ptr+4)) >>> 17;
+				if( index > 0 )
+					hasIndex = true;
 				var name = module.reverseHash(h);
 				if( name == null ) name = HASH_PREFIX + h;
-				fields.push(name);
+				if( hasIndex )
+					fields[index] = name;
+				else
+					fields.push(name);
 			}
 			return fields;
 		default:
@@ -1215,7 +1222,7 @@ class Eval {
 					max = mid;
 				else {
 					var t = readType(lid);
-					var offset = readI32(lid.offset(align.ptr + 4));
+					var offset = readI32(lid.offset(align.ptr + 4)) & ((1 << 17) - 1);
 					return AAddr(t.isPtr() ? values.offset(offset * align.ptr) : raw_data.offset(offset), t);
 				}
 			}
