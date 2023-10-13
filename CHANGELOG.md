@@ -1,3 +1,14 @@
+## 1.4.4 (October 13, 2023)
+
+* fixed dynobj support with hl 1.15
+
+## 1.4.3 (September 16, 2023)
+
+* disable eval of getters by default
+* remove deasync requirement (fix vscode 1.82)
+* added OPrefetch support
+* additional fixes
+
 ## 1.4.2 (June 23, 2023)
 
 * fixed some eval calls causing crashes on node
