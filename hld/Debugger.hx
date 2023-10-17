@@ -154,6 +154,7 @@ class Debugger {
 			});
 		});
 		#else
+		sock = new sys.net.Socket();
 		try {
 			sock.connect(new sys.net.Host(host), port);
 		} catch( e : Dynamic ) {
