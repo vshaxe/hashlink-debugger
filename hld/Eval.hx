@@ -735,7 +735,7 @@ class Eval {
 		case VBool(b): b?"true":"false";
 		case VPointer(p):
 			switch( v.t ) {
-			case HObj(p): p.name.split(".").pop(); // short form (no package)
+			case HObj(p), HStruct(p): p.name.split(".").pop(); // short form (no package)
 			default: typeStr(v.t);
 			}
 		case VString(s,_): "\"" + escape(s) + "\"";
@@ -964,12 +964,6 @@ class Eval {
 			var index = readI32(p.offset(align.ptr));
 			var c = module.getEnumProto(e)[index];
 			v = VEnum(c.name,[for( a in c.params ) readVal(p.offset(a.offset),a.t)], p);
-		case HAbstract("hl_carray"):
-			var type = readType(p);
-			var stride = readI32(p.offset(align.ptr));
-			var size = readI32(p.offset(align.ptr+4));
-			var data = p.offset(align.ptr+8);
-			v = VArray(type,size,function(i) return valueCast(data.offset(i*stride), HDyn), p);
 		case HAbstract("hl_int64_map"):
 			v = makeMap(p, HI64);
 		default:
