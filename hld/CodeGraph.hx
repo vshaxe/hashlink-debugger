@@ -404,6 +404,12 @@ class CodeGraph {
 			// nothing
 		case OPrefetch(r,_,_):
 			read(r);
+		case OAsm(_,_,ropt):
+			var r = ropt.getReg();
+			if (r != null) {
+				read(r);
+				write(r);
+			}
 		}
 	}
 
