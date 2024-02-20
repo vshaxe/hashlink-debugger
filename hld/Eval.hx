@@ -594,8 +594,33 @@ class Eval {
 				return null;
 			return convertVal(api.readRegister(currentThread,t == HF64 || t == HF32 ? Xmm0 : Eax), t);
 		default:
-			fetchAddr(getVarAddress(name));
+			getVarInlined(module.getGraph(funIndex).getLocalsRaw(codePos), name);
 		}
+	}
+
+	function getVarInlined( localsRaw : Array<String>, name : String , ?prefix : String) : Value {
+		var fullname = prefix == null ? name : prefix + "." + name;
+		var v = fetchAddr(getVarAddress(fullname));
+		if( v != null )
+			return v;
+
+		var relatedLocals = [];
+		for( r in localsRaw ) {
+			var names = r.split(".");
+			if( names.length <= 1 || names[0] != name ) continue;
+			relatedLocals.push(names.slice(1).join("."));
+		}
+		if( relatedLocals.length == 0 )
+			return null;
+
+		var fnames = [];
+		for( r in relatedLocals ) {
+			var name = r.split(".")[0];
+			if( fnames.contains(name) ) continue;
+			fnames.push(name);
+		}
+		var fields = [for( n in fnames ) {name : n, v : getVarInlined(relatedLocals, n, fullname)}];
+		return { v: VInlined(fields), t : HVoid };
 	}
 
 	function getVarAddress( name : String ) : VarAddress {
@@ -785,6 +810,8 @@ class Eval {
 				c
 			else
 				c + "(" + [for( v in values ) valueStr(v,maxStringRec)].join(", ") + ")";
+		case VInlined(fields):
+			"inlined";
 		}
 		return str;
 	}
@@ -1066,6 +1093,8 @@ class Eval {
 		case VEnum(_,values,_):
 			// only list the pointer fields (others are displayed in enum anyway)
 			return [for( i in 0...values.length ) if( values[i].t.isPtr() ) "$"+i];
+		case VInlined(fields):
+			return [for( f in fields ) f.name];
 		default:
 			return null;
 		}
@@ -1109,6 +1138,11 @@ class Eval {
 		switch( v.v ) {
 		case VEnum(_,values,_) if( name.charCodeAt(0) == "$".code ):
 			return values[Std.parseInt(name.substr(1))];
+		case VInlined(fields):
+			for( f in fields )
+				if( f.name == name )
+					return f.v;
+			return null;
 		default:
 		}
 		var a = readFieldAddress(v, name);

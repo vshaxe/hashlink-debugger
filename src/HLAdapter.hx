@@ -650,6 +650,8 @@ class HLAdapter extends DebugSession {
 			return { name : name, type : tstr, value : tstr+":"+len, variablesReference : allocValue(VValue(value)), indexedVariables : (len+15)>>4 };
 		case VClosure(f,context,_):
 			return { name : name, type : tstr, value : dbg.eval.funStr(f), variablesReference : allocValue(VValue(value)), indexedVariables : 2 };
+		case VInlined(fields):
+			return { name : name, type : tstr, value : dbg.eval.valueStr(value), variablesReference : fields.length == 0 ? 0 : allocValue(VValue(value)), indexedVariables : fields.length };
 		default:
 		}
 		return { name : name, type : tstr, value : dbg.eval.valueStr(value), variablesReference : 0 };
@@ -795,6 +797,18 @@ class HLAdapter extends DebugSession {
 						value : "",
 						variablesReference : allocValue(VStack(stack)),
 					});
+			case VInlined(fields):
+				for( i in 0...fields.length )
+					try {
+						var value = fields[i].v;
+						vars.push(makeVar(fields[i].name, value));
+					} catch( e : Dynamic ) {
+						vars.push({
+							name : fields[i].name,
+							value : Std.string(e),
+							variablesReference : 0,
+						});
+					}
 			default:
 				vars.push({
 					name : "TODO",
