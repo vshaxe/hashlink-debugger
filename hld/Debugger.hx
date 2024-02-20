@@ -338,7 +338,7 @@ class Debugger {
 
 					// check if we have a break on a watchpoint
 					var dr6 = api.readRegister(tid, Dr6);
-					var watchBits = dr6.toInt() & 7;
+					var watchBits = dr6.toInt() & 15;
 					if( watchBits != 0 ) {
 						for( w in watches )
 							for( r in w.regs )
