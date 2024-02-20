@@ -620,7 +620,7 @@ class Eval {
 			fnames.push(name);
 		}
 		var fields = [for( n in fnames ) {name : n, v : getVarInlined(relatedLocals, n, fullname)}];
-		return { v: VInlined(fields), t : HVoid };
+		return { v: VInlined(fields), t : HDyn };
 	}
 
 	function getVarAddress( name : String ) : VarAddress {
