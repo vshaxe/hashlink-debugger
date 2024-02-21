@@ -8,7 +8,7 @@ cleanup:
 	/bin/find . -name *.tlog | xargs rm -rf 
 	/bin/find . -name *.map | xargs rm -rf 
 package: cleanup
-	#npm install vsce -g
+	#npm install -g @vscode/vsce
 	haxe -cp src -lib vscode -lib vshaxe -D js-es=6 -js extension.js Extension
 	vsce package
 	

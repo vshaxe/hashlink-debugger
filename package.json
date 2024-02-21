@@ -39,8 +39,8 @@
 		"node-addon-api": "1.7.2",
 		"node-gyp": "^8.4.1",
 		"source-map-support": "^0.5.21",
-		"vscode-debugadapter": "^1.51.0",
-		"vscode-debugprotocol": "^1.51.0"
+		"@vscode/debugadapter": "^1.51.0",
+		"@vscode/debugprotocol": "^1.51.0"
 	},
 	"devDependencies": {},
 	"scripts": {},
