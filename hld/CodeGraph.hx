@@ -155,6 +155,17 @@ class CodeGraph {
 	}
 
 	public function getLocals( pos : Int ) : Array<String> {
+		var raw = getLocalsRaw(pos);
+		var arr = [];
+		for( a in raw ) {
+			var name = a.split(".")[0];
+			if( arr.indexOf(name) >= 0 ) continue;
+			arr.push(name);
+		}
+		return arr;
+	}
+
+	public function getLocalsRaw( pos : Int ) : Array<String> {
 		var arr = [];
 		for( a in fun.assigns ) {
 			if( a.position > pos ) break;
