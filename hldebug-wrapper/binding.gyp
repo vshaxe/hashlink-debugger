@@ -7,7 +7,7 @@
       'conditions': [
         [ "OS=='mac'", { 
           "sources": [ 'src/mdbg/mdbg.c', 'src/mdbg/mach_excServer.c', 'src/mdbg/mach_excUser.c' ]
-	}]
+        }]
       ],
       'dependencies': ["<!(node -p \"require('node-addon-api').gyp\")"],
       'defines': [ 'LIBHL_STATIC' ],

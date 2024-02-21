@@ -8,7 +8,7 @@ private typedef GlobalAccess = {
 
 typedef ModuleProto = {
 	var name : String;
-	var size :  Int;
+	var size : Int;
 	var fieldNames : Array<String>;
 	var parent : ModuleProto;
 	var fields : Map<String,{
@@ -295,7 +295,7 @@ class Module {
 		var funs = ffuns.functions;
 		var matched = [];
 
-		while( breaks.length == 0  && funs.length > 0 ) {
+		while( breaks.length == 0 && funs.length > 0 ) {
 			for( f in funs ) {
 				if( f.lmin > line || f.lmax < line ) continue;
 				matched.push(f);
