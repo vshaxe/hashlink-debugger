@@ -606,9 +606,9 @@ class Debugger {
 
 		var eip = getReg(tid, Eip);
 		var asmPos = eip.sub(jit.codeStart);
+		if( isWatchbreak )
+			asmPos -= 1;
 		var e = jit.resolveAsmPos(asmPos);
-		if( isWatchbreak && e != null )
-			e.fpos -= 1;
 		var inProlog = false;
 
 		//trace(eip,"0x"+api.readByte(eip, 0), e);
