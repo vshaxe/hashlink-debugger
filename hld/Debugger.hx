@@ -378,7 +378,7 @@ class Debugger {
 			mainThread = stoppedThread;
 
 		readThreads();
-		prepareStack();
+		prepareStack(cmd.r == Watchbreak);
 		return cmd.r;
 	}
 
@@ -426,9 +426,9 @@ class Debugger {
 			threads.set(currentThread,{ id : currentThread, stackTop: null, exception: null, name : null });
 	}
 
-	function prepareStack() {
+	function prepareStack( isWatchbreak=false ) {
 		currentStackFrame = 0;
-		currentStack = makeStack(currentThread);
+		currentStack = makeStack(currentThread, isWatchbreak);
 	}
 
 	function skipFunction( fidx : Int ) {
@@ -567,7 +567,7 @@ class Debugger {
 				var r = wait(true);
 				if( r != SingleStep || currentThread != tid )
 					break;
-				var st = makeStack(tid,1)[0];
+				var st = makeStack(tid,false,1)[0];
 				if( isRet ) {
 					if( op == 0xC3 ) {
 						if( st == null ) {
@@ -594,7 +594,7 @@ class Debugger {
 		return Breakpoint;
 	}
 
-	function makeStack(tid,max = 0) {
+	function makeStack( tid, isWatchbreak : Bool, max = 0 ) {
 		var stack = [];
 		var tinf = threads.get(tid);
 		if( tinf == null || tinf.stackTop == null )
@@ -606,6 +606,8 @@ class Debugger {
 
 		var eip = getReg(tid, Eip);
 		var asmPos = eip.sub(jit.codeStart);
+		if( isWatchbreak )
+			asmPos -= 1;
 		var e = jit.resolveAsmPos(asmPos);
 		var inProlog = false;
 
