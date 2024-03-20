@@ -711,7 +711,7 @@ class Eval {
 			return v;
 		}
 		var v = getGlobalAddress(path);
-		if( v == null ) throw "Unknown value "+path.join(".");
+		if( v == null || v == ANone ) throw "Unknown value "+path.join(".");
 		return fetchAddr(v);
 	}
 
