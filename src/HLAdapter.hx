@@ -911,7 +911,12 @@ class HLAdapter extends DebugSession {
 		}
 	}
 
-	static var KEYWORDS = [for( k in ["var","new","function","inline","final","if","else","while","do","for","break","continue","return","throw","try","catch","switch","case","default"] ) k => true];
+	static var KEYWORDS = [for( k in [
+			// ref: haxe/src/core/ast.ml/s_keyword, without null/true/false
+			"function","class","static","var","if","else","while","do","for","break","return","continue","extends","implements","import","switch","case","default",
+			"private","public","try","catch","new","this","throw","extern","enum","in","interface","untyped","cast","override","typedef","dynamic","package","inline",
+			"using","abstract","macro","final","operator","overload",
+		] ) k => true];
 
 	override function evaluateRequest(response:EvaluateResponse, args:EvaluateArguments) {
 		//debug("Eval " + args);
@@ -921,10 +926,7 @@ class HLAdapter extends DebugSession {
 			if( ~/^\?[A-Za-z0-9_]+$/.match(args.expression) )
 				args.expression = args.expression.substr(1);
 			if( KEYWORDS.exists(args.expression) ) {
-				response.body = {
-					result : args.expression,
-					variablesReference : 0,
-				};
+				// Do nothing
 			} else {
 				var value = dbg.getValue(args.expression);
 				var v = makeVar("", value);
