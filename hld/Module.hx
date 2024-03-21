@@ -166,7 +166,22 @@ class Module {
 		for( t in code.types )
 			switch( t ) {
 			case HObj(o) if( o.globalValue != null ):
-				addGlobal(o.name.split("."), o.globalValue);
+				var path = o.name.split(".");
+				addGlobal(path, o.globalValue);
+				// Add abstract type's original name as alias
+				var hasAlias = false;
+				var apath = [path[0]];
+				for( i in 1...path.length ) {
+					var n0 = apath[apath.length-1];
+					var n1 = path[i];
+					if( n0.charCodeAt(0) == "_".code && StringTools.endsWith(n1, "_Impl_") ) {
+						hasAlias = true;
+						n1 = n1.substring(0, n1.length - 6);
+						apath.pop();
+					}
+					apath.push(n1);
+				}
+				if( hasAlias ) addGlobal(apath, o.globalValue);
 			case HEnum(e) if( e.globalValue != null ):
 				addGlobal(e.name.split("."), e.globalValue);
 			default:
