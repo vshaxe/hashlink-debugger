@@ -711,7 +711,7 @@ class Eval {
 			return v;
 		}
 		var v = getGlobalAddress(path);
-		if( v == null || v == ANone ) throw "Unknown value "+path.join(".");
+		if( v == ANone ) throw "Unknown value "+path.join(".");
 		return fetchAddr(v);
 	}
 
@@ -720,7 +720,7 @@ class Eval {
 		if( g == null )
 			return ANone;
 		var addr = AAddr(jit.globals.offset(g.offset), g.type);
-		while( path.length > 0 )
+		while( addr != ANone && path.length > 0 )
 			addr = readFieldAddress(fetchAddr(addr), path.shift());
 		return addr;
 	}
