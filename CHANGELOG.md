@@ -1,4 +1,4 @@
-## 1.4.5 (Mars 26, 2024)
+## 1.4.5 (March 26, 2024)
 
 * added inlined constructor variable support for haxe nightly build
 * improved source line resolution when break by value watch
