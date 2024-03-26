@@ -47,7 +47,7 @@ class Debugger {
 	var processExit : Bool;
 	var ignoredRoots : Map<String,Bool>;
 
-	var breakPoints : Array<{ fid : Int, pos : Int, codePos : Int, oldByte : Int }>;
+	var breakPoints : Array<{ fid : Int, pos : Int, codePos : Int, oldByte : Int, condition : String }>;
 	var nextStep(default,set): Int = -1;
 	var currentStack : Array<{ fidx : Int, fpos : Int, codePos : Int, ebp : hld.Pointer }>;
 	var watches : Array<WatchPoint>;
@@ -284,6 +284,7 @@ class Debugger {
 
 	function wait( onStep = false ) : Api.WaitResult {
 		var cmd = null;
+		var condition : String = null;
 		watchBreak = null;
 		while( true ) {
 			cmd = api.wait(customTimeout == null ? 1000 : Math.ceil(customTimeout * 1000));
@@ -319,6 +320,7 @@ class Debugger {
 				var codePos = getCodePos(tid) - 1;
 				for( b in breakPoints ) {
 					if( b.codePos == codePos ) {
+						condition = b.condition;
 						// restore code
 						setAsm(codePos, b.oldByte);
 						// move backward
@@ -379,6 +381,21 @@ class Debugger {
 
 		readThreads();
 		prepareStack(cmd.r == Watchbreak);
+
+		// if breakpoint has a condition, try to evaluate and do not actually break on false
+		if( condition != null ) {
+			try {
+				var value = getValue(condition);
+				if( value != null ) {
+					switch( value.v ) {
+					case VBool( b ) if( !b ): return Handled;
+					default:
+					}
+				}
+			} catch( e : Dynamic ) {
+				if( DEBUG ) trace("Can't evaluate condition for breakpoint: " + condition);
+			}
+		}
 		return cmd.r;
 	}
 
@@ -486,7 +503,7 @@ class Debugger {
 			if( lineChange || c == CRet || (mode == Into && c.match(CCall(_))) ) {
 				var codePos = jit.getCodePos(s.fidx, pos);
 				var old = getAsm(codePos);
-				var bp = { fid : lineChange ? -1 : (c == CRet ? -2 : -3), pos : pos, codePos : codePos, oldByte : old };
+				var bp = { fid : lineChange ? -1 : (c == CRet ? -2 : -3), pos : pos, codePos : codePos, oldByte : old, condition : null };
 				breakPoints.push(bp);
 				marked.set(pos, bp);
 				if( codePos == currentCodePos && onBreakPoint ) {
@@ -891,7 +908,7 @@ class Debugger {
 			throw "Failed to set register " + reg;
 	}
 
-	public function addBreakpoint( file : String, line : Int ) {
+	public function addBreakpoint( file : String, line : Int, condition : Null<String> ) {
 		var breaks = module.getBreaks(file, line);
 		if( breaks == null )
 			return -1;
@@ -910,7 +927,7 @@ class Debugger {
 			var codePos = jit.getCodePos(b.ifun, b.pos);
 			var old = getAsm(codePos);
 			setAsm(codePos, INT3);
-			breakPoints.push({ fid : b.ifun, pos : b.pos, oldByte : old, codePos : codePos });
+			breakPoints.push({ fid : b.ifun, pos : b.pos, oldByte : old, codePos : codePos, condition : condition });
 			set = true;
 		}
 		return breaks.line;

@@ -255,10 +255,11 @@ class Main {
 			var fileLine = nextArg().split(":");
 			var line = Std.parseInt(fileLine.pop());
 			var file = fileLine.join(":");
-			line = dbg.addBreakpoint(file, line);
+			var condition = args.shift();
+			line = dbg.addBreakpoint(file, line, condition);
 			if( line >= 0 ) {
-				breaks.push({file:file, line:line});
-				Sys.println("Breakpoint set line "+line);
+				breaks.push({file:file, line:line, condition:condition});
+				Sys.println("Breakpoint set line " + line + (condition == null ? "" : ", cond: " + condition));
 			} else
 				Sys.println("No breakpoint set");
 		case "p", "print", "global":

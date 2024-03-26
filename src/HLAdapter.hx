@@ -66,7 +66,7 @@ class HLAdapter extends DebugSession {
 
 		response.body.supportsConfigurationDoneRequest = true;
 		response.body.supportsFunctionBreakpoints = false;
-		//response.body.supportsConditionalBreakpoints = true;
+		response.body.supportsConditionalBreakpoints = true;
 		response.body.supportsEvaluateForHovers = true;
 		response.body.supportsStepBack = false;
 		response.body.supportsSetVariable = true;
@@ -500,7 +500,7 @@ class HLAdapter extends DebugSession {
 		for( bp in args.breakpoints ) {
 			var line = -1;
 			for( f in files ) {
-				line = dbg.addBreakpoint(f, bp.line);
+				line = dbg.addBreakpoint(f, bp.line, bp.condition);
 				if( line >= 0 ) break;
 			}
 			if( line >= 0 )
