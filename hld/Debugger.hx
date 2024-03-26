@@ -393,7 +393,7 @@ class Debugger {
 					}
 				}
 			} catch( e : Dynamic ) {
-				if( DEBUG ) trace("Can't evaluate condition for breakpoint: " + condition);
+				trace("Can't evaluate condition (" + condition + ") for breakpoint: " + e);
 			}
 		}
 		return cmd.r;
