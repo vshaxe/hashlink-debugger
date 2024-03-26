@@ -1,3 +1,13 @@
+## 1.4.5 (Mars 26, 2024)
+
+* added inlined constructor variable support for haxe nightly build
+* improved source line resolution when break by value watch
+* improved eval when hovering haxe keywords
+* fixed error message when failed to evaluate variable path
+* improved eval access to abstract type
+* added support for conditional breakpoint
+* added debug context menu option show as hex/bin
+
 ## 1.4.4 (October 13, 2023)
 
 * fixed dynobj support with hl 1.15
