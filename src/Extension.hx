@@ -5,6 +5,7 @@ class Extension {
 	@:expose("activate")
 	static function main(context:ExtensionContext) {
 		Vscode.debug.registerDebugConfigurationProvider("hl", {resolveDebugConfiguration: resolveDebugConfiguration});
+		context.subscriptions.push(Vscode.commands.registerCommand("hldebug.var.formatInt", formatInt));
 	}
 
 	static function resolveDebugConfiguration(folder:Null<WorkspaceFolder>, config:DebugConfiguration,
@@ -57,4 +58,32 @@ class Extension {
 			});
 		});
 	}
+
+	inline static function toString(value:Int, base:Int):String {
+		#if js
+		return untyped value.toString(base);
+		#else
+		throw "Not implemented";
+		#end
+	}
+
+	static function formatInt(args:VariableContextCommandArg) {
+		var i = Std.parseInt(args.variable.value);
+		if (i == null)
+			return;
+		Vscode.window.showInformationMessage(args.variable.name + "(" + i + ") = 0x" + toString(i,16) + " = 0b" + toString(i,2));
+	}
+}
+
+typedef Container = {
+	var name : String;
+	var variablesReference : Int;
+	var ?expensive : Bool;
+	var ?value : String;
+}
+
+typedef VariableContextCommandArg = {
+	var sessionId : String;
+	var container : Container;
+	var variable : vscode.debugProtocol.DebugProtocol.Variable;
 }

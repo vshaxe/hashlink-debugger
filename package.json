@@ -158,6 +158,20 @@
 					}
 				]
 			}
+		],
+		"menus": {
+			"debug/variables/context": [
+				{
+					"command": "hldebug.var.formatInt",
+					"when": "debugType == 'hl'"
+				}
+			]
+		},
+		"commands": [
+			{
+				"command": "hldebug.var.formatInt",
+				"title": "View as Hex & Bin"
+			}
 		]
 	},
 	"__metadata": {
