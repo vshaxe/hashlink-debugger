@@ -19,7 +19,7 @@ enum VarValue {
 class HLAdapter extends DebugSession {
 
 	static var UID = 0;
-	static var inst : HLAdapter;
+	public static var inst : HLAdapter;
 
 	var proc : ChildProcessObject;
 	var workspaceDirectory : String;
@@ -42,7 +42,7 @@ class HLAdapter extends DebugSession {
 	static var isWindows = Sys.systemName() == "Windows";
 	static var isMac = Sys.systemName() == "Mac";
 
-	function new() {
+	public function new() {
 		super();
 		allowEvalGetters = false;
 		debugPort = 6112;
@@ -55,7 +55,6 @@ class HLAdapter extends DebugSession {
 	}
 
 	override function initializeRequest(response:InitializeResponse, args:InitializeRequestArguments) {
-
 
 		haxe.Log.trace = function(v:Dynamic, ?p:haxe.PosInfos) {
 			var str = haxe.Log.formatOutput(v, p);
@@ -1052,6 +1051,8 @@ class HLAdapter extends DebugSession {
 		sendEvent(new OutputEvent(msg+"\n", Stderr));
 	}
 
+	// Standalone adapter.js
+
 	static function main() {
 		if( DEBUG ) {
 			js.Node.process.on("uncaughtException", function(e:js.lib.Error) {
@@ -1060,6 +1061,15 @@ class HLAdapter extends DebugSession {
 			});
 		}
 		DebugSession.run( HLAdapter );
+	}
+
+	// Communicate with Extension
+
+	public function formatInt( args:Util.VariableContextCommandArg ) {
+		var i = Std.parseInt(args.variable.value);
+		if (i == null)
+			return;
+		Vscode.window.showInformationMessage(args.variable.name + "(" + i + ") = 0x" + Util.toString(i,16) + " = 0b" + Util.toString(i,2));
 	}
 
 }

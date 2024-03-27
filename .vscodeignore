@@ -1,7 +1,6 @@
 *
 */**
 !node_modules/**/*
-!adapter.js
 !bindings.js
 !CHANGELOG.md
 !extension.js
