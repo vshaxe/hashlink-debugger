@@ -1065,11 +1065,13 @@ class HLAdapter extends DebugSession {
 
 	// Communicate with Extension
 
+	#if vscode
 	public function formatInt( args:Util.VariableContextCommandArg ) {
 		var i = Std.parseInt(args.variable.value);
 		if (i == null)
 			return;
 		Vscode.window.showInformationMessage(args.variable.name + "(" + i + ") = 0x" + Util.toString(i,16) + " = 0b" + Util.toString(i,2));
 	}
+	#end
 
 }

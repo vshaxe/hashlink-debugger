@@ -14,5 +14,7 @@ jobs:
         haxelib install vshaxe
         haxelib install vscode
         haxelib install vscode-debugadapter
-    - run: haxe build.hxml
+    - run: |
+        haxe build.hxml
+        make build
 

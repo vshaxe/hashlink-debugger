@@ -7,9 +7,10 @@ cleanup:
 	/bin/find . -name *.pdb | xargs rm -f 
 	/bin/find . -name *.tlog | xargs rm -rf 
 	/bin/find . -name *.map | xargs rm -rf 
-package: cleanup
-	#npm install vsce -g
+build:
 	haxe -cp src -lib vscode -lib vshaxe -lib vscode-debugadapter -lib format -lib hscript -D js-es=6 -js extension.js Extension
+package: cleanup build
+	#npm install vsce -g
 	vsce package
 	
 # to get token : 
