@@ -1,5 +1,6 @@
 import js.lib.Promise;
 import vscode.*;
+import Utils;
 
 class Extension {
 	@:expose("activate")

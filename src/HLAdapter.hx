@@ -1,4 +1,5 @@
 import haxe.CallStack;
+import Utils;
 
 import vscode.debugProtocol.DebugProtocol;
 import vscode.debugAdapter.DebugSession;
@@ -1066,11 +1067,11 @@ class HLAdapter extends DebugSession {
 	// Communicate with Extension
 
 	#if vscode
-	public function formatInt( args:Util.VariableContextCommandArg ) {
+	public function formatInt( args:VariableContextCommandArg ) {
 		var i = Std.parseInt(args.variable.value);
 		if (i == null)
 			return;
-		Vscode.window.showInformationMessage(args.variable.name + "(" + i + ") = 0x" + Util.toString(i,16) + " = 0b" + Util.toString(i,2));
+		Vscode.window.showInformationMessage(args.variable.name + "(" + i + ") = 0x" + Utils.toString(i,16) + " = 0b" + Utils.toString(i,2));
 	}
 	#end
 
