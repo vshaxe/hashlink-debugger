@@ -25,4 +25,7 @@ enum FunRepr {
 	FIndex( i : Int );
 }
 
-typedef Value = { v : ValueRepr, t : HLType };
+@:structInit class Value {
+	public var v : ValueRepr;
+	public var t : HLType;
+}

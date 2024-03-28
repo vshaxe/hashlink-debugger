@@ -228,7 +228,7 @@ class Eval {
 				return evalBinop(op, evalExpr(e1), evalExpr(e2));
 			}
 		case EBlock(el):
-			var v = { v : VNull, t : HDyn };
+			var v : Value = { v : VNull, t : HDyn };
 			for( e in el )
 				v = evalExpr(e);
 			return v;
@@ -496,14 +496,14 @@ class Eval {
 	}
 
 	function evalBinop(op, v1:Value, v2:Value) : Value {
-		inline function numOp(f:Float->Float->Float) {
+		inline function numOp(f:Float->Float->Float) : Value {
 			var f1 = getNum(v1);
 			var f2 = getNum(v2);
 			var ret = f(f1,f2);
 			var iret = Std.int(ret);
 			return iret == ret ? { v : VInt(iret), t : HI32 } : { v : VFloat(ret), t : HF64 };
 		}
-		inline function iop(f:Int->Int->Int) {
+		inline function iop(f:Int->Int->Int) : Value {
 			var f1 = getInt(v1);
 			var f2 = getInt(v2);
 			var ret = f(f1,f2);
@@ -550,7 +550,7 @@ class Eval {
 		}
 	}
 
-	function defVal( t : HLType ) {
+	function defVal( t : HLType ) : Value {
 		return switch( t ) {
 		case HUi8, HUi16, HI32, HI64: { v : VInt(0), t : t };
 		case HF32, HF64: { v : VFloat(0.), t : t };
@@ -903,7 +903,7 @@ class Eval {
 		}
 	}
 
-	function valueCast( p : Pointer, t : HLType ) {
+	function valueCast( p : Pointer, t : HLType ) : Value {
 		if( p.isNull() )
 			return { v : VNull, t : t };
 		var v = VPointer(p);
@@ -1081,8 +1081,8 @@ class Eval {
 			return content[k];
 		}
 
-		function getKey(k) return k < 0 || k >= nentries ? { v : VUndef, t : tkey } : fetch(k).key;
-		function getValue(k) return k < 0 || k >= nentries ? { v : VUndef, t : HDyn } : fetch(k).value;
+		function getKey(k):Value return k < 0 || k >= nentries ? { v : VUndef, t : tkey } : fetch(k).key;
+		function getValue(k):Value return k < 0 || k >= nentries ? { v : VUndef, t : HDyn } : fetch(k).value;
 
 		return VMap(tkey == HBytes ? t_string : tkey,nentries,getKey, getValue, p);
 	}
@@ -1153,7 +1153,7 @@ class Eval {
 		return fetchAddr(addr == null ? ANone : addr.ptr == null ? AUndef(addr.t) : AAddr(addr.ptr, addr.t));
 	}
 
-	function fetchAddr( addr : VarAddress ) {
+	function fetchAddr( addr : VarAddress ) : Value {
 		switch( addr ) {
 		case ANone:
 			return null;
