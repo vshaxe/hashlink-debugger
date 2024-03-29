@@ -798,13 +798,13 @@ class HLAdapter extends DebugSession {
 						variablesReference : allocValue(VStack(stack)),
 					});
 			case VInlined(fields):
-				for( i in 0...fields.length )
+				for( f in fields )
 					try {
-						var value = fields[i].v;
-						vars.push(makeVar(fields[i].name, value));
+						var value = dbg.eval.readField(v, f.name);
+						vars.push(makeVar(f.name, value));
 					} catch( e : Dynamic ) {
 						vars.push({
-							name : fields[i].name,
+							name : f.name,
 							value : Std.string(e),
 							variablesReference : 0,
 						});

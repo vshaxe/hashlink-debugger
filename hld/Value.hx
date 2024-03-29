@@ -17,7 +17,7 @@ enum ValueRepr {
 	VType( t : HLType );
 	VEnum( c : String, values : Array<Value>, p : Pointer );
 	VBytes( length : Int, read : Int -> Int, p : Pointer );
-	VInlined( fields : Array<{ name : String, v : Value }> );
+	VInlined( fields : Array<{ name : String, addr : Eval.VarAddress }> );
 }
 
 enum FunRepr {

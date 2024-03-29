@@ -1,6 +1,5 @@
 package hld;
 import hld.Value;
-import format.hl.Data.HLType;
 
 enum abstract NativeReg(Int) from Int {
 	var Eax = 0;
@@ -31,6 +30,7 @@ enum VarAddress {
 	AAddr( ptr : Pointer, t : HLType );
 	AMethod( v : Value, ptr : Pointer, t : HLType );
 	AEvaled( v : Value );
+	AInlined( fields : Array<{ name : String, addr : VarAddress }> );
 }
 
 class Eval {
@@ -594,16 +594,20 @@ class Eval {
 				return null;
 			return convertVal(api.readRegister(currentThread,t == HF64 || t == HF32 ? Xmm0 : Eax), t);
 		default:
-			getVarInlined(module.getGraph(funIndex).getLocalsRaw(codePos), name);
+			fetchAddr(getVarAddress(name));
 		}
 	}
 
-	function getVarInlined( localsRaw : Array<String>, name : String , ?prefix : String) : Value {
+	function getVarAddress( name : String, ?prefix : String, ?localsRaw : Array<String> ) : VarAddress {
 		var fullname = prefix == null ? name : prefix + "." + name;
-		var v = fetchAddr(getVarAddress(fullname));
-		if( v != null )
-			return v;
+		var a = getVarAddressRaw(fullname);
+		if( a != ANone )
+			return a;
 
+		if( localsRaw == null )
+			localsRaw = module.getGraph(funIndex).getLocalsRaw(codePos);
+
+		// Inlined constructor variables
 		var relatedLocals = [];
 		for( r in localsRaw ) {
 			var names = r.split(".");
@@ -611,7 +615,7 @@ class Eval {
 			relatedLocals.push(names.slice(1).join("."));
 		}
 		if( relatedLocals.length == 0 )
-			return null;
+			return ANone;
 
 		var fnames = [];
 		for( r in relatedLocals ) {
@@ -619,11 +623,11 @@ class Eval {
 			if( fnames.contains(name) ) continue;
 			fnames.push(name);
 		}
-		var fields = [for( n in fnames ) {name : n, v : getVarInlined(relatedLocals, n, fullname)}];
-		return { v: VInlined(fields), t : HDyn };
+		var fields = [for( n in fnames ) { name : n, addr : getVarAddress(n, fullname, relatedLocals) }];
+		return AInlined(fields);
 	}
 
-	function getVarAddress( name : String ) : VarAddress {
+	function getVarAddressRaw( name : String ) : VarAddress {
 		// locals
 		var loc = module.getGraph(funIndex).getLocal(name, codePos);
 		if( loc != null && !globalContext ) {
@@ -810,7 +814,7 @@ class Eval {
 				c
 			else
 				c + "(" + [for( v in values ) valueStr(v,maxStringRec)].join(", ") + ")";
-		case VInlined(fields):
+		case VInlined(_):
 			"inlined";
 		}
 		return str;
@@ -1138,11 +1142,6 @@ class Eval {
 		switch( v.v ) {
 		case VEnum(_,values,_) if( name.charCodeAt(0) == "$".code ):
 			return values[Std.parseInt(name.substr(1))];
-		case VInlined(fields):
-			for( f in fields )
-				if( f.name == name )
-					return f.v;
-			return null;
 		default:
 		}
 		var a = readFieldAddress(v, name);
@@ -1167,6 +1166,8 @@ class Eval {
 			return { v : VMethod(fval,v,p), t : t };
 		case AEvaled(v):
 			return v;
+		case AInlined(fields):
+			return { v : VInlined(fields.map(f -> { name : f.name, addr : f.addr })), t : HDyn };
 		}
 	}
 
@@ -1177,6 +1178,11 @@ class Eval {
 		case VArray(_, _, _, p): p;
 		case VString(_, p): p;
 		case VMap(_, _, _, _, p): p;
+		case VInlined(fields):
+			for( f in fields )
+				if( f.name == name )
+					return f.addr;
+			return ANone;
 		default:
 			return ANone;
 		}
