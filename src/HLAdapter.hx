@@ -651,7 +651,7 @@ class HLAdapter extends DebugSession {
 		case VClosure(f,context,_):
 			return { name : name, type : tstr, value : dbg.eval.funStr(f), variablesReference : allocValue(VValue(value)), indexedVariables : 2 };
 		case VInlined(fields):
-			return { name : name, type : tstr, value : dbg.eval.valueStr(value), variablesReference : fields.length == 0 ? 0 : allocValue(VValue(value)), indexedVariables : fields.length };
+			return { name : name, type : tstr, value : dbg.eval.valueStr(value), variablesReference : fields.length == 0 ? 0 : allocValue(VValue(value)), namedVariables : fields.length };
 		default:
 		}
 		return { name : name, type : tstr, value : dbg.eval.valueStr(value), variablesReference : 0 };
@@ -1020,17 +1020,24 @@ class HLAdapter extends DebugSession {
 	}
 
 	override function dataBreakpointInfoRequest(response:DataBreakpointInfoResponse, args:DataBreakpointInfoArguments) {
-		var ptr = getVarAddress(args.variablesReference, args.name);
-		if( ptr != null ) {
-			var desc = switch( varsValues.get(args.variablesReference) ) {
-			case VScope(_): "local "+args.name;
-			case VValue({ v : VArray(_) } ): "["+args.name+"]";
-			default: "field "+args.name;
+		try {
+			var ptr = getVarAddress(args.variablesReference, args.name);
+			if( ptr != null ) {
+				var desc = switch( varsValues.get(args.variablesReference) ) {
+				case VScope(_): "local "+args.name;
+				case VValue({ v : VArray(_) } ): "["+args.name+"]";
+				default: "field "+args.name;
+				}
+				response.body = {
+					dataId : cast allocPtr(ptr),
+					description : "Write "+desc+":"+ptr.ptr.toString(),
+					accessTypes : [Write],
+				};
 			}
+		} catch( e : Dynamic ) {
 			response.body = {
-				dataId : cast allocPtr(ptr),
-				description : "Write "+desc+":"+ptr.ptr.toString(),
-				accessTypes : [Write],
+				dataId : null,
+				description : ""+e,
 			};
 		}
 		sendResponse(response);
