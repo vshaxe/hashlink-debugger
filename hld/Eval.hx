@@ -30,7 +30,7 @@ enum VarAddress {
 	AAddr( ptr : Pointer, t : HLType );
 	AMethod( v : Value, ptr : Pointer, t : HLType );
 	AEvaled( v : Value );
-	AInlined( fields : Array<{ name : String, addr : VarAddress }> );
+	AInlined( fields : Array<InlinedField> );
 }
 
 class Eval {

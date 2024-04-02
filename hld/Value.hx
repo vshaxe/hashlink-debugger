@@ -17,13 +17,15 @@ enum ValueRepr {
 	VType( t : HLType );
 	VEnum( c : String, values : Array<Value>, p : Pointer );
 	VBytes( length : Int, read : Int -> Int, p : Pointer );
-	VInlined( fields : Array<{ name : String, addr : Eval.VarAddress }> );
+	VInlined( fields : Array<InlinedField> );
 }
 
 enum FunRepr {
 	FUnknown( p : Pointer );
 	FIndex( i : Int );
 }
+
+typedef InlinedField = { name : String, addr : Eval.VarAddress }
 
 @:structInit class Value {
 	public var v : ValueRepr;
