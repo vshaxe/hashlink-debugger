@@ -612,7 +612,7 @@ class Eval {
 		for( r in localsRaw ) {
 			var names = r.split(".");
 			if( names.length <= 1 || names[0] != name ) continue;
-			relatedLocals.push(r.substr(name.length));
+			relatedLocals.push(r.substr(name.length+1));
 		}
 		if( relatedLocals.length == 0 )
 			return ANone;
