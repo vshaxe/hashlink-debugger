@@ -159,7 +159,7 @@ class Eval {
 		return false;
 	}
 
-	public function ref( exprSrc : String ) {
+	public function ref( exprSrc : String ) : Debugger.Address {
 		if( exprSrc == null || exprSrc == "" )
 			return null;
 		var expr = try parser.parseString(exprSrc) catch( e : hscript.Expr.Error ) throw hscript.Printer.errorToString(e);
@@ -598,9 +598,9 @@ class Eval {
 		}
 	}
 
-	function getVarAddress( name : String, ?prefix : String, ?localsRaw : Array<String> ) : VarAddress {
+	function getVarAddress( name : String, ?prefix : String, ?localsRaw : Array<String>, localOnly = false ) : VarAddress {
 		var fullname = prefix == null ? name : prefix + "." + name;
-		var a = getVarAddressRaw(fullname);
+		var a = getVarAddressRaw(fullname, localOnly);
 		if( a != ANone )
 			return a;
 
@@ -612,7 +612,7 @@ class Eval {
 		for( r in localsRaw ) {
 			var names = r.split(".");
 			if( names.length <= 1 || names[0] != name ) continue;
-			relatedLocals.push(names.slice(1).join("."));
+			relatedLocals.push(r.substr(name.length));
 		}
 		if( relatedLocals.length == 0 )
 			return ANone;
@@ -623,11 +623,11 @@ class Eval {
 			if( fnames.contains(name) ) continue;
 			fnames.push(name);
 		}
-		var fields = [for( n in fnames ) { name : n, addr : getVarAddress(n, fullname, relatedLocals) }];
+		var fields = [for( n in fnames ) { name : n, addr : getVarAddress(n, fullname, relatedLocals, true) }];
 		return AInlined(fields);
 	}
 
-	function getVarAddressRaw( name : String ) : VarAddress {
+	function getVarAddressRaw( name : String, localOnly : Bool ) : VarAddress {
 		// locals
 		var loc = module.getGraph(funIndex).getLocal(name, codePos);
 		if( loc != null && !globalContext ) {
@@ -645,6 +645,8 @@ class Eval {
 			}
 			return v;
 		}
+		if( localOnly )
+			return ANone;
 
 		// register
 		if( ~/^\$[0-9]+$/.match(name) )
@@ -1148,7 +1150,7 @@ class Eval {
 		return fetchAddr(a);
 	}
 
-	public function fetch( addr : { ptr : Pointer, t : HLType } ) {
+	public function fetch( addr : Debugger.Address ) {
 		return fetchAddr(addr == null ? ANone : addr.ptr == null ? AUndef(addr.t) : AAddr(addr.ptr, addr.t));
 	}
 
@@ -1167,7 +1169,7 @@ class Eval {
 		case AEvaled(v):
 			return v;
 		case AInlined(fields):
-			return { v : VInlined(fields.map(f -> { name : f.name, addr : f.addr })), t : HDyn };
+			return { v : VInlined(fields), t : HDyn };
 		}
 	}
 
