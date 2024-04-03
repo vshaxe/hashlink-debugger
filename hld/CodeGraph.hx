@@ -50,6 +50,9 @@ class CodeGraph {
 	var nargs : Int;
 	var currentTag : Int = 0;
 
+	var localsRawCache : Array<String> = [];
+	var localsRawCachePos : Int = -1;
+
 	public function new(md, f) {
 		this.module = md;
 		this.fun = f;
@@ -166,6 +169,8 @@ class CodeGraph {
 	}
 
 	public function getLocalsRaw( pos : Int ) : Array<String> {
+		if( pos == localsRawCachePos )
+			return localsRawCache;
 		var arr = [];
 		for( a in fun.assigns ) {
 			if( a.position > pos ) break;
@@ -174,7 +179,9 @@ class CodeGraph {
 			if( getLocal(module.strings[a.varName],pos) == null ) continue; // not written
 			arr.push(a.varName);
 		}
-		return [for( a in arr ) module.strings[a]];
+		localsRawCachePos = pos;
+		localsRawCache = [for( a in arr ) module.strings[a]];
+		return localsRawCache;
 	}
 
 	public function getReturnReg( pos : Int ) : Null<HLType> {
