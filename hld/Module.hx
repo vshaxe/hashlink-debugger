@@ -28,6 +28,7 @@ class Module {
 	var functionsByFile : Map<Int, Array<{ f : HLFunction, ifun : Int, lmin : Int, lmax : Int }>>;
 	var globalsOffsets : Array<Int>;
 	var globalTable : GlobalAccess;
+	var eprotoTable : Map<String,EnumPrototype>;
 	var protoCache : Map<String,ModuleProto>;
 	var eprotoCache : Map<String,ModuleEProto>;
 	var functionRegsCache : Array<Array<{ t : HLType, offset : Int }>>;
@@ -163,6 +164,7 @@ class Module {
 			}
 			t.gid = gid;
 		}
+		eprotoTable = [];
 		for( t in code.types )
 			switch( t ) {
 			case HObj(o) if( o.globalValue != null ):
@@ -184,6 +186,7 @@ class Module {
 				if( hasAlias ) addGlobal(apath, o.globalValue);
 			case HEnum(e) if( e.globalValue != null ):
 				addGlobal(e.name.split("."), e.globalValue);
+				eprotoTable.set(e.name, e);
 			default:
 			}
 	}
@@ -287,6 +290,10 @@ class Module {
 			g = n;
 		}
 		return g == globalTable || g.gid == null ? null : { type : code.globals[g.gid], offset : globalsOffsets[g.gid] };
+	}
+
+	public function resolveEnum( path : String ) {
+		return eprotoTable.get(path);
 	}
 
 	public function getFileFunctions( file : String ) {

@@ -85,8 +85,16 @@ class Eval {
 	public function eval( expr : String ) {
 		if( expr == null || expr == "" )
 			return null;
+		var exprs = expr.split(":");
+		var hint = HNone;
+		if( exprs.length > 1 ) {
+			hint = Value.parseHint(exprs.pop()); // content after the last ":" is considered as a display hint
+			expr = exprs.join(":");
+		}
 		var expr = try parser.parseString(expr) catch( e : hscript.Expr.Error ) throw hscript.Printer.errorToString(e);
-		return evalExpr(expr);
+		var v = evalExpr(expr);
+		v.hint = hint;
+		return v;
 	}
 
 	public function setValue( expr : String, value : String ) {
@@ -760,7 +768,18 @@ class Eval {
 		var str = switch( v.v ) {
 		case VUndef: "undef"; // null read / outside bounds
 		case VNull: "null";
-		case VInt(i): "" + i;
+		case VInt(i):
+			switch( v.hint ) {
+			case HHex: Value.int2Str(i, 16);
+			case HBin: Value.int2Str(i, 2);
+			case HEnumFlags(t):
+				var eproto = module.resolveEnum(t);
+				if( eproto == null )
+					throw "Can't resolve enum " + t;
+				Value.int2EnumFlags(i, eproto);
+			default:
+				"" + i;
+			}
 		case VInt64(i): "" + i;
 		case VFloat(v): "" + v;
 		case VBool(b): b?"true":"false";
