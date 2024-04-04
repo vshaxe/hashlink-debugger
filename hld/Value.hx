@@ -50,7 +50,7 @@ enum Hint {
 	}
 
 	static final INTBASE = "0123456789ABCDEF";
-	public static function int2Str( value : Int, base : Int ) : String {
+	public static function intStr( value : Int, base : Int ) : String {
 		if( base < 2 || base > INTBASE.length )
 			throw "Unsupported int base";
 		var prefix = base == 2 ? "0b" : base == 16 ? "0x" : "";
@@ -65,7 +65,17 @@ enum Hint {
 		return (value < 0 ? "-" : "") + prefix + s;
 	}
 
-	public static function int2EnumFlags( value : Int, eproto : format.hl.Data.EnumPrototype ) : String {
+	public static function int64Hex( value : haxe.Int64 ) : String {
+		var s = "";
+		var abs = value >= haxe.Int64.make(0,0) ? value : -value;
+		while( abs > 0 ) {
+			s = INTBASE.charAt(abs.low & 15) + s;
+			abs = abs >> 4;
+		}
+		return (value < 0 ? "-" : "") + "0x" + s;
+	}
+
+	public static function intEnumFlags( value : Int, eproto : format.hl.Data.EnumPrototype ) : String {
 		var f = "";
 		for( i in 0...eproto.constructs.length ) {
 			if( (value >> i) % 2 == 1 )

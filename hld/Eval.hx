@@ -770,20 +770,27 @@ class Eval {
 		case VNull: "null";
 		case VInt(i):
 			switch( v.hint ) {
-			case HHex: Value.int2Str(i, 16);
-			case HBin: Value.int2Str(i, 2);
+			case HHex: Value.intStr(i, 16);
+			case HBin: Value.intStr(i, 2);
 			case HEnumFlags(t):
 				var eproto = module.resolveEnum(t);
 				if( eproto == null )
 					throw "Can't resolve enum " + t;
-				Value.int2EnumFlags(i, eproto);
-			default:
-				"" + i;
+				Value.intEnumFlags(i, eproto);
+			default: "" + i;
 			}
-		case VInt64(i): "" + i;
-		case VFloat(v): "" + v;
-		case VBool(b): b?"true":"false";
-		case VPointer(p):
+		case VInt64(i):
+			switch( v.hint ) {
+			case HHex: Value.int64Hex(i);
+			default: "" + i;
+			}
+		case VFloat(i):
+			switch( v.hint ) {
+			case HHex: Value.intStr(Std.int(i), 16);
+			default: "" + i;
+			}
+		case VBool(b): b ? "true" : "false";
+		case VPointer(_):
 			switch( v.t ) {
 			case HObj(p), HStruct(p): p.name.split(".").pop(); // short form (no package)
 			default: typeStr(v.t);
