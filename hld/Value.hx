@@ -29,9 +29,10 @@ typedef InlinedField = { name : String, addr : Eval.VarAddress }
 
 enum Hint {
 	HNone;
-	HHex;
-	HBin;
-	HEnumFlags(t : String);
+	HHex; // v:h
+	HBin; // v:b
+	HEnumFlags(t : String); // v:EnumFlags<T>
+	HEnumIndex(t : String); // v:EnumIndex<T>
 }
 
 @:structInit class Value {
@@ -46,6 +47,8 @@ enum Hint {
 			return HBin;
 		if( StringTools.startsWith(s,"EnumFlags<") && StringTools.endsWith(s,">") )
 			return HEnumFlags(s.substr(10, s.length - 11));
+		if( StringTools.startsWith(s,"EnumIndex<") && StringTools.endsWith(s,">") )
+			return HEnumIndex(s.substr(10, s.length - 11));
 		return HNone;
 	}
 
@@ -86,6 +89,12 @@ enum Hint {
 		else
 			f = f.substr(3);
 		return f;
+	}
+
+	public static function intEnumIndex( value : Int, eproto : format.hl.Data.EnumPrototype ) : String {
+		if( value < 0 || value >= eproto.constructs.length )
+			throw "Out of range [0," + eproto.constructs.length + ")";
+		return eproto.constructs[value].name;
 	}
 
 }

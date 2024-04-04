@@ -777,6 +777,11 @@ class Eval {
 				if( eproto == null )
 					throw "Can't resolve enum " + t;
 				Value.intEnumFlags(i, eproto);
+			case HEnumIndex(t):
+				var eproto = module.resolveEnum(t);
+				if( eproto == null )
+					throw "Can't resolve enum " + t;
+				Value.intEnumIndex(i, eproto);
 			default: "" + i;
 			}
 		case VInt64(i):
