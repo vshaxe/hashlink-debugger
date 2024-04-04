@@ -1,4 +1,3 @@
-import haxe.CallStack;
 import Utils;
 
 import vscode.debugProtocol.DebugProtocol;
@@ -95,7 +94,7 @@ class HLAdapter extends DebugSession {
 		if( args.allowEval != null ) allowEvalGetters = args.allowEval;
 
 		function onError(e) {
-			error(cast response, e + "\n" + CallStack.toString(CallStack.exceptionStack()));
+			error(cast response, e + "\n" + haxe.CallStack.toString(haxe.CallStack.exceptionStack()));
 			sendEvent(new TerminatedEvent());
 		}
 
@@ -114,7 +113,7 @@ class HLAdapter extends DebugSession {
 				});
 			}
 		} catch( e : Dynamic ) {
-			onError(e + "\n" + CallStack.toString(CallStack.exceptionStack()));
+			onError(e + "\n" + haxe.CallStack.toString(haxe.CallStack.exceptionStack()));
 		}
 	}
 
