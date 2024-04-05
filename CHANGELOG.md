@@ -1,3 +1,6 @@
+## 1.4.6 (April 5, 2024)
+* added eval hint support
+
 ## 1.4.5 (March 26, 2024)
 
 * added inlined constructor variable support for haxe nightly build
