@@ -33,6 +33,7 @@ enum Hint {
 	HBin; // v:b
 	HEnumFlags(t : String); // v:EnumFlags<T>, v:haxe.EnumFlags<T>
 	HEnumIndex(t : String); // v:EnumIndex<T>
+	HCdbEnum(t : String); // v:CDB<T>, c:CDBEnum<T> -- for CastleDB
 }
 
 @:structInit class Value {
@@ -51,6 +52,10 @@ enum Hint {
 			return HEnumFlags(s.substr(15, s.length - 16));
 		if( StringTools.startsWith(s,"EnumIndex<") && StringTools.endsWith(s,">") )
 			return HEnumIndex(s.substr(10, s.length - 11));
+		if( StringTools.startsWith(s,"CDB<") && StringTools.endsWith(s,">") )
+			return HCdbEnum(s.substr(4, s.length - 5));
+		if( StringTools.startsWith(s,"CDBEnum<") && StringTools.endsWith(s,">") )
+			return HCdbEnum(s.substr(8, s.length - 9));
 		return HNone;
 	}
 

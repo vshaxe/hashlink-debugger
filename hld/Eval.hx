@@ -82,7 +82,7 @@ class Eval {
 		this.ebp = ebp;
 	}
 
-	public function eval( expr : String ) {
+	public function eval( expr : String ) : Value {
 		if( expr == null || expr == "" )
 			return null;
 		var exprs = expr.split(":");
@@ -782,6 +782,16 @@ class Eval {
 				if( eproto == null )
 					throw "Can't resolve enum " + t;
 				Value.intEnumIndex(i, eproto);
+			case HCdbEnum(t):
+				var enames = eval(t + ".NAMES");
+				if( enames == null )
+					throw "Can't resolve CDB " + t + ".NAMES";
+				switch( enames.v ) {
+				case VArray(_, _, read, _):
+					valueStr(read(i));
+				default:
+					throw "Can't resolve CDB " + t + ".NAMES array";
+				}
 			default: "" + i;
 			}
 		case VInt64(i):
