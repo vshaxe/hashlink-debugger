@@ -31,7 +31,7 @@ enum Hint {
 	HNone;
 	HHex; // v:h
 	HBin; // v:b
-	HEnumFlags(t : String); // v:EnumFlags<T>
+	HEnumFlags(t : String); // v:EnumFlags<T>, v:haxe.EnumFlags<T>
 	HEnumIndex(t : String); // v:EnumIndex<T>
 }
 
@@ -47,6 +47,8 @@ enum Hint {
 			return HBin;
 		if( StringTools.startsWith(s,"EnumFlags<") && StringTools.endsWith(s,">") )
 			return HEnumFlags(s.substr(10, s.length - 11));
+		if( StringTools.startsWith(s,"haxe.EnumFlags<") && StringTools.endsWith(s,">") )
+			return HEnumFlags(s.substr(15, s.length - 16));
 		if( StringTools.startsWith(s,"EnumIndex<") && StringTools.endsWith(s,">") )
 			return HEnumIndex(s.substr(10, s.length - 11));
 		return HNone;
