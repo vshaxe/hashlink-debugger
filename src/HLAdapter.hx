@@ -897,7 +897,7 @@ class HLAdapter extends DebugSession {
 	override function continueRequest(response:ContinueResponse, args:ContinueArguments) {
 		debug("Continue");
 		sendResponse(response);
-		dbg.resume();
+		safe(() -> handleWait(dbg.run()));
 	}
 
 	override function sourceRequest(response:SourceResponse, args:SourceArguments) {
