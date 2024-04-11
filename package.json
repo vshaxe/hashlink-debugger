@@ -49,6 +49,21 @@
 		"onDebugResolve:hl"
 	],
 	"contributes": {
+		"configuration": {
+			"title": "HashLink Debugger",
+			"properties": {
+				"hldebug.verbose": {
+					"markdownDescription": "Show verbose debugger trace.",
+					"type": "boolean",
+					"default": false
+				},
+				"hldebug.defaultPort": {
+					"markdownDescription": "Default debug port used to connect to HL virtual machine.",
+					"type": "integer",
+					"default": 6112
+				}
+			}
+		},
 		"debuggers": [
 			{
 				"type": "hl",

@@ -62,6 +62,9 @@ class Extension {
 	}
 
 	static function createDebugAdapterDescriptor(session: DebugSession, ?executable:DebugAdapterExecutable): ProviderResult<vscode.DebugAdapterDescriptor> {
-		return new vscode.DebugAdapterInlineImplementation(cast new HLAdapter());
+		var config = Vscode.workspace.getConfiguration("hldebug");
+		HLAdapter.DEBUG = config.get("verbose", false);
+		var adapter = new HLAdapter(config.get("defaultPort", 6112));
+		return new vscode.DebugAdapterInlineImplementation(cast adapter);
 	}
 }

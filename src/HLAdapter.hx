@@ -20,6 +20,7 @@ class HLAdapter extends DebugSession {
 
 	static var UID = 0;
 	public static var inst : HLAdapter;
+	public static var DEBUG = false;
 
 	var proc : ChildProcessObject;
 	var workspaceDirectory : String;
@@ -38,14 +39,13 @@ class HLAdapter extends DebugSession {
 	var threads : Map<Int,Bool>;
 	var allowEvalGetters : Bool;
 
-	static var DEBUG = false;
 	static var isWindows = Sys.systemName() == "Windows";
 	static var isMac = Sys.systemName() == "Mac";
 
-	public function new() {
+	public function new( defaultPort : Int = 6112 ) {
 		super();
 		allowEvalGetters = false;
-		debugPort = 6112;
+		debugPort = defaultPort;
 		doDebug = true;
 		threads = new Map();
 		startTime = haxe.Timer.stamp();
@@ -211,8 +211,6 @@ class HLAdapter extends DebugSession {
 			hlArgs.unshift("--profile");
 		}
 
-		debug("start process");
-
 		if( args.args != null ) hlArgs = hlArgs.concat(args.args);
 		if( args.argsFile != null ) {
 			var words = sys.io.File.getContent(args.argsFile).split(" ");
@@ -242,6 +240,8 @@ class HLAdapter extends DebugSession {
 		if(args.hl != null && js.Node.process.env.get('LIBHL_PATH') == null) {
 			js.Node.process.env.set('LIBHL_PATH', js.node.Path.dirname(args.hl));
 		}
+
+		debug("start process " + hlPath + " " + hlArgs);
 
 		proc = ChildProcess.spawn(hlPath, hlArgs, {cwd: args.cwd, env:args.env});
 		proc.stdout.setEncoding('utf8');
