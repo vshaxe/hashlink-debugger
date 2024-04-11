@@ -143,16 +143,32 @@
 							"type": "haxe",
 							"args": "active configuration"
 						}
+					}
+				],
+				"configurationSnippets": [
+					{
+						"label": "HashLink: Launch",
+						"description": "A new configuration for launch and debug.",
+						"body": {
+							"name": "${1:HashLink (launch)}",
+							"request": "launch",
+							"type": "hl",
+							"cwd": "^\"\\${workspaceFolder}\"",
+							"preLaunchTask": {
+								"type": "haxe",
+								"args": "active configuration"
+							}
+						}
 					},
 					{
-						"name": "HashLink (attach)",
-						"request": "attach",
-						"port": 6112,
-						"type": "hl",
-						"cwd": "${workspaceFolder}",
-						"preLaunchTask": {
-							"type": "haxe",
-							"args": "active configuration"
+						"label": "HashLink: Attach",
+						"description": "A new configuration for attaching to a running program.",
+						"body": {
+							"name": "${1:HashLink (attach)}",
+							"request": "attach",
+							"type": "hl",
+							"cwd": "^\"\\${workspaceFolder}\"",
+							"port": 6112
 						}
 					}
 				]
