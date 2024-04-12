@@ -1,11 +1,9 @@
 node_modules
 *.js
 *.js.map
-/package-lock.json
+package-lock.json
 /*.vsix
 /vsce_token.txt
 /debugger/args.txt
 /debugger/debug.hl
-/debugger/package-lock.json
-/debugger/*.map
 /hldebug-wrapper/build
