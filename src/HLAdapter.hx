@@ -31,6 +31,7 @@ class HLAdapter extends DebugSession {
 	var dbg : hld.Debugger;
 	var startTime : Float;
 	var timer : haxe.Timer;
+	var shouldRun : Bool;
 
 	var varsValues : Map<Int,VarValue>;
 	var ptrValues : Array<hld.Debugger.Address>;
@@ -52,6 +53,7 @@ class HLAdapter extends DebugSession {
 		ptrValues = [];
 		watchedPtrs = [];
 		inst = this;
+		shouldRun = false;
 	}
 
 	override function initializeRequest(response:InitializeResponse, args:InitializeRequestArguments) {
@@ -332,9 +334,12 @@ class HLAdapter extends DebugSession {
 		debug("init done");
 		timer = new haxe.Timer(16);
 		timer.run = function() {
-			if( dbg == null || dbg.stoppedThread != null )
+			if( dbg == null )
 				return;
-			run();
+			if( shouldRun || dbg.stoppedThread == null ) {
+				shouldRun = false;
+				run();
+			}
 		};
 	}
 
@@ -897,7 +902,7 @@ class HLAdapter extends DebugSession {
 	override function continueRequest(response:ContinueResponse, args:ContinueArguments) {
 		debug("Continue");
 		sendResponse(response);
-		safe(() -> handleWait(dbg.run()));
+		shouldRun = true;
 	}
 
 	override function sourceRequest(response:SourceResponse, args:SourceArguments) {
