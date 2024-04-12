@@ -63,7 +63,7 @@ class HLAdapter extends DebugSession {
 			sendEvent(new OutputEvent(Std.int((haxe.Timer.stamp() - startTime)*10) / 10 + "> " + str+"\n"));
 		};
 
-		debug("initialize");
+		debug("Initialize");
 
 		response.body.supportsConfigurationDoneRequest = true;
 		response.body.supportsFunctionBreakpoints = false;
@@ -84,7 +84,7 @@ class HLAdapter extends DebugSession {
 
 	override function launchRequest(response:LaunchResponse, args:LaunchRequestArguments) {
 
-		debug("launch");
+		debug("Launch");
 
 		var args:Arguments = cast args;
 
@@ -143,7 +143,7 @@ class HLAdapter extends DebugSession {
 	}
 
 	override function attachRequest(response:AttachResponse, args:AttachRequestArguments) {
-		debug("attach");
+		debug("Attach");
 
 		var args:Arguments = cast args;
 		setClassPath(args.classPaths);
@@ -243,7 +243,7 @@ class HLAdapter extends DebugSession {
 			js.Node.process.env.set('LIBHL_PATH', js.node.Path.dirname(args.hl));
 		}
 
-		debug("start process " + hlPath + " " + hlArgs);
+		debug("Start process " + hlPath + " " + hlArgs);
 
 		proc = ChildProcess.spawn(hlPath, hlArgs, {cwd: args.cwd, env:args.env});
 		proc.stdout.setEncoding('utf8');
@@ -296,10 +296,10 @@ class HLAdapter extends DebugSession {
 		Sys.sleep(0.01); // make sure the process is started
 
 		// TODO : load & validate after run() -- save some precious time
-		debug("load module");
+		debug("Load module " + program);
 		dbg.loadModule(sys.io.File.getBytes(program));
 
-		debug("connecting");
+		debug("Connecting");
 		dbg.connectTries("127.0.0.1", port, 2, function(b) {
 			if( !b ) {
 				// wait a bit (keep eventual HL error message)
@@ -324,13 +324,13 @@ class HLAdapter extends DebugSession {
 			}
 			dbg.eval.allowEvalGetters = allowEvalGetters;
 			syncThreads();
-			debug("connected");
+			debug("Connected");
 			onError(null);
 		});
 	}
 
 	override function configurationDoneRequest(response:ConfigurationDoneResponse, args:ConfigurationDoneArguments) {
-		debug("init done");
+		debug("Init done");
 		shouldRun = true;
 		timer = new haxe.Timer(16);
 		timer.run = function() {
@@ -434,19 +434,19 @@ class HLAdapter extends DebugSession {
 
 			beforeStop();
 			var msg = if( msg == Watchbreak )
-				"data breakpoint"
+				"Data breakpoint"
 			else if( exc != null )
-				"exception"
+				"Exception"
 			else if( isPause )
-				"paused"
+				"Paused"
 			else
-				"breakpoint";
+				"Breakpoint";
 			var tid = dbg.currentThread;
 			debug(msg+" on "+tid);
 			if( isPause && tid != dbg.mainThread && !dbg.hasStack() ) {
 				tid = dbg.mainThread;
 				dbg.setCurrentThread(tid);
-				debug("switch thread "+tid);
+				debug("Switch thread "+tid);
 			}
 			var ev = new StoppedEvent(msg, tid, str);
 			ev.allThreadsStopped = true;
@@ -538,7 +538,7 @@ class HLAdapter extends DebugSession {
 	}
 
 	override function stackTraceRequest(response:StackTraceResponse, args:StackTraceArguments) {
-		//debug("Stacktrace Request");
+		//debug("Stacktrace request");
 		setThread(args.threadId);
 		var bt = dbg.getBackTrace();
 		var start = args.startFrame;
@@ -662,7 +662,7 @@ class HLAdapter extends DebugSession {
 	}
 
 	override function variablesRequest(response:VariablesResponse, args:VariablesArguments) {
-		//debug("Variables Request " + args);
+		//debug("Variables request " + args);
 		var vref = varsValues.get(args.variablesReference);
 		var vars = [];
 		response.body = { variables : vars };
@@ -845,7 +845,7 @@ class HLAdapter extends DebugSession {
 	}
 
 	override function pauseRequest(response:PauseResponse, args:PauseArguments):Void {
-		debug("Pause Request");
+		debug("Pause request");
 		if( dbg.stoppedThread != null ) {
 			// already paused, stop all threads
 			sendResponse(response);
@@ -863,7 +863,7 @@ class HLAdapter extends DebugSession {
 	}
 
 	override function disconnectRequest(response:DisconnectResponse, args:DisconnectArguments) {
-		debug("Disconnect Request");
+		debug("Disconnect request");
 		if( proc != null ) proc.kill();
 		sendResponse(response);
 		stopDebug();
@@ -972,7 +972,7 @@ class HLAdapter extends DebugSession {
 	}
 
 	override function setDataBreakpointsRequest(response:SetDataBreakpointsResponse, args:SetDataBreakpointsArguments) {
-		debug("DataBreakpointsRequest");
+		debug("SetDataBreakpoints request");
 		var current = watchedPtrs.copy();
 		for( a in args.breakpoints ) {
 			if( a.dataId == null ) continue;
