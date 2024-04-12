@@ -330,8 +330,8 @@ class HLAdapter extends DebugSession {
 	}
 
 	override function configurationDoneRequest(response:ConfigurationDoneResponse, args:ConfigurationDoneArguments) {
-		run();
 		debug("init done");
+		shouldRun = true;
 		timer = new haxe.Timer(16);
 		timer.run = function() {
 			if( dbg == null )
