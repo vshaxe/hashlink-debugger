@@ -902,6 +902,7 @@ class HLAdapter extends DebugSession {
 	override function continueRequest(response:ContinueResponse, args:ContinueArguments) {
 		debug("Continue");
 		sendResponse(response);
+		// On Linux, api.resume() and api.wait() need to be called at the same location
 		shouldRun = true;
 	}
 
