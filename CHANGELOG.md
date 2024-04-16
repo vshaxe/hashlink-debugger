@@ -1,3 +1,9 @@
+## 1.4.7 (April 16, 2024)
+* added configuration snippets
+* added extension settings
+* added comparison for string, fixed not equal (!=) not working
+* fixed continue not working on Linux
+
 ## 1.4.6 (April 5, 2024)
 * added eval hint support
 
