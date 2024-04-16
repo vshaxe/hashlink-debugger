@@ -535,6 +535,7 @@ class Eval {
 		case "&": iop((a,b)->a&b);
 		case "^": iop((a,b)->a^b);
 		case "==": mkBool(compare(v1,v2) == 0);
+		case "!=": mkBool(compare(v1,v2) != 0);
 		case ">": mkBool(compare(v1,v2) > 0);
 		case "<": mkBool(compare(v1,v2) < 0);
 		case ">=": mkBool(compare(v1,v2) >= 0);
