@@ -1,3 +1,6 @@
+## 1.4.8 (April 17, 2024)
+* fixed exception window not shown
+
 ## 1.4.7 (April 16, 2024)
 * added configuration snippets
 * added extension settings
