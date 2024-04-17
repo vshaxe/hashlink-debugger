@@ -28,12 +28,10 @@
 #	define USE_PTRACE
 #endif
 
-#ifdef HL_MAC
+#if defined(HL_MAC) && defined(__x86_64__)
 #	include <mdbg/mdbg.h>
+#   define MAC_DEBUG
 #endif
-
-//#define dbg_printf(...) printf(__VA_ARGS__)
-#define dbg_printf(...)
 
 #if defined(HL_WIN)
 static HANDLE last_process = NULL, last_thread = NULL;
@@ -68,10 +66,8 @@ static void CleanHandles() {
 HL_API bool hl_debug_start( int pid ) {
 #	if defined(HL_WIN)
 	last_pid = -1;
-	BOOL r = (bool)DebugActiveProcess(pid);
-	dbg_printf("hl_debug_start %d : %d\n", pid, r);
-	return r;
-#	elif defined(HL_MAC)
+	return (bool)DebugActiveProcess(pid);
+#	elif defined(MAC_DEBUG)
 	return mdbg_session_attach(pid);
 #	elif defined(USE_PTRACE)
 	return ptrace(PTRACE_ATTACH,pid,0,0) >= 0;
@@ -84,9 +80,8 @@ HL_API bool hl_debug_stop( int pid ) {
 #	if defined(HL_WIN)
 	BOOL b = DebugActiveProcessStop(pid);
 	CleanHandles();
-	dbg_printf("hl_debug_stop %d : %d\n", pid, b);
 	return (bool)b;
-#	elif defined(HL_MAC)
+#	elif defined(MAC_DEBUG)
 	return mdbg_session_detach(pid);
 #	elif defined(USE_PTRACE)
 	return ptrace(PTRACE_DETACH,pid,0,0) >= 0;
@@ -97,10 +92,8 @@ HL_API bool hl_debug_stop( int pid ) {
 
 HL_API bool hl_debug_breakpoint( int pid ) {
 #	if defined(HL_WIN)
-	BOOL b = (bool)DebugBreakProcess(OpenPID(pid));
-	dbg_printf("hl_debug_breakpoint %d : %d\n", pid, b);
-	return b;
-#	elif defined(HL_MAC)
+	return (bool)DebugBreakProcess(OpenPID(pid));
+#	elif defined(MAC_DEBUG)
 	return mdbg_session_pause(pid);
 #	elif defined(USE_PTRACE)
 	return kill(pid,SIGTRAP) == 0;
@@ -111,12 +104,8 @@ HL_API bool hl_debug_breakpoint( int pid ) {
 
 HL_API bool hl_debug_read( int pid, vbyte *addr, vbyte *buffer, int size ) {
 #	if defined(HL_WIN)
-	BOOL b = (bool)ReadProcessMemory(OpenPID(pid),addr,buffer,size,NULL);
-	dbg_printf("hl_debug_read %d %0llX %0llX %d -> %d\n", pid, (unsigned long long) addr, (unsigned long long)buffer, size, b);
-	if (!b)
-		printf("error: %d\n", GetLastError());
-	return b;
-#	elif defined(HL_MAC)
+	return (bool)ReadProcessMemory(OpenPID(pid),addr,buffer,size,NULL);
+#	elif defined(MAC_DEBUG)
 	return mdbg_read_memory(pid, addr, buffer, size);
 #	elif defined(USE_PTRACE)
 	while( size ) {
@@ -139,10 +128,8 @@ HL_API bool hl_debug_read( int pid, vbyte *addr, vbyte *buffer, int size ) {
 
 HL_API bool hl_debug_write( int pid, vbyte *addr, vbyte *buffer, int size ) {
 #	if defined(HL_WIN)
-	BOOL b = (bool)WriteProcessMemory(OpenPID(pid), addr, buffer, size, NULL);
-	dbg_printf("hl_debug_write %d %0llX %0llX %d -> %d\n", pid, (unsigned long long)addr, (unsigned long long) buffer, size, b);
-	return b;
-#	elif defined(HL_MAC)
+	return (bool)WriteProcessMemory(OpenPID(pid),addr,buffer,size,NULL);
+#	elif defined(MAC_DEBUG)
 	return mdbg_write_memory(pid, addr, buffer, size);
 #	elif defined(USE_PTRACE)
 	while( size ) {
@@ -166,10 +153,8 @@ HL_API bool hl_debug_write( int pid, vbyte *addr, vbyte *buffer, int size ) {
 
 HL_API bool hl_debug_flush( int pid, vbyte *addr, int size ) {
 #	if defined(HL_WIN)
-	BOOL b = (bool)FlushInstructionCache(OpenPID(pid),addr,size);
-	dbg_printf("hl_debug_flush %d %0llX %d -> %d\n", pid, (unsigned long long)addr, size, b);
-	return b;
-#	elif defined(HL_MAC)
+	return (bool)FlushInstructionCache(OpenPID(pid),addr,size);
+#	elif defined(MAC_DEBUG)
 	return true;
 #	elif defined(USE_PTRACE)
 	return true;
@@ -178,7 +163,7 @@ HL_API bool hl_debug_flush( int pid, vbyte *addr, int size ) {
 #	endif
 }
 
-#ifdef HL_MAC
+#ifdef MAC_DEBUG
 static int get_reg( int r ) {
 	switch( r ) {
 		case 0: return REG_RSP;
@@ -209,13 +194,14 @@ static void *get_reg( int r ) {
 		case 1: return &regs->rbp;
 		case 2: return &regs->rip;
 		case 10: return &regs->rax;
+		case 11: return (void*)(-((int_val)&fp->xmm_space[0])-1);
 #		else
 		case 0: return &regs->esp;
 		case 1: return &regs->ebp;
 		case 2: return &regs->eip;
 		case 10: return &regs->eax;
+		case 11: return -1;
 #		endif
-		case 11: return (void*)(-((int_val)&fp->xmm_space[0])-1);
 		case 3: return &regs->eflags;
 		default: return &user->u_debugreg[r-4];
 		}
@@ -250,10 +236,6 @@ HL_API int hl_debug_wait( int pid, int *thread, int timeout ) {
 		default:
 			return 3;
 		}
-	case CREATE_THREAD_DEBUG_EVENT:
-	case LOAD_DLL_DEBUG_EVENT:
-	case EXIT_THREAD_DEBUG_EVENT:
-		ContinueDebugEvent(e.dwProcessId, e.dwThreadId, DBG_CONTINUE);
 		break;
 	case EXIT_PROCESS_DEBUG_EVENT:
 		return 0;
@@ -262,18 +244,18 @@ HL_API int hl_debug_wait( int pid, int *thread, int timeout ) {
 		break;
 	}
 	return 4;
-#	elif defined(HL_MAC)
+#	elif defined(MAC_DEBUG)
 	return mdbg_session_wait(pid, thread, timeout);
 #	elif defined(USE_PTRACE)
 	int status;
 	int ret = waitpid(pid,&status,0);
-	//dbg_printf("WAITPID=%X %X\n",ret,status);
+	//printf("WAITPID=%X %X\n",ret,status);
 	*thread = ret;
 	if( WIFEXITED(status) )
 		return 0;
 	if( WIFSTOPPED(status) ) {
 		int sig = WSTOPSIG(status);
-		//dbg_printf(" STOPSIG=%d\n",sig);
+		//printf(" STOPSIG=%d\n",sig);
 		if( sig == SIGSTOP || sig == SIGTRAP )
 			return 1;
 		return 3;
@@ -286,10 +268,8 @@ HL_API int hl_debug_wait( int pid, int *thread, int timeout ) {
 
 HL_API bool hl_debug_resume( int pid, int thread ) {
 #	if defined(HL_WIN)
-	BOOL b = (bool)ContinueDebugEvent(pid, thread, DBG_CONTINUE);
-	dbg_printf("hl_debug_resume %d %d -> %d\n", pid, thread, b);
-	return b;
-#	elif defined(HL_MAC)
+	return (bool)ContinueDebugEvent(pid, thread, DBG_CONTINUE);
+#	elif defined(MAC_DEBUG)
 	return mdbg_session_resume(pid);
 #	elif defined(USE_PTRACE)
 	return ptrace(PTRACE_CONT,pid,0,0) >= 0;
@@ -350,26 +330,18 @@ HL_API void *hl_debug_read_register( int pid, int thread, int reg, bool is64 ) {
 #	endif
 	CONTEXT c;
 	c.ContextFlags = CONTEXT_FULL | CONTEXT_DEBUG_REGISTERS;
-	if (!GetThreadContext(OpenTID(thread), &c)) {
-		dbg_printf("hl_debug_read_register(1) %d %d %d %d -> %0llX\n", pid, thread, reg, is64, (unsigned long long) NULL);
+	if( !GetThreadContext(OpenTID(thread),&c) )
 		return NULL;
-	}
-	if (reg == 3) {
-		dbg_printf("hl_debug_read_register(2) %d %d %d %d -> %0llX\n", pid, thread, reg, is64, (unsigned long long)(int_val)c.EFlags);
+	if( reg == 3 )
 		return (void*)(int_val)c.EFlags;
-	}
-	if (reg == 11) {
+	if( reg == 11 )
 #ifdef HL_64
-		void* r = (void*)(int_val)c.FltSave.XmmRegisters[0].Low;
-		dbg_printf("hl_debug_read_register(3) %d %d %d %d -> %0llX\n", pid, thread, reg, is64, (unsigned long long)r);
-		return (void*)r;
+		return (void*)(int_val)c.FltSave.XmmRegisters[0].Low;
 #else
-		return (void*)*(int_val*)&c.ExtendedRegisters[10 * 16];
+		return (void*)*(int_val*)&c.ExtendedRegisters[10*16];
 #endif
-	}
-	dbg_printf("hl_debug_read_register(4) %d %d %d %d -> %0llX\n", pid, thread, reg, is64, (unsigned long long) *GetContextReg(&c, reg));
 	return (void*)*GetContextReg(&c,reg);
-#	elif defined(HL_MAC)
+#	elif defined(MAC_DEBUG)
 	return mdbg_read_register(pid, thread, get_reg(reg), is64);
 #	elif defined(USE_PTRACE)
 	void *r = get_reg(reg);
@@ -407,10 +379,8 @@ HL_API bool hl_debug_write_register( int pid, int thread, int reg, void *value, 
 #	endif
 	CONTEXT c;
 	c.ContextFlags = CONTEXT_FULL | CONTEXT_DEBUG_REGISTERS;
-	if (!GetThreadContext(OpenTID(thread), &c)) {
-		dbg_printf("hl_debug_write_register %d %d %d %0llX %d %d\n", pid, thread, reg, (unsigned long long) value, is64, false);
+	if( !GetThreadContext(OpenTID(thread),&c) )
 		return false;
-	}
 	if( reg == 3 )
 		c.EFlags = (int)(int_val)value;
 	else if( reg == 11 )
@@ -421,10 +391,8 @@ HL_API bool hl_debug_write_register( int pid, int thread, int reg, void *value, 
 #		endif
 	else
 		*GetContextReg(&c,reg) = (REGDATA)value;
-	BOOL b = (bool)SetThreadContext(OpenTID(thread),&c);
-	dbg_printf("hl_debug_write_register %d %d %d %0llX %d %d\n", pid, thread, reg, (unsigned long long) value, is64, b);
-	return b;
-#	elif defined(HL_MAC)
+	return (bool)SetThreadContext(OpenTID(thread),&c);
+#	elif defined(MAC_DEBUG)
 	return mdbg_write_register(pid, thread, get_reg(reg), value, is64);
 #	elif defined(USE_PTRACE)
 	return ptrace(PTRACE_POKEUSER,thread,get_reg(reg),value) >= 0;
