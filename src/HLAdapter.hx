@@ -299,7 +299,7 @@ class HLAdapter extends DebugSession {
 		debug("Load module " + program);
 		dbg.loadModule(sys.io.File.getBytes(program));
 
-		debug("Connecting");
+		debug("Connecting to 127.0.0.1:" + port);
 		dbg.connectTries("127.0.0.1", port, 2, function(b) {
 			if( !b ) {
 				// wait a bit (keep eventual HL error message)
@@ -973,7 +973,7 @@ class HLAdapter extends DebugSession {
 	}
 
 	override function setDataBreakpointsRequest(response:SetDataBreakpointsResponse, args:SetDataBreakpointsArguments) {
-		debug("SetDataBreakpoints request");
+		//debug("SetDataBreakpoints request");
 		var current = watchedPtrs.copy();
 		for( a in args.breakpoints ) {
 			if( a.dataId == null ) continue;

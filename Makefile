@@ -1,6 +1,7 @@
 all:
 
 deps:
+	cd hldebug-wrapper && npm install && rm -rf build node_modules
 	npm install
 cleanup:
 	/bin/find . -name *.obj | xargs rm -f 

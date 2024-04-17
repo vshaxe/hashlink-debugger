@@ -8,13 +8,20 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - uses: krdlab/setup-haxe@v1
-    - run: |
+    - name: Install haxelib dependencies
+      run: |
         haxelib git format https://github.com/HaxeFoundation/format.git
         haxelib install hscript
         haxelib install vshaxe
         haxelib install vscode
         haxelib install vscode-debugadapter
-    - run: |
-        haxe build.hxml
-        make build
+    - name: Build extension
+      run: make build
+    - name: Build CLI hl
+      run: |
+        cd debugger
+        haxe debugger.hxml
+        cd ..
+    - name: Build standalone adapter.js
+      run: haxe build.hxml
 
