@@ -431,18 +431,17 @@ class HLAdapter extends DebugSession {
 			}
 
 			syncThreads();
-
 			beforeStop();
 			var msg = if( msg == Watchbreak )
-				"Data breakpoint"
+				"data breakpoint"
 			else if( exc != null )
-				"Exception"
+				"exception"
 			else if( isPause )
-				"Paused"
+				"paused"
 			else
-				"Breakpoint";
+				"breakpoint";
 			var tid = dbg.currentThread;
-			debug(msg+" on "+tid);
+			debug("Stopped (" + msg+") on "+tid);
 			if( isPause && tid != dbg.mainThread && !dbg.hasStack() ) {
 				tid = dbg.mainThread;
 				dbg.setCurrentThread(tid);
