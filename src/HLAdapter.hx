@@ -162,7 +162,7 @@ class HLAdapter extends DebugSession {
 
 	function error<T>(response:Response<T>, message:Dynamic) {
 		sendErrorResponse(cast response, 3000, "" + message);
-		sendToOutput("ERROR : " + message, OutputEventCategory.Stderr);
+		errorMessage("ERROR : " + message);
 	}
 
 	/**
@@ -318,9 +318,11 @@ class HLAdapter extends DebugSession {
 			}
 			var api = new hld.NodeDebugApiNative(pid, dbg.is64);
 			if( !dbg.init(api) ) {
-				onError("Failed to initialize debugger");
+				var msg = "Failed to initialize debugger";
 				if( Sys.systemName() == "Linux" )
-					trace("On Linux, please try set /proc/sys/kernel/yama/ptrace_scope to 0");
+					msg += ". On Linux, please try set /proc/sys/kernel/yama/ptrace_scope to 0.";
+				onError(msg);
+				return;
 				return;
 			}
 			dbg.eval.allowEvalGetters = allowEvalGetters;
@@ -614,7 +616,7 @@ class HLAdapter extends DebugSession {
 						namedVariables : fields.length,
 					});
 			} catch( e : Dynamic ) {
-				trace(e);
+				errorMessage(e);
 			}
 		}
 		var cl = dbg.getCurrentClass();
@@ -622,7 +624,7 @@ class HLAdapter extends DebugSession {
 			try {
 				var fields = dbg.getClassStatics(cl);
 				for( f in fields.copy() ) {
-					var v = try dbg.getValue(cl+"."+f, true) catch( e : Dynamic ) { trace(e+" ("+cl+"."+f+")"); continue; };
+					var v = try dbg.getValue(cl+"."+f, true) catch( e : Dynamic ) { errorMessage(e+" ("+cl+"."+f+")"); continue; };
 					if( v == null || v.t.match(HFun(_)) )
 						fields.remove(f);
 				}
@@ -634,7 +636,7 @@ class HLAdapter extends DebugSession {
 						namedVariables : fields.length,
 					});
 			} catch( e : Dynamic ) {
-				trace(e);
+				errorMessage(e);
 			}
 		}
 		sendResponse(response);
@@ -1068,10 +1070,6 @@ class HLAdapter extends DebugSession {
 		debug("Dispose");
 		inst = null;
 		return null;
-	}
-
-	function sendToOutput(output:String, category:OutputEventCategory = Console) {
-		sendEvent(new OutputEvent(output + "\n", category));
 	}
 
 	function errorMessage( msg : String ) {
