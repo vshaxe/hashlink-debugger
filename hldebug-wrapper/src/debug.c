@@ -85,6 +85,7 @@ HL_API bool hl_debug_stop( int pid ) {
 #	elif defined(MAC_DEBUG)
 	return mdbg_session_detach(pid);
 #	elif defined(USE_PTRACE)
+	kill(pid, SIGTRAP); // DETACH needs ptrace-stop
 	return ptrace(PTRACE_DETACH,pid,0,0) >= 0;
 #	else
 	return false;
@@ -255,7 +256,6 @@ HL_API int hl_debug_wait( int pid, int *thread, int timeout ) {
 	// With it, and more we wait, less we miss stop event.
 	usleep(100 * 1000);
 	int ret = waitpid(pid, &status, WNOHANG);
-	//printf("WAITPID=%X %X\n",ret,status);
 	*thread = ret;
 	if( ret == -1 && errno != EINTR )
 		return 3;
@@ -265,7 +265,6 @@ HL_API int hl_debug_wait( int pid, int *thread, int timeout ) {
 		return 0;
 	if( WIFSTOPPED(status) ) {
 		int sig = WSTOPSIG(status);
-		//printf(" STOPSIG=%d\n",sig);
 		if( sig == SIGSTOP || sig == SIGTRAP )
 			return 1;
 		return 3;
