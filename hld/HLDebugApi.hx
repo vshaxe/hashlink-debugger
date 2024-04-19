@@ -57,7 +57,7 @@ class HLDebugApi implements Api {
 	public function writeByte( ptr : Pointer, pos : Int, value : Int ) : Void {
 		tmp.setUI8(0, value & 0xFF);
 		if( !write(ptr.offset(pos), cast tmp, 1) )
-			throw "Failed to write @" + ptr.toString();
+			throw "Failed to write @" + ptr.offset(pos).toString();
 	}
 
 	public function flush( ptr : Pointer, size : Int ) : Bool {

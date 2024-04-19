@@ -71,7 +71,7 @@ class NodeDebugApiNative implements Api {
 	public function writeByte( ptr : Pointer, pos : Int, value : Int ) : Void {
 		tmpByte.setUI8(0, value & 0xFF);
 		if( !write(ptr.offset(pos), tmpByte, 1) )
-			throw "Failed to write @" + ptr.toString();
+			throw "Failed to write @" + ptr.offset(pos).toString();
 	}
 
 	public function flush( ptr : Pointer, size : Int ) : Bool {
