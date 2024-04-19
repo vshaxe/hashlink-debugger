@@ -858,7 +858,7 @@ class HLAdapter extends DebugSession {
 		}
 		isPause = true;
 		sendResponse(response);
-		handleWait(dbg.pause());
+		safe(() -> handleWait(dbg.pause()));
 	}
 
 	override function disconnectRequest(response:DisconnectResponse, args:DisconnectArguments) {
@@ -868,12 +868,11 @@ class HLAdapter extends DebugSession {
 		stopDebug();
 	}
 
-	function safe<T>(f:Void->T) : T {
+	function safe(f:Void->Void) {
 		try {
-			return f();
+			f();
 		} catch( e : Dynamic ) {
 			errorMessage("***** ERRROR ***** "+e+haxe.CallStack.toString(haxe.CallStack.exceptionStack()));
-			throw e;
 		}
 	}
 
