@@ -496,6 +496,12 @@ class HLAdapter extends DebugSession {
 			sendResponse(response);
 			return;
 		}
+		var forcePaused = false;
+		if( dbg.stoppedThread == null ) {
+			// On Linux, ptrace needs to be in ptrace-stop state in order to read/write
+			forcePaused = true;
+			safe(() -> dbg.pause());
+		}
 		for( f in files )
 			dbg.clearBreakpoints(f);
 		var bps = [];
@@ -511,6 +517,8 @@ class HLAdapter extends DebugSession {
 			else
 				bps.push({ line : bp.line, verified : false, message : "No code found here" });
 		}
+		if( forcePaused )
+			shouldRun = true;
 		sendResponse(response);
 	}
 
