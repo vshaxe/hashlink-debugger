@@ -161,8 +161,8 @@ class HLAdapter extends DebugSession {
 	}
 
 	function error<T>(response:Response<T>, message:Dynamic) {
-		sendErrorResponse(cast response, 3000, "" + message);
 		errorMessage("ERROR : " + message);
+		sendErrorResponse(cast response, 3000, "" + message);
 	}
 
 	/**
