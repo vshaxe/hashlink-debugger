@@ -319,6 +319,8 @@ class HLAdapter extends DebugSession {
 			var api = new hld.NodeDebugApiNative(pid, dbg.is64);
 			if( !dbg.init(api) ) {
 				onError("Failed to initialize debugger");
+				if( Sys.systemName() == "Linux" )
+					trace("On Linux, please try set /proc/sys/kernel/yama/ptrace_scope to 0");
 				return;
 			}
 			dbg.eval.allowEvalGetters = allowEvalGetters;
