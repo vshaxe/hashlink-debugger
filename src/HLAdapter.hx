@@ -243,9 +243,8 @@ class HLAdapter extends DebugSession {
 			js.Node.process.env.set('LIBHL_PATH', js.node.Path.dirname(args.hl));
 		}
 
-		debug("Start process " + hlPath + " " + hlArgs);
-
 		proc = ChildProcess.spawn(hlPath, hlArgs, {cwd: args.cwd, env:args.env});
+		debug("Start process " + hlPath + " " + hlArgs + " pid=" + proc.pid);
 		proc.stdout.setEncoding('utf8');
 		var prev = "";
 		proc.stdout.on('data', function(buf) {
@@ -1061,6 +1060,13 @@ class HLAdapter extends DebugSession {
 	override function gotoTargetsRequest(responses:GotoTargetsResponse, args:GotoTargetsArguments) { debug("Unhandled request"); }
 	override function completionsRequest(response:CompletionsResponse, args:CompletionsArguments) { debug("Unhandled request"); }
 	override function setExpressionRequest(response:SetExpressionResponse, args:SetExpressionArguments) { debug("Unhandled request"); }
+
+	override function dispose() {
+		super.dispose();
+		debug("Dispose");
+		inst = null;
+		return null;
+	}
 
 	function sendToOutput(output:String, category:OutputEventCategory = Console) {
 		sendEvent(new OutputEvent(output + "\n", category));
