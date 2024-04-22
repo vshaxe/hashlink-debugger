@@ -1,3 +1,6 @@
+## 1.4.9 (April 22, 2024)
+* fixed timeout/breakpoint/stop on Linux
+
 ## 1.4.8 (April 17, 2024)
 * fixed exception window not shown
 
