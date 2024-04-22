@@ -1,6 +1,11 @@
 name: CI
 
-on: [push, pull_request]
+on:
+  push:
+    # This should disable running the workflow on tags
+    branches:
+      - "**"
+  pull_request:
 
 jobs:
   build:
