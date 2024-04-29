@@ -456,6 +456,7 @@ class HLAdapter extends DebugSession {
 		case Error, StackOverflow:
 			var error = msg == Error ? "Access Violation" : "Stack Overflow";
 			debug("*** "+error+" ***");
+			syncThreads();
 			beforeStop();
 			var ev = new StoppedEvent(
 				"exception",
