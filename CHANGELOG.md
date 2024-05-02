@@ -1,3 +1,7 @@
+## 1.4.10 (May 2, 2024)
+* fixed thread exception before first breakpoint
+* fixed pause before first breakpoint on Linux
+
 ## 1.4.9 (April 22, 2024)
 * fixed timeout/breakpoint/stop on Linux
 
