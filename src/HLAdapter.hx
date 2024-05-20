@@ -200,7 +200,8 @@ class HLAdapter extends DebugSession {
 
 	function launch( args : Arguments, response : LaunchResponse ) {
 
-		var hlArgs = ["--debug", "" + (args.port == null ? debugPort : args.port), args.program];
+		var port = args.port == null ? debugPort : args.port;
+		var hlArgs = ["--debug", "" + port, args.program];
 
 		if( doDebug )
 			hlArgs.unshift("--debug-wait");
@@ -279,6 +280,13 @@ class HLAdapter extends DebugSession {
 			sendEvent(exitedEvent);
 			sendEvent(new TerminatedEvent());
 			stopDebug();
+			if( code == 4 ) {
+				var msg = "hl exit code 4, please check if the debug port " + port + " is already occupied.";
+				errorMessage(msg);
+				#if vscode
+				Vscode.window.showErrorMessage(msg, {modal: true});
+				#end
+			}
 		});
 		proc.on('error', function(err) {
 			if( err.message == "spawn hl ENOENT" )
