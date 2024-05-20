@@ -96,7 +96,7 @@ class HLAdapter extends DebugSession {
 		if( args.allowEval != null ) allowEvalGetters = args.allowEval;
 
 		function onError(e) {
-			error(cast response, e + "\n" + haxe.CallStack.toString(haxe.CallStack.exceptionStack()));
+			errorMessageAndResponse(cast response, e + "\n" + haxe.CallStack.toString(haxe.CallStack.exceptionStack()));
 			sendEvent(new TerminatedEvent());
 		}
 
@@ -151,7 +151,7 @@ class HLAdapter extends DebugSession {
 		Sys.setCwd(workspaceDirectory);
 		startDebug(args.program,args.port, function(msg) {
 			if( msg != null ) {
-				error(cast response, msg);
+				errorMessageAndResponse(cast response, msg);
 				sendEvent(new TerminatedEvent());
 				return;
 			}
@@ -160,7 +160,7 @@ class HLAdapter extends DebugSession {
 		});
 	}
 
-	function error<T>(response:Response<T>, message:Dynamic) {
+	function errorMessageAndResponse<T>(response:Response<T>, message:Dynamic) {
 		errorMessage("ERROR : " + message);
 		sendErrorResponse(cast response, 3000, "" + message);
 	}
@@ -282,9 +282,9 @@ class HLAdapter extends DebugSession {
 		});
 		proc.on('error', function(err) {
 			if( err.message == "spawn hl ENOENT" )
-				error(cast response, "Could not start 'hl' process, executable was not found in PATH.\nRestart VSCode or computer.");
+				errorMessageAndResponse(cast response, "Could not start 'hl' process, executable was not found in PATH.\nRestart VSCode or computer.");
 			else
-				error(cast response, 'Failed to start hl process (${err.message})');
+				errorMessageAndResponse(cast response, 'Failed to start hl process (${err.message})');
 		});
 	}
 
@@ -322,7 +322,6 @@ class HLAdapter extends DebugSession {
 				if( Sys.systemName() == "Linux" )
 					msg += ". On Linux, please try set /proc/sys/kernel/yama/ptrace_scope to 0.";
 				onError(msg);
-				return;
 				return;
 			}
 			dbg.eval.allowEvalGetters = allowEvalGetters;
