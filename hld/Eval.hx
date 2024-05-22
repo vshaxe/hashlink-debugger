@@ -496,11 +496,15 @@ class Eval {
 
 	function compare(a:Value,b:Value) : Int {
 		switch [a.v, b.v] {
+		case [VPointer(aptr), VPointer(bptr)]:
+			return aptr.sub(bptr);
 		case [VString(as,_), VString(bs,_)]:
 			return Reflect.compare(as, bs);
-		default:
+		case [VInt(_) | VFloat(_), VInt(_) | VFloat(_)]:
 			var d = getNum(a) - getNum(b);
 			return d == 0 ? 0 : d > 0 ? 1 : -1;
+		default:
+			throw "Don't know how to compare " + a.v.getName() + " and " + b.v.getName();
 		}
 	}
 
