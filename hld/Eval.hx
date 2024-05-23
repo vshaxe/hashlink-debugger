@@ -494,15 +494,28 @@ class Eval {
 		}
 	}
 
+	function getInt64( v : Value ) : haxe.Int64 {
+		return switch( v.v ) {
+		case VInt64(i): i;
+		case VInt(i): i;
+		default: throw valueStr(v)+" should be a number";
+		}
+	}
+
 	function compare(a:Value,b:Value) : Int {
 		switch [a.v, b.v] {
+		case [VInt(_) | VFloat(_), VInt(_) | VFloat(_)]:
+			var d = getNum(a) - getNum(b);
+			return d == 0 ? 0 : d > 0 ? 1 : -1;
+		case [VInt(_) | VInt64(_), VInt(_) | VInt64(_)]:
+			var d = getInt64(a) - getInt64(b);
+			return d == 0 ? 0 : d > 0 ? 1 : -1;
+		case [VBool(ab), VBool((bb))]:
+			return ab == bb ? 0 : ab ? 1 : -1;
 		case [VPointer(aptr), VPointer(bptr)]:
 			return aptr.sub(bptr);
 		case [VString(as,_), VString(bs,_)]:
 			return Reflect.compare(as, bs);
-		case [VInt(_) | VFloat(_), VInt(_) | VFloat(_)]:
-			var d = getNum(a) - getNum(b);
-			return d == 0 ? 0 : d > 0 ? 1 : -1;
 		default:
 			throw "Don't know how to compare " + a.v.getName() + " and " + b.v.getName();
 		}
