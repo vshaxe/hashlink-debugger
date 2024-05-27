@@ -289,7 +289,7 @@ class Debugger {
 		while( true ) {
 			cmd = api.wait(customTimeout == null ? 1000 : Math.ceil(customTimeout * 1000));
 
-			if( cmd.r == Breakpoint && nextStep >= 0 ) {
+			if( cmd.r == Breakpoint && (nextStep >= 0 || onStep) ) {
 				// On Linux, singlestep is not reset
 				cmd.r = SingleStep;
 				singleStep(cmd.tid,false);
