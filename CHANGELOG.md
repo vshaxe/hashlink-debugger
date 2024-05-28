@@ -1,3 +1,8 @@
+## 1.4.11 (May 28, 2024)
+* added a pop-up when hl exit code 4 (debug port occupied)
+* added comparison for pointer, int64, bool
+* fixed step when leaving function on Linux
+
 ## 1.4.10 (May 2, 2024)
 * fixed thread exception before first breakpoint
 * fixed pause before first breakpoint on Linux
