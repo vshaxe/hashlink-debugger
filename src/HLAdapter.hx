@@ -281,7 +281,7 @@ class HLAdapter extends DebugSession {
 			sendEvent(new TerminatedEvent());
 			stopDebug();
 			if( code == 4 ) {
-				var msg = "hl exit code 4, please check if the debug port " + port + " is already occupied.";
+				var msg = "hl exit code 4. Please check if the debug port " + port + " is already occupied, or specifiy a different port in launch configuration.";
 				errorMessage(msg);
 				#if vscode
 				Vscode.window.showErrorMessage(msg, {modal: true});
