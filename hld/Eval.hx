@@ -512,8 +512,8 @@ class Eval {
 			return d == 0 ? 0 : d > 0 ? 1 : -1;
 		case [VBool(ab), VBool((bb))]:
 			return ab == bb ? 0 : ab ? 1 : -1;
-		case [VPointer(aptr), VPointer(bptr)]:
-			return aptr.sub(bptr);
+		case [VPointer(_) | VNull, VPointer(_) | VNull]:
+			return getPtr(a).sub(getPtr(b));
 		case [VString(as,_), VString(bs,_)]:
 			return Reflect.compare(as, bs);
 		default:
