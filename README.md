@@ -22,7 +22,15 @@ haxelib install hscript
 haxelib install format
 ```
 
-Once all dependencies are ready, you should be able to compile with `haxe build.hxml`
+You will need [NodeJS](https://nodejs.org/en/download), if you would like to compile vscode extension or use commandline nodejs version.
+
+Additionally, you need to install dependencies:
+
+```
+npm install
+```
+
+Once all dependencies are ready, you should be able to compile with `make build`.
 
 #### Commandline version
 
@@ -35,7 +43,7 @@ haxe debugger.hxml
 hl debug.hl /my/path/filetodebug.hl
 ```
 
-You can then use gdb-like commands such as run/bt/break/etc. (see [sources](https://github.com/vshaxe/hashlink-debugger/blob/master/hld/Main.hx#L198))
+You can then use gdb-like commands such as run/bt/break/etc. (see [sources](https://github.com/vshaxe/hashlink-debugger/blob/master/hld/Main.hx#L219))
 
 The commandline debugger can also be compiled and run using nodejs, by doing:
 ```
@@ -50,6 +58,8 @@ node debugger.js /my/path/filetodebug.hl
 
 Please note that VSCode does not allow users to have a specific directory for a single extension, so it's easier to clone this repository directly into the `extensions` directory of VSCode (`C:\Users\<you>\.vscode\extensions` on Windows).
 
+Alternatively, you can run `make package` (requires dependency `npm install vsce -g`) to generate VSCode extension package file (.vsix). It can be used with VSCode > Extensions > Install from VSIX.
+
 ### Supported Platforms
 
-Supports Windows, Linux and Mac platforms. For OSX/MacOS make sure your Hashlink version is `1.12.0` or higher and you ran `make codesign_osx` during installation.
+Supports Windows, Linux and Mac (Intel chip only, does not work with Rosetta). For OSX/MacOS make sure your Hashlink version is `1.12.0` or higher and you ran `make codesign_osx` during installation.
