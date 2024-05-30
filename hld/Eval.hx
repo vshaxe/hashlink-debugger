@@ -210,7 +210,7 @@ class Eval {
 				return { v : VString(s, null), t : t_string };
 			}
 		case EIdent(i):
-			var v = getVar(i);
+			var v = evalPath([i]);
 			if( v == null ) throw "Unknown identifier "+i;
 			return v;
 		case EArray(v, i):
