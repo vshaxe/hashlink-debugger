@@ -1,3 +1,7 @@
+## 1.4.12 (May 30, 2024)
+* fixed comparison pointer/null
+* fixed compound launch
+
 ## 1.4.11 (May 28, 2024)
 * added a pop-up when hl exit code 4 (debug port occupied)
 * added comparison for pointer, int64, bool
