@@ -757,8 +757,13 @@ class Eval {
 		if( g == null )
 			return ANone;
 		var addr = AAddr(jit.globals.offset(g.offset), g.type);
-		while( addr != ANone && path.length > 0 )
-			addr = readFieldAddress(fetchAddr(addr), path.shift());
+		var p : String = null;
+		while( addr != ANone && path.length > 0 ) {
+			p = path.shift();
+			addr = readFieldAddress(fetchAddr(addr), p);
+		}
+		if( addr == ANone && p != null )
+			path.unshift(p);
 		return addr;
 	}
 
