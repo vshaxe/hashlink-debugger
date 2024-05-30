@@ -248,7 +248,21 @@ class Eval {
 				switch( e ) {
 				case EIdent(i):
 					path.unshift(i);
+					var noFilePath = path.copy();
 					v = evalPath(path);
+					if( v == null ) {
+						// First not lower case id might be file name (removed in runtime)
+						for( i in 0...noFilePath.length-1 ) {
+							if( noFilePath[i].toLowerCase() != noFilePath[i] ) {
+								noFilePath.remove(noFilePath[i]);
+								break;
+							}
+						}
+						v = evalPath(noFilePath);
+						if( v == null )
+							throw "Unknown value "+path.join(".");
+						path = noFilePath.copy();
+					}
 					break;
 				case EField(e2, f):
 					path.unshift(f);
@@ -741,14 +755,13 @@ class Eval {
 		return getGlobalAddress([name]);
 	}
 
-	function evalPath( path : Array<String> ) {
+	function evalPath( path : Array<String> ) : Value {
 		var v = getVar(path[0]);
 		if( v != null ) {
 			path.shift();
 			return v;
 		}
 		var v = getGlobalAddress(path);
-		if( v == ANone ) throw "Unknown value "+path.join(".");
 		return fetchAddr(v);
 	}
 
