@@ -9,7 +9,8 @@ cleanup:
 	find . -name *.tlog | xargs rm -rf
 	find . -name *.map | xargs rm -rf
 build:
-	haxe -cp src -lib vscode -lib vshaxe -lib vscode-debugadapter -lib format -lib hscript -D js-es=6 -js extension.js Extension
+	haxe -cp src -lib vscode -lib vshaxe -lib vscode-debugadapter -D js-es=6 -js extension.js Extension
+	haxe build.hxml
 package: cleanup build
 	#npm install vsce -g
 	vsce package

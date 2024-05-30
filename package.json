@@ -68,6 +68,7 @@
 			{
 				"type": "hl",
 				"label": "HashLink",
+				"program": "./adapter.js",
 				"runtime": "node",
 				"configurationAttributes": {
 					"launch": {

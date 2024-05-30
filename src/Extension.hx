@@ -7,7 +7,7 @@ class Extension {
 	static function main(context:ExtensionContext) {
 		Vscode.debug.registerDebugConfigurationProvider("hl", {resolveDebugConfiguration: resolveDebugConfiguration});
 		Vscode.debug.registerDebugAdapterDescriptorFactory("hl", {createDebugAdapterDescriptor: createDebugAdapterDescriptor});
-		context.subscriptions.push(Vscode.commands.registerCommand("hldebug.var.formatInt", args -> HLAdapter.inst?.formatInt(args)));
+		context.subscriptions.push(Vscode.commands.registerCommand("hldebug.var.formatInt", args -> formatInt(args)));
 	}
 
 	static function resolveDebugConfiguration(folder:Null<WorkspaceFolder>, config:DebugConfiguration,
@@ -63,8 +63,32 @@ class Extension {
 
 	static function createDebugAdapterDescriptor(session: DebugSession, ?executable:DebugAdapterExecutable): ProviderResult<vscode.DebugAdapterDescriptor> {
 		var config = Vscode.workspace.getConfiguration("hldebug");
-		HLAdapter.DEBUG = config.get("verbose", false);
-		var adapter = new HLAdapter(config.get("defaultPort", 6112));
-		return new vscode.DebugAdapterInlineImplementation(cast adapter);
+		var isVerbose = config.get("verbose", false);
+		var defaultPort = config.get("defaultPort", 6112);
+
+		/*
+		// Can be used to communicate with one built-in adapter during execution. Build with -lib format -lib hscript.
+		if( HLAdapter.inst == null ) {
+			HLAdapter.DEBUG = isVerbose;
+			HLAdapter.DEFAULT_PORT = defaultPort;
+			var adapter = new HLAdapter();
+			return new vscode.DebugAdapterInlineImplementation(cast adapter);
+		}
+		*/
+
+		if( executable == null )
+			Vscode.window.showErrorMessage("No executable specified. Please check your configuration.");
+		if( isVerbose )
+			executable.args.push("--verbose");
+		executable.args.push("--defaultPort");
+		executable.args.push("" + defaultPort);
+		return executable;
+	}
+
+	static function formatInt( args:VariableContextCommandArg ) {
+		var i = Std.parseInt(args.variable.value);
+		if (i == null)
+			return;
+		Vscode.window.showInformationMessage(args.variable.name + "(" + i + ") = 0x" + Utils.toString(i,16) + " = 0b" + Utils.toString(i,2));
 	}
 }

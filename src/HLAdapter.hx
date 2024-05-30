@@ -21,6 +21,7 @@ class HLAdapter extends DebugSession {
 	static var UID = 0;
 	public static var inst : HLAdapter;
 	public static var DEBUG = false;
+	public static var DEFAULT_PORT : Int = 6112;
 
 	var proc : ChildProcessObject;
 	var workspaceDirectory : String;
@@ -43,10 +44,10 @@ class HLAdapter extends DebugSession {
 	static var isWindows = Sys.systemName() == "Windows";
 	static var isMac = Sys.systemName() == "Mac";
 
-	public function new( defaultPort : Int = 6112 ) {
+	public function new() {
 		super();
 		allowEvalGetters = false;
-		debugPort = defaultPort;
+		debugPort = DEFAULT_PORT;
 		doDebug = true;
 		threads = new Map();
 		startTime = haxe.Timer.stamp();
@@ -1087,7 +1088,28 @@ class HLAdapter extends DebugSession {
 	// Standalone adapter.js
 
 	static function main() {
-		if( DEBUG ) {
+		function paramError( msg ) {
+			Sys.stderr().writeString(msg + "\n");
+			// Sys.exit(1); // Ignore error
+		}
+
+		var args = Sys.args();
+		while( args.length > 0 && args[0].charCodeAt(0) == '-'.code ) {
+			var param = args.shift();
+			switch( param ) {
+				case "--verbose":
+					HLAdapter.DEBUG = true;
+				case "--defaultPort":
+					param = args.shift();
+					var port : Int;
+					if( param != null && (port = Std.parseInt(param)) != 0 )
+						HLAdapter.DEFAULT_PORT = port;
+					paramError("Require defaultPort int value");
+				default:
+					paramError("Unsupported parameter " + param);
+			}
+		}
+		if( HLAdapter.DEBUG ) {
 			js.Node.process.on("uncaughtException", function(e:js.lib.Error) {
 				if( inst != null ) inst.sendEvent(new OutputEvent("*** ERROR *** " +e.message+"\n"+e.stack, Stderr));
 				Sys.exit(1);
@@ -1095,16 +1117,5 @@ class HLAdapter extends DebugSession {
 		}
 		DebugSession.run( HLAdapter );
 	}
-
-	// Communicate with Extension
-
-	#if vscode
-	public function formatInt( args:VariableContextCommandArg ) {
-		var i = Std.parseInt(args.variable.value);
-		if (i == null)
-			return;
-		Vscode.window.showInformationMessage(args.variable.name + "(" + i + ") = 0x" + Utils.toString(i,16) + " = 0b" + Utils.toString(i,2));
-	}
-	#end
 
 }
