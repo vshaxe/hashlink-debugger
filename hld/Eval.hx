@@ -743,16 +743,20 @@ class Eval {
 			}
 		}
 
+		// global
+		var g = getGlobalAddress([name]);
+		if( g != ANone )
+			return g;
+
 		// global (current package)
 		if( tpack != null && tpack.length > 0 ) {
 			tpack.push(name);
 			var g = getGlobalAddress(tpack);
-			if( g != null )
+			if( g != ANone )
 				return g;
 		}
 
-		// global
-		return getGlobalAddress([name]);
+		return ANone;
 	}
 
 	function evalPath( path : Array<String> ) : Value {
