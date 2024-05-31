@@ -255,29 +255,28 @@ class Eval {
 						for( i in 0...noFilePath.length-1 ) {
 							if( noFilePath[i].toLowerCase() != noFilePath[i] ) {
 								noFilePath.remove(noFilePath[i]);
+								// Only evaluate if different than path
+								v = evalPath(noFilePath);
 								break;
 							}
 						}
-						v = evalPath(noFilePath);
-						if( v == null )
-							throw "Unknown value "+path.join(".");
-						path = noFilePath.copy();
 					}
-					break;
+					if( v == null )
+						throw "Unknown value "+path.join(".");
+					return v;
 				case EField(e2, f):
 					path.unshift(f);
 					e = e2;
 				default:
 					v = evalExpr(e);
-					break;
+					for( f in path ) {
+						var vf = readField(v, f);
+						if( vf == null ) throw valueStr(v)+" has no field "+f;
+						v = vf;
+					}
+					return v;
 				}
 			}
-			for( f in path ) {
-				var vf = readField(v, f);
-				if( vf == null ) throw valueStr(v)+" has no field "+f;
-				v = vf;
-			}
-			return v;
 		case EIf(econd, e1, e2), ETernary(econd, e1, e2):
 			if( toBool(evalExpr(econd)) )
 				return evalExpr(e1);
@@ -763,10 +762,17 @@ class Eval {
 		var v = getVar(path[0]);
 		if( v != null ) {
 			path.shift();
-			return v;
+			var p : String = null;
+			while( v != null && path.length > 0 ) {
+				p = path.shift();
+				v = readField(v, p);
+			}
+			if( v == null )
+				path.unshift(p);
+		} else {
+			v = fetchAddr(getGlobalAddress(path));
 		}
-		var v = getGlobalAddress(path);
-		return fetchAddr(v);
+		return v;
 	}
 
 	function getGlobalAddress( path : Array<String> ) : VarAddress {
