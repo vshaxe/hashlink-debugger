@@ -948,6 +948,8 @@ class HLAdapter extends DebugSession {
 			// ?ident => hover on optional param (most likely)
 			if( ~/^\?[A-Za-z0-9_]+$/.match(args.expression) )
 				args.expression = args.expression.substr(1);
+			// ?. => likely null safe field access, replace to .
+			args.expression = StringTools.replace(args.expression, "?.", ".");
 			if( KEYWORDS.exists(args.expression) ) {
 				// Do nothing
 			} else {
