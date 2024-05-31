@@ -16,7 +16,7 @@ jobs:
     - name: Install haxelib dependencies
       run: |
         haxelib git format https://github.com/HaxeFoundation/format.git
-        haxelib install hscript
+        haxelib git hscript https://github.com/HaxeFoundation/hscript.git
         haxelib install vshaxe
         haxelib install vscode
         haxelib install vscode-debugadapter

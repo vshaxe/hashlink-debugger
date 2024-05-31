@@ -18,8 +18,8 @@ Additionally, you need to install these dependencies:
 haxelib install vshaxe
 haxelib install vscode
 haxelib install vscode-debugadapter
-haxelib install hscript
-haxelib install format
+haxelib git hscript https://github.com/HaxeFoundation/hscript.git
+haxelib git format https://github.com/HaxeFoundation/format.git
 ```
 
 You will need [NodeJS](https://nodejs.org/en/download), if you would like to compile vscode extension or use commandline nodejs version.

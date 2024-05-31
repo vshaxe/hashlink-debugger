@@ -237,8 +237,18 @@ class Eval {
 			}
 		case EBlock(el):
 			var v : Value = { v : VNull, t : HDyn };
-			for( e in el )
-				v = evalExpr(e);
+			switch(el) {
+			case [EVar(id,_,e), ETernary(EBinop("==",EIdent(id2),EIdent("null")), EIdent("null"), EField(EIdent(id3),f))] if ( id == id2 && id == id3 ):
+				// Special case for e?.field
+				var ve : Value = evalExpr(e);
+				if( compare(ve, v) != 0 ) {
+					v = readField(ve, f);
+					if( v == null ) throw valueStr(ve)+" has no field "+f;
+				}
+			default:
+				for( e in el )
+					v = evalExpr(e);
+			}
 			return v;
 		case EField(e, f):
 			var e = e;
