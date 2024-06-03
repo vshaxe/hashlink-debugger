@@ -539,6 +539,22 @@ class Eval {
 			return getPtr(a).sub(getPtr(b));
 		case [VString(as,_), VString(bs,_)]:
 			return Reflect.compare(as, bs);
+		case [VEnum(ac, avalues, _), VEnum(bc, bvalues, _)]:
+			switch [a.t, b.t] {
+			case [HEnum(aproto), HEnum(bproto)] if (aproto == bproto):
+				if( ac == bc && avalues.length == bvalues.length ) {
+					for( i in 0...avalues.length )
+						if( compare(avalues[i], bvalues[i]) != 0 )
+							return -1;
+					return 0;
+				}
+				for( c in aproto.constructs ) {
+					if( c.name == ac ) return -1;
+					if( c.name == bc ) return 1;
+				}
+			default:
+			}
+			return -1;
 		default:
 			throw "Don't know how to compare " + a.v.getName() + " and " + b.v.getName();
 		}
@@ -1322,6 +1338,14 @@ class Eval {
 				default:
 				}
 			}
+			// Construct VEnum if try access with class.name and no params
+			var ep = module.resolveEnum(o.name.split("$").join(""));
+			if( ep != null )
+				for( c in ep.constructs ) {
+					if( c.name == name && c.params.length == 0 ) {
+						return AEvaled({v : VEnum(name, [], Pointer.make(0,0)), t : HEnum(ep) });
+					}
+				}
 			return ANone;
 		case HVirtual(fl):
 			for( i in 0...fl.length )
