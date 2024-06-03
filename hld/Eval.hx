@@ -238,7 +238,7 @@ class Eval {
 		case EBlock(el):
 			var v : Value = { v : VNull, t : HDyn };
 			switch(el) {
-			case [EVar(id,_,e), ETernary(EBinop("==",EIdent(id2),EIdent("null")), EIdent("null"), EField(EIdent(id3),f))] if ( id == id2 && id == id3 ):
+			case [EVar(id,_,e), ETernary(EBinop("==",EIdent(id2),EIdent("null")), EIdent("null"), EField(EIdent(id3),f))] if( id == id2 && id == id3 ):
 				// Special case for e?.field
 				var ve : Value = evalExpr(e);
 				if( compare(ve, v) != 0 ) {
@@ -543,7 +543,7 @@ class Eval {
 			return Reflect.compare(as, bs);
 		case [VEnum(ac, avalues, _), VEnum(bc, bvalues, _)]:
 			switch [a.t, b.t] {
-			case [HEnum(aproto), HEnum(bproto)] if (aproto == bproto):
+			case [HEnum(aproto), HEnum(bproto)] if( aproto == bproto ):
 				if( ac == bc && avalues.length == bvalues.length ) {
 					for( i in 0...avalues.length )
 						if( compare(avalues[i], bvalues[i]) != 0 )
