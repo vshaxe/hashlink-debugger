@@ -1,3 +1,8 @@
+## 1.4.13 (June 3, 2024)
+* improved eval access to class with file/package prefix
+* added eval support for null-safe field access operator (?.)
+* added comparison for enum value
+
 ## 1.4.12 (May 30, 2024)
 * fixed comparison pointer/null
 * fixed compound launch
