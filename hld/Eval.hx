@@ -303,6 +303,8 @@ class Eval {
 			var vargs = [for( e in eargs ) evalExpr(e)];
 			var vfun = evalExpr(efun);
 			switch( vfun.v ) {
+			case VEnum(c, values, p) if( values.length == vargs.length ):
+				return { v : VEnum(c, vargs, p), t : vfun.t };
 			case VMethod(_, obj, _):
 				vargs.unshift(obj);
 			case VFunction(_):
@@ -1342,8 +1344,8 @@ class Eval {
 			var ep = module.resolveEnum(o.name.split("$").join(""));
 			if( ep != null )
 				for( c in ep.constructs ) {
-					if( c.name == name && c.params.length == 0 ) {
-						return AEvaled({v : VEnum(name, [], Pointer.make(0,0)), t : HEnum(ep) });
+					if( c.name == name ) {
+						return AEvaled({ v : VEnum(name, [for( p in c.params ) { v : VNull, t : HDyn }], Pointer.make(0,0)), t : HEnum(ep) });
 					}
 				}
 			return ANone;
