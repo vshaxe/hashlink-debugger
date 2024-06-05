@@ -33,7 +33,7 @@ enum Hint {
 	HBin; // v:b
 	HEnumFlags(t : String); // v:EnumFlags<T>, v:haxe.EnumFlags<T>
 	HEnumIndex(t : String); // v:EnumIndex<T>
-	HCdbEnum(t : String); // v:CDB<T>, c:CDBEnum<T> -- for CastleDB
+	HCdbEnum(t : String); // v:CDB<T>, v:CDBEnum<T> -- for CastleDB
 }
 
 @:structInit class Value {
