@@ -1,3 +1,6 @@
+## 1.4.14 (June 5, 2024)
+* fixed eval this
+
 ## 1.4.13 (June 3, 2024)
 * improved eval access to class with file/package prefix
 * added eval support for null-safe field access operator (?.)
