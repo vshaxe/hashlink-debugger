@@ -1,4 +1,10 @@
 {
+	"files.trimTrailingWhitespace": true,
+	"haxe.codeGeneration": {
+		"imports": {
+			"enableAutoImports": false
+		}
+	},
 	"haxe.configurations": [
 		["display.hxml"]
 	]
