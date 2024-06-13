@@ -179,7 +179,7 @@ class Debugger {
 
 	function evalResumeDebug() {
 		resume();
-		wait();
+		wait(false, true);
 	}
 
 	function close() {
@@ -282,7 +282,7 @@ class Debugger {
 		return fields;
 	}
 
-	function wait( onStep = false ) : Api.WaitResult {
+	function wait( onStep = false, onEvalCall = false ) : Api.WaitResult {
 		var cmd = null;
 		var condition : String = null;
 		watchBreak = null;
@@ -368,6 +368,10 @@ class Debugger {
 			}
 		}
 		stoppedThread = cmd.tid;
+
+		// Do not overwrite stack on evalCall
+		if( onEvalCall )
+			return cmd.r;
 
 		// in thread-disabled we don't know the main thread id in HL:
 		// first stop is on a special thread in windows
