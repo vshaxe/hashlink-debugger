@@ -491,12 +491,12 @@ class Eval {
 		api.flush(eip, asmSize);
 		var ptr = api.readRegister(currentThread, Eax);
 		var nip = api.readRegister(currentThread, Eip).sub(eip);
-		var hasError = nip != asmSize;
-		if( hasError )
-			throw "Exception has occured";
 		api.writeRegister(currentThread, Eax, prevEax);
 		api.writeRegister(currentThread, Eip, eip);
 		api.writeRegister(currentThread, Esp, oldStack);
+		var hasError = nip != asmSize;
+		if( hasError )
+			throw "Exception has occured";
 		return convertVal(ptr, tret);
 	}
 
