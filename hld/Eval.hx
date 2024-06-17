@@ -352,11 +352,14 @@ class Eval {
 		case VMethod(_, _, p): p;
 		default: throw "Not a function";
 		}
+		var prevEax = api.readRegister(currentThread, Eax);
+		var eip = api.readRegister(currentThread, Eip);
+		var prevEsp = api.readRegister(currentThread, Esp);
 		// align stack
-		var stackValue = api.readRegister(currentThread, Esp);
-		var oldStack = stackValue;
+		var stackValue = prevEsp;
 		stackValue = stackValue.offset(-100);
 		stackValue = stackValue.offset((-stackValue.toInt() & 0xFF));
+		api.writeRegister(currentThread, Esp, stackValue);
 		// set registers
 		var asmOut = new haxe.io.BytesBuffer();
 
@@ -446,21 +449,24 @@ class Eval {
 			}
 		}
 		// insert call asm
-		var prevEax = api.readRegister(currentThread, Eax);
 		setReg(Eax, addr);
 		asmOut.addByte(0xFF); // call eax
 		asmOut.addByte(0xD0);
 		switch( tret ) {
 		case HF32:
+			asmOut.addInt32(0x10EC8348); // sub rsp, 16
 			// movss [rsp], xmm0
 			asmOut.addInt32(0x04110FF3);
 			asmOut.addByte(0x24);
 			popReg(Eax);
+			asmOut.addInt32(0x08C48348); // add rsp, 8
 		case HF64:
+			asmOut.addInt32(0x10EC8348); // sub rsp, 16
 			// movsd [rsp], xmm0
 			asmOut.addInt32(0x04110FF2);
 			asmOut.addByte(0x24);
 			popReg(Eax);
+			asmOut.addInt32(0x08C48348); // add rsp, 8
 		default:
 			// use RAX
 		}
@@ -475,7 +481,6 @@ class Eval {
 		var asmSize = asmOut.length;
 		if( Debugger.DEBUG )
 			trace("ASM Eval code ["+asmSize+"] = "+asmOut.toHex());
-		var eip = api.readRegister(currentThread, Eip);
 		var prevAsm = new Buffer(asmSize);
 		if( !api.read(eip, prevAsm, asmSize) )
 			throw "assert";
@@ -493,7 +498,7 @@ class Eval {
 		var nip = api.readRegister(currentThread, Eip).sub(eip);
 		api.writeRegister(currentThread, Eax, prevEax);
 		api.writeRegister(currentThread, Eip, eip);
-		api.writeRegister(currentThread, Esp, oldStack);
+		api.writeRegister(currentThread, Esp, prevEsp);
 		var hasError = nip != asmSize;
 		if( hasError )
 			throw "Exception has occured";
