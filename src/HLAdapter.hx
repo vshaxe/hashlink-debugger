@@ -466,6 +466,8 @@ class HLAdapter extends DebugSession {
 			debug("*** "+error+" ***");
 			syncThreads();
 			beforeStop();
+			var bt = dbg.getBackTrace();
+			debug("Callstack(tid:" + dbg.currentThread + "): " + bt.slice(0,5).map(f -> f.file + ":" + f.line));
 			var ev = new StoppedEvent(
 				"exception",
 				dbg.stoppedThread,
