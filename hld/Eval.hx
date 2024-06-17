@@ -1320,10 +1320,6 @@ class Eval {
 			if( f != null && ptr != null ) {
 				// HMethod
 				var vt = readPointer(ptr);
-				if( f.pindex >= 0 ) {
-					var vp = readPointer(vt.offset(align.ptr*2));
-					return AMethod(v, readPointer(vp.offset(f.index * align.ptr)), f.t);
-				}
 				var vobj = readPointer(vt.offset(align.ptr));
 				var vrt = readPointer(vobj.offset(4 * 2 + align.ptr + align.ptr * 7));
 				var vmethods = readPointer(vrt.offset(align.ptr + 4 * 6));

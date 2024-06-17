@@ -200,7 +200,11 @@ class Module {
 		var parent = o.tsuper == null ? null : switch( o.tsuper ) { case HObj(o), HStruct(o): getObjectProto(o,isStruct); default: throw "assert"; };
 		var size = parent == null ? (isStruct ? 0 : align.ptr) : parent.size;
 		var fields = parent == null ? new Map() : [for( k in parent.fields.keys() ) k => parent.fields.get(k)];
-		var methods = parent == null ? new Map() : [for( k in parent.methods.keys() ) k => parent.methods.get(k)];
+		var mindex = 0;
+		var methods = parent == null ? new Map() : [for( k => v in parent.methods ) k => {
+			mindex++;
+			v;
+		}];
 
 		for( f in o.fields ) {
 			var pad = f.t;
@@ -235,12 +239,16 @@ class Module {
 			}
 		}
 
-		var mindex = 0;
 		for( m in o.proto ) {
 			var idx = functionsIndexes.get(m.findex);
 			var f = code.functions[idx];
-			// todo : fix method index wrt subclasses & prototypes
-			methods.set(m.name, { t : f.t, index : mindex++, pindex : m.pindex });
+			// parent methods are placed before child
+			if( parent != null && m.pindex >= 0) {
+				var v = parent.methods.get(m.name);
+				methods.set(m.name, { t : f.t, index : v.index, pindex : m.pindex });
+			} else {
+				methods.set(m.name, { t : f.t, index : mindex++, pindex : m.pindex });
+			}
 		}
 
 		p = {
