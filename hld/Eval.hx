@@ -490,7 +490,12 @@ class Eval {
 		if( !api.write(eip, buffer, asmSize) )
 			throw "assert";
 		api.flush(eip, asmSize);
+		var isSingleStep = (api.readRegister(currentThread, EFlags).toInt() & 256) == 256;
+		if( isSingleStep )
+			setSingleStep(currentThread, false);
 		resumeDebug();
+		if( isSingleStep )
+			setSingleStep(currentThread, true);
 		// restore
 		api.write(eip, prevAsm, asmSize);
 		api.flush(eip, asmSize);
@@ -506,6 +511,10 @@ class Eval {
 	}
 
 	public dynamic function resumeDebug() {
+		throw "Not implemented";
+	}
+
+	public dynamic function setSingleStep(tid : Int, set : Bool) {
 		throw "Not implemented";
 	}
 

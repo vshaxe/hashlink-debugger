@@ -171,6 +171,7 @@ class Debugger {
 		this.api = api;
 		eval = new Eval(module, api, jit);
 		eval.resumeDebug = evalResumeDebug;
+		eval.setSingleStep = singleStep;
 		if( !api.start() )
 			return false;
 		wait(); // wait first break
@@ -289,7 +290,7 @@ class Debugger {
 		while( true ) {
 			cmd = api.wait(customTimeout == null ? 1000 : Math.ceil(customTimeout * 1000));
 
-			if( cmd.r == Breakpoint && (nextStep >= 0 || onStep) ) {
+			if( cmd.r == Breakpoint && !onEvalCall && (nextStep >= 0 || onStep) ) {
 				// On Linux, singlestep is not reset
 				cmd.r = SingleStep;
 				singleStep(cmd.tid,false);
