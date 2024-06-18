@@ -243,9 +243,12 @@ class Module {
 			var idx = functionsIndexes.get(m.findex);
 			var f = code.functions[idx];
 			// parent methods are placed before child
-			if( parent != null && m.pindex >= 0) {
+			if( parent != null && m.pindex >= 0 ) {
 				var v = parent.methods.get(m.name);
-				methods.set(m.name, { t : f.t, index : v.index, pindex : m.pindex });
+				if( v != null )
+					methods.set(m.name, { t : f.t, index : v.index, pindex : m.pindex });
+				else
+					methods.set(m.name, { t : f.t, index : mindex++, pindex : m.pindex });
 			} else {
 				methods.set(m.name, { t : f.t, index : mindex++, pindex : m.pindex });
 			}
