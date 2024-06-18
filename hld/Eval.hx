@@ -1331,7 +1331,9 @@ class Eval {
 				return ptr == null ? AUndef(f.t) : AAddr(ptr.offset(offset), f.t);
 			}
 			var f = p.methods.get(name);
-			if( f != null && ptr != null ) {
+			if( f != null ) {
+				if( ptr == null )
+					return AUndef(f.t);
 				// HMethod
 				var vt = readPointer(ptr);
 				var vobj = readPointer(vt.offset(align.ptr));
@@ -1340,7 +1342,11 @@ class Eval {
 				return AMethod(v, readPointer(vmethods.offset(f.index * align.ptr)), f.t);
 			}
 			var f = p.methods.get("get_"+name);
-			if( f != null && ptr != null && allowEvalGetters ) {
+			if( f != null ) {
+				if( ptr == null )
+					return AUndef(f.t);
+				if( !allowEvalGetters )
+					throw "Eval not allowed get_" + name + "()";
 				var f = readFieldAddress(v, "get_"+name);
 				switch( f ) {
 				case AMethod(obj, ptr, HFun(ft)) if( ft.args.length == 1 ):
