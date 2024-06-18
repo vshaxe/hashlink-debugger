@@ -83,7 +83,7 @@ class CodeGraph {
 			}
 			var r = -a.position - 2;
 			var vars;
-			if( r != reg ) {
+			if( r != reg && a.position != -1) {
 				reg = r;
 				vars = [];
 				args.unshift({ hasIndex : true, vars : vars });
@@ -94,7 +94,7 @@ class CodeGraph {
 		}
 
 		// single captured pointer => passed directly
-		if( args.length >= 1 && args[0].hasIndex && args[0].vars.length == 1 && !f.regs[0].match(HEnum({name:""})) )
+		if( args.length >= 1 && args[0].hasIndex && !f.regs[0].match(HEnum({name:null})) )
 			args[0].hasIndex = false;
 
 		if( args.length == nargs - 1 )
