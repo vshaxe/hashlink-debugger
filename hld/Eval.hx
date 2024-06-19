@@ -357,7 +357,7 @@ class Eval {
 		var prevEsp = api.readRegister(currentThread, Esp);
 		// align stack
 		var stackValue = prevEsp;
-		stackValue = stackValue.offset(-100);
+		stackValue = stackValue.offset(-0xFF);
 		stackValue = stackValue.offset((-stackValue.toInt() & 0xFF));
 		api.writeRegister(currentThread, Esp, stackValue);
 		// set registers
