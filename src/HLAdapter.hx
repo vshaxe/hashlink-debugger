@@ -618,7 +618,7 @@ class HLAdapter extends DebugSession {
 				var vthis = dbg.getValue("this");
 				var fields = dbg.eval.getFields(vthis);
 				if( fields == null )
-					debug("Can't get fields for "+dbg.eval.typeStr(vthis.t));
+					debug("Can't get fields for this: " + vthis.v.getName() + " of " + dbg.eval.typeStr(vthis.t));
 				else
 					response.body.scopes.push({
 						name : "Members",
