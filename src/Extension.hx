@@ -29,7 +29,7 @@ class Extension {
 			}
 			var validSignature = false;
 			try {
-				var entitlements:String = js.node.ChildProcess.execSync('codesign -d --entitlements - $$(which $hl)');
+				var entitlements:String = js.node.ChildProcess.execSync('codesign -d --entitlements - "$$(which $hl)"');
 				validSignature = entitlements.indexOf("com.apple.security.get-task-allow") >= 0;
 			} catch(ex: Dynamic) {}
 			if(!validSignature) {
