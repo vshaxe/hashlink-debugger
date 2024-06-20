@@ -14,6 +14,8 @@ typedef WatchPoint = {
 	var forReadWrite : Bool;
 }
 
+typedef StackRawInfo = { fidx : Int, fpos : Int, codePos : Int, ebp : hld.Pointer };
+
 typedef StackInfo = { file : String, line : Int, ebp : Pointer, ?context : { obj : format.hl.Data.ObjPrototype, field : String } };
 
 class Debugger {
@@ -49,9 +51,9 @@ class Debugger {
 
 	var breakPoints : Array<{ fid : Int, pos : Int, codePos : Int, oldByte : Int, condition : String }>;
 	var nextStep(default,set): Int = -1;
-	var currentStack : Array<{ fidx : Int, fpos : Int, codePos : Int, ebp : hld.Pointer }>;
+	var currentStack : Array<StackRawInfo>;
 	var watches : Array<WatchPoint>;
-	var threads : Map<Int,{ id : Int, stackTop : Pointer, exception : Pointer, name : String }>;
+	var threads : Map<Int,{ id : Int, stackTop : Pointer, exception : Pointer, ?exceptionStack: Array<StackRawInfo>, name : String }>;
 	var afterStep = false;
 
 	public var is64(get, never) : Bool;
@@ -245,6 +247,16 @@ class Debugger {
 		return eval.readVal(exc, HDyn);
 	}
 
+	public function getVMExceptionStack() {
+		var t = threads.get(currentThread);
+		if( t == null )
+			return null;
+		var stack = t.exceptionStack;
+		if( stack == null )
+			return null;
+		return stack.map(e -> stackInfo(e));
+	}
+
 	public function hasStack() {
 		return currentStack.length > 0;
 	}
@@ -420,6 +432,8 @@ class Debugger {
 		var tinfos = eval.readPointer(jit.threads.offset(8));
 		var flagsPos = jit.align.ptr * 6 + 8;
 		var excPos = jit.align.ptr * 5 + 8;
+		var excStackCountPos = flagsPos + 4;
+		var excStackPos = flagsPos + 8 + 256 + (jit.hlVersion >= 1.13 ? 128 : 0);
 		var namePos = jit.hlVersion >= 1.13 ? flagsPos + 8 : -1;
 		for( i in 0...count ) {
 			var tinf = eval.readPointer(tinfos.offset(jit.align.ptr * i));
@@ -440,12 +454,28 @@ class Debugger {
 				id : tid,
 				stackTop : eval.readPointer(tinf.offset(8)),
 				exception : flags & 4 == 0 ? null : tinf.offset(excPos),
+				exceptionStack : flags & 1 == 0 ? null : readVMExceptionStack(tinf.offset(excStackPos), eval.readI32(tinf.offset(excStackCountPos))),
 				name : name,
 			};
 			threads.set(tid, t);
 		}
 		if( !threads.exists(currentThread) )
 			threads.set(currentThread,{ id : currentThread, stackTop: null, exception: null, name : null });
+	}
+
+	function readVMExceptionStack(base : Pointer, count : Int) : Array<StackRawInfo> {
+		var stack = [];
+		if( count <= 0 || count >= 256 || base.isNull() )
+			return stack;
+		for( i in 0...count ) {
+			var codePtr = eval.readPointer(base.offset(i * jit.align.ptr));
+			if( codePtr < jit.codeStart || codePtr > jit.codeEnd)
+				continue;
+			var codePos = codePtr.sub(jit.codeStart);
+			var e = jit.resolveAsmPos(codePos);
+			stack.push(e);
+		}
+		return [for( s in stack ) if( module.isValid(s.fidx, s.fpos) ) s];
 	}
 
 	function prepareStack( isWatchbreak=false ) {

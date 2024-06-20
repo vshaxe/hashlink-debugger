@@ -439,6 +439,9 @@ class HLAdapter extends DebugSession {
 				default: dbg.eval.valueStr(exc);
 				};
 				debug("Exception: " + str);
+				var bt = dbg.getVMExceptionStack();
+				if( bt != null )
+					trace("Rethrow from " + bt.map(f -> '${f.file}:${f.line}(${stackStr(f)})'));
 			}
 
 			syncThreads();
