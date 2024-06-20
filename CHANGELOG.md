@@ -1,3 +1,8 @@
+## 1.4.15 (June 19, 2024)
+* fixed eval call: stack/reg/breakpoint corruption, function resolution
+* fixed single captured variable
+* fixed macOS code signature verification when hl path has spaces (#132)
+
 ## 1.4.14 (June 5, 2024)
 * fixed eval this
 
