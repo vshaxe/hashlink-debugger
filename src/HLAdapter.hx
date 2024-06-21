@@ -439,9 +439,6 @@ class HLAdapter extends DebugSession {
 				default: dbg.eval.valueStr(exc);
 				};
 				debug("Exception: " + str);
-				var bt = dbg.getVMExceptionStack();
-				if( bt != null )
-					trace("Rethrow from " + bt.map(f -> '${f.file}:${f.line}(${stackStr(f)})'));
 			}
 
 			syncThreads();
@@ -653,6 +650,13 @@ class HLAdapter extends DebugSession {
 				errorMessage(e);
 			}
 		}
+		var exception = dbg.getVMExceptionStack();
+		if( exception != null )
+			response.body.scopes.push({
+				name : "Exception Stack",
+				variablesReference : allocValue(VStack(exception)),
+				expensive : false,
+			});
 		sendResponse(response);
 	}
 
@@ -858,7 +862,7 @@ class HLAdapter extends DebugSession {
 				var st = stack[i];
 				vars.push({
 					name : ""+i,
-					value : st.file+":"+st.line+(st.context == null ? "" : " ("+st.context.obj.name+"."+st.context.field+")"),
+					value : (st.context == null ? "" : st.context.obj.name + "." + st.context.field) + " (" + getFilePath(st.file) + ":" + st.line + ")",
 					variablesReference: 0,
 				});
 			}
