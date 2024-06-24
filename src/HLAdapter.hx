@@ -862,7 +862,7 @@ class HLAdapter extends DebugSession {
 				var st = stack[i];
 				vars.push({
 					name : ""+i,
-					value : (st.context == null ? "" : st.context.obj.name + "." + st.context.field) + " (" + getFilePath(st.file) + ":" + st.line + ")",
+					value : stackStr(st) + " (" + getFilePath(st.file) + ":" + st.line + ")",
 					variablesReference: 0,
 				});
 			}
