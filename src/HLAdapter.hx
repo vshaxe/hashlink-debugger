@@ -665,10 +665,14 @@ class HLAdapter extends DebugSession {
 			return { name : name, value : "Unknown variable", variablesReference : 0 };
 		var tstr = dbg.eval.typeStr(value.t);
 		switch( value.v ) {
-		case VPointer(_):
+		case VPointer(ptr):
 			var fields = dbg.eval.getFields(value);
+			var pstr = switch( value.hint ) {
+				case HPointer: " " + ptr.toString();
+				default: "";
+			}
 			if( fields != null && fields.length > 0 )
-				return { name : name, type : tstr, value : tstr, variablesReference : allocValue(VValue(value)), namedVariables : fields.length };
+				return { name : name, type : tstr, value : tstr + pstr, variablesReference : allocValue(VValue(value)), namedVariables : fields.length };
 		case VEnum(c,values,_) if( values.length > 0 ):
 			var str = c + "(" + [for( v in values ) switch( v.v ) {
 				case VEnum(c,values,_) if( values.length == 0 ): c;

@@ -31,6 +31,7 @@ enum Hint {
 	HNone;
 	HHex; // v:h
 	HBin; // v:b
+	HPointer; // v:p
 	HEnumFlags(t : String); // v:EnumFlags<T>, v:haxe.EnumFlags<T>
 	HEnumIndex(t : String); // v:EnumIndex<T>
 	HCdbEnum(t : String); // v:CDB<T>, v:CDBEnum<T> -- for CastleDB
@@ -46,6 +47,8 @@ enum Hint {
 			return HHex;
 		if( s == "b" )
 			return HBin;
+		if( s == "p" )
+			return HPointer;
 		if( StringTools.startsWith(s,"EnumFlags<") && StringTools.endsWith(s,">") )
 			return HEnumFlags(s.substr(10, s.length - 11));
 		if( StringTools.startsWith(s,"haxe.EnumFlags<") && StringTools.endsWith(s,">") )
