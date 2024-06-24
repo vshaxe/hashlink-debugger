@@ -1,42 +1,57 @@
-## 1.4.15 (June 19, 2024)
+## 1.4.16 (June 24, 2024)
+
+* added previous exception stack in variables section when hl.Api.rethrow
+* added eval hint p for pointer
+
+## 1.4.15 (June 20, 2024)
+
 * fixed eval call: stack/reg/breakpoint corruption, function resolution
 * fixed single captured variable
 * fixed macOS code signature verification when hl path has spaces (#132)
 
 ## 1.4.14 (June 5, 2024)
+
 * fixed eval this
 
 ## 1.4.13 (June 3, 2024)
+
 * improved eval access to class with file/package prefix
 * added eval support for null-safe field access operator (?.)
 * added comparison for enum value
 
 ## 1.4.12 (May 30, 2024)
+
 * fixed comparison pointer/null
 * fixed compound launch
 
 ## 1.4.11 (May 28, 2024)
+
 * added a pop-up when hl exit code 4 (debug port occupied)
 * added comparison for pointer, int64, bool
 * fixed step when leaving function on Linux
 
 ## 1.4.10 (May 2, 2024)
+
 * fixed thread exception before first breakpoint
 * fixed pause before first breakpoint on Linux
 
 ## 1.4.9 (April 22, 2024)
+
 * fixed timeout/breakpoint/stop on Linux
 
 ## 1.4.8 (April 17, 2024)
+
 * fixed exception window not shown
 
 ## 1.4.7 (April 16, 2024)
+
 * added configuration snippets
 * added extension settings
 * added comparison for string, fixed not equal (!=) not working
 * fixed continue not working on Linux
 
 ## 1.4.6 (April 5, 2024)
+
 * added eval hint support
 
 ## 1.4.5 (March 26, 2024)
