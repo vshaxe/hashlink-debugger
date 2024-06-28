@@ -673,13 +673,15 @@ class HLAdapter extends DebugSession {
 		if( value == null )
 			return { name : name, value : "Unknown variable", variablesReference : 0 };
 		var tstr = dbg.eval.typeStr(value.t);
+		var pstr = switch( value.hint ) {
+			case HPointer:
+				var p = @:privateAccess dbg.eval.getPtr(value);
+				p == null ? "" : " " + p.toString();
+			default: "";
+		}
 		switch( value.v ) {
-		case VPointer(ptr):
+		case VPointer(_):
 			var fields = dbg.eval.getFields(value);
-			var pstr = switch( value.hint ) {
-				case HPointer: " " + ptr.toString();
-				default: "";
-			}
 			if( fields != null && fields.length > 0 )
 				return { name : name, type : tstr, value : tstr + pstr, variablesReference : allocValue(VValue(value)), namedVariables : fields.length };
 		case VEnum(c,values,_) if( values.length > 0 ):
@@ -688,13 +690,13 @@ class HLAdapter extends DebugSession {
 				case VPointer(_), VEnum(_), VArray(_), VMap(_), VBytes(_): "...";
 				default: dbg.eval.valueStr(v);
 			}].join(", ")+")";
-			return { name : name, type : tstr, value : str, variablesReference : allocValue(VValue(value)), namedVariables : values.length };
+			return { name : name, type : tstr, value : str + pstr, variablesReference : allocValue(VValue(value)), namedVariables : values.length };
 		case VArray(_, len, _, _), VMap(_, len, _, _):
-			return { name : name, type : tstr, value : dbg.eval.valueStr(value), variablesReference : len == 0 ? 0 : allocValue(VValue(value)), indexedVariables : len };
+			return { name : name, type : tstr, value : dbg.eval.valueStr(value) + pstr, variablesReference : len == 0 ? 0 : allocValue(VValue(value)), indexedVariables : len };
 		case VBytes(len, _):
-			return { name : name, type : tstr, value : tstr+":"+len, variablesReference : allocValue(VValue(value)), indexedVariables : (len+15)>>4 };
+			return { name : name, type : tstr, value : tstr+":"+len + pstr, variablesReference : allocValue(VValue(value)), indexedVariables : (len+15)>>4 };
 		case VClosure(f,context,_):
-			return { name : name, type : tstr, value : dbg.eval.funStr(f), variablesReference : allocValue(VValue(value)), indexedVariables : 2 };
+			return { name : name, type : tstr, value : dbg.eval.funStr(f) + pstr, variablesReference : allocValue(VValue(value)), indexedVariables : 2 };
 		case VInlined(fields):
 			return { name : name, type : tstr, value : dbg.eval.valueStr(value), variablesReference : fields.length == 0 ? 0 : allocValue(VValue(value)), namedVariables : fields.length };
 		default:
