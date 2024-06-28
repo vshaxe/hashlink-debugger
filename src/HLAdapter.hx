@@ -22,6 +22,9 @@ class HLAdapter extends DebugSession {
 	public static var inst : HLAdapter;
 	public static var DEBUG = false;
 	public static var DEFAULT_PORT : Int = 6112;
+	public static var BREAK_ONLY_ACTIVE = false;
+
+	var disableBreakpoints : Bool;
 
 	var proc : ChildProcessObject;
 	var workspaceDirectory : String;
@@ -47,6 +50,7 @@ class HLAdapter extends DebugSession {
 	public function new() {
 		super();
 		allowEvalGetters = false;
+		disableBreakpoints = BREAK_ONLY_ACTIVE;
 		debugPort = DEFAULT_PORT;
 		doDebug = true;
 		threads = new Map();
@@ -441,9 +445,7 @@ class HLAdapter extends DebugSession {
 				debug("Exception: " + str);
 			}
 
-			syncThreads();
-			beforeStop();
-			var msg = if( msg == Watchbreak )
+			var reason = if( msg == Watchbreak )
 				"data breakpoint"
 			else if( exc != null )
 				"exception"
@@ -452,15 +454,22 @@ class HLAdapter extends DebugSession {
 			else
 				"breakpoint";
 			var tid = dbg.currentThread;
-			debug("Stopped (" + msg+") on "+tid);
-			if( isPause && tid != dbg.mainThread && !dbg.hasStack() ) {
-				tid = dbg.mainThread;
-				dbg.setCurrentThread(tid);
-				debug("Switch thread "+tid);
+			if( disableBreakpoints && exc == null && !isPause ) {
+				// ignore breakpoint
+				shouldRun = true;
+			} else {
+				syncThreads();
+				beforeStop();
+				debug("Stopped (" + reason+ ") on " + tid);
+				if( isPause && tid != dbg.mainThread && !dbg.hasStack() ) {
+					tid = dbg.mainThread;
+					dbg.setCurrentThread(tid);
+					debug("Switch thread "+tid);
+				}
+				var ev = new StoppedEvent(reason, tid, str);
+				ev.allThreadsStopped = true;
+				sendEvent(ev);
 			}
-			var ev = new StoppedEvent(msg, tid, str);
-			ev.allThreadsStopped = true;
-			sendEvent(ev);
 		case Error, StackOverflow:
 			var error = msg == Error ? "Access Violation" : "Stack Overflow";
 			debug("*** "+error+" ***");
@@ -1098,6 +1107,20 @@ class HLAdapter extends DebugSession {
 		sendEvent(new OutputEvent(msg+"\n", Stderr));
 	}
 
+	// Runtime communication with extension
+
+	override function customRequest<T>(command:String, response:vscode.debugAdapter.Messages.Response<T>, args:Dynamic):Void {
+		switch( command ) {
+		case OnSessionActive:
+			if( BREAK_ONLY_ACTIVE )
+				disableBreakpoints = false;
+		case OnSessionInactive:
+			if( BREAK_ONLY_ACTIVE )
+				disableBreakpoints = true;
+		default:
+		}
+	}
+
 	// Standalone adapter.js
 
 	static function main() {
@@ -1118,6 +1141,8 @@ class HLAdapter extends DebugSession {
 					if( param != null && (port = Std.parseInt(param)) != 0 )
 						HLAdapter.DEFAULT_PORT = port;
 					paramError("Require defaultPort int value");
+				case "--breakOnlyActive":
+					HLAdapter.BREAK_ONLY_ACTIVE = true;
 				default:
 					paramError("Unsupported parameter " + param);
 			}

@@ -25,6 +25,11 @@ typedef VariableContextCommandArg = {
 	var variable : vscode.debugProtocol.DebugProtocol.Variable;
 }
 
+enum abstract CustomRequestCommand(String) to String {
+	var OnSessionActive;
+	var OnSessionInactive;
+}
+
 class Utils {
 
 	inline public static function toString(value:Int, base:Int):String {

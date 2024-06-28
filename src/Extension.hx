@@ -7,6 +7,7 @@ class Extension {
 	static function main(context:ExtensionContext) {
 		Vscode.debug.registerDebugConfigurationProvider("hl", {resolveDebugConfiguration: resolveDebugConfiguration});
 		Vscode.debug.registerDebugAdapterDescriptorFactory("hl", {createDebugAdapterDescriptor: createDebugAdapterDescriptor});
+		Vscode.debug.onDidChangeActiveDebugSession(onDidChangeActiveDebugSession);
 		context.subscriptions.push(Vscode.commands.registerCommand("hldebug.var.formatInt", args -> formatInt(args)));
 	}
 
@@ -65,6 +66,7 @@ class Extension {
 		var config = Vscode.workspace.getConfiguration("hldebug");
 		var isVerbose = config.get("verbose", false);
 		var defaultPort = config.get("defaultPort", 6112);
+		var isBreakOnlyActive = config.get("breakOnlyActive", false);
 
 		/*
 		// Can be used to communicate with one built-in adapter during execution. Build with -lib format -lib hscript.
@@ -82,7 +84,16 @@ class Extension {
 			executable.args.push("--verbose");
 		executable.args.push("--defaultPort");
 		executable.args.push("" + defaultPort);
+		if( isBreakOnlyActive )
+			executable.args.push("--breakOnlyActive");
 		return executable;
+	}
+
+	static var prevSession : DebugSession = null;
+	static function onDidChangeActiveDebugSession(session: Null<DebugSession>) {
+		prevSession?.customRequest(CustomRequestCommand.OnSessionInactive);
+		session?.customRequest(CustomRequestCommand.OnSessionActive);
+		prevSession = session;
 	}
 
 	static function formatInt( args:VariableContextCommandArg ) {
