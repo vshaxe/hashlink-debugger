@@ -94,7 +94,7 @@ class CodeGraph {
 		}
 
 		// single captured pointer => passed directly
-		if( args.length >= 1 && args[0].hasIndex && !f.regs[0].match(HEnum({name:null})) )
+		if( args.length >= 1 && args[0].hasIndex && !f.regs[0].match(HEnum({constructs:[{name:""}]})) )
 			args[0].hasIndex = false;
 
 		if( args.length == nargs - 1 )
