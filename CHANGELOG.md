@@ -1,3 +1,8 @@
+## 1.4.17 (July 1, 2024)
+
+* added break only active process for multi-target debugging
+* added eval hint p for other values with pointer representation
+
 ## 1.4.16 (June 24, 2024)
 
 * added previous exception stack in variables section when hl.Api.rethrow
