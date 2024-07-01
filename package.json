@@ -61,11 +61,6 @@
 					"markdownDescription": "Default debug port used to connect to HL virtual machine.",
 					"type": "integer",
 					"default": 6112
-				},
-				"hldebug.breakOnlyActive": {
-					"markdownDescription": "Only break on active process, useful for multi-target debugging.",
-					"type": "boolean",
-					"default": false
 				}
 			}
 		},

@@ -22,9 +22,9 @@ class HLAdapter extends DebugSession {
 	public static var inst : HLAdapter;
 	public static var DEBUG = false;
 	public static var DEFAULT_PORT : Int = 6112;
-	public static var BREAK_ONLY_ACTIVE = false;
 
-	var disableBreakpoints : Bool;
+	var isSessionActive(default, set) : Bool;
+	var breakOnlyActive(default, set) : Bool;
 
 	var proc : ChildProcessObject;
 	var workspaceDirectory : String;
@@ -39,6 +39,7 @@ class HLAdapter extends DebugSession {
 
 	var varsValues : Map<Int,VarValue>;
 	var ptrValues : Array<hld.Debugger.Address>;
+	var breakPos : Map<String, Array<{ line : Int, condition : String }>>;
 	var watchedPtrs : Array<hld.Debugger.WatchPoint>;
 	var isPause : Bool;
 	var threads : Map<Int,Bool>;
@@ -50,15 +51,33 @@ class HLAdapter extends DebugSession {
 	public function new() {
 		super();
 		allowEvalGetters = false;
-		disableBreakpoints = BREAK_ONLY_ACTIVE;
+		isSessionActive = false;
+		breakOnlyActive = false;
 		debugPort = DEFAULT_PORT;
 		doDebug = true;
 		threads = new Map();
 		startTime = haxe.Timer.stamp();
 		ptrValues = [];
+		breakPos = [];
 		watchedPtrs = [];
 		inst = this;
 		shouldRun = false;
+	}
+
+	function set_isSessionActive( b : Bool ) {
+		if( b != isSessionActive ) {
+			if( breakOnlyActive )
+				setBreakPos(b);
+		}
+		return isSessionActive = b;
+	}
+
+	function set_breakOnlyActive( b : Bool ) {
+		if( b != breakOnlyActive ) {
+			if( !isSessionActive )
+				setBreakPos(!b);
+		}
+		return breakOnlyActive = b;
 	}
 
 	override function initializeRequest(response:InitializeResponse, args:InitializeRequestArguments) {
@@ -78,7 +97,10 @@ class HLAdapter extends DebugSession {
 		response.body.supportsSetVariable = true;
 		response.body.supportsDataBreakpoints = true;
 
-		response.body.exceptionBreakpointFilters = [{ filter : "all", label : "Stop on all exceptions" }];
+		response.body.exceptionBreakpointFilters = [
+			{ filter : "all", label : "Stop on all exceptions" },
+			{ filter : "activeOnly", label : "Break only active process" }
+		];
 
 		sendResponse( response );
 	}
@@ -128,6 +150,7 @@ class HLAdapter extends DebugSession {
 		if( Sys.systemName() != "Mac" ) { // TODO: Fix issue with corrupted memory on Mac
 			dbg.breakOnThrow = args.filters.indexOf("all") >= 0;
 		}
+		breakOnlyActive = args.filters.indexOf("activeOnly") >= 0;
 		sendResponse(response);
 	}
 
@@ -454,22 +477,17 @@ class HLAdapter extends DebugSession {
 			else
 				"breakpoint";
 			var tid = dbg.currentThread;
-			if( disableBreakpoints && exc == null && !isPause ) {
-				// ignore breakpoint
-				shouldRun = true;
-			} else {
-				syncThreads();
-				beforeStop();
-				debug("Stopped (" + reason+ ") on " + tid);
-				if( isPause && tid != dbg.mainThread && !dbg.hasStack() ) {
-					tid = dbg.mainThread;
-					dbg.setCurrentThread(tid);
-					debug("Switch thread "+tid);
-				}
-				var ev = new StoppedEvent(reason, tid, str);
-				ev.allThreadsStopped = true;
-				sendEvent(ev);
+			syncThreads();
+			beforeStop();
+			debug("Stopped (" + reason+ ") on " + tid);
+			if( isPause && tid != dbg.mainThread && !dbg.hasStack() ) {
+				tid = dbg.mainThread;
+				dbg.setCurrentThread(tid);
+				debug("Switch thread "+tid);
 			}
+			var ev = new StoppedEvent(reason, tid, str);
+			ev.allThreadsStopped = true;
+			sendEvent(ev);
 		case Error, StackOverflow:
 			var error = msg == Error ? "Access Violation" : "Stack Overflow";
 			debug("*** "+error+" ***");
@@ -519,30 +537,48 @@ class HLAdapter extends DebugSession {
 			sendResponse(response);
 			return;
 		}
+		for( f in files ) {
+			breakPos.set(f, []);
+		}
+		var bps = [];
+		response.body = { breakpoints : bps };
+		for( bp in args.breakpoints ) {
+			var line = -1;
+			for( f in files ) {
+				line = dbg.checkBreakpointLine(f, bp.line);
+				if( line >= 0 ) {
+					breakPos.get(f).push({line : line, condition : bp.condition});
+					bps.push({ line : line, verified : true, message : null });
+					break;
+				}
+			}
+			if( line < 0 )
+				bps.push({ line : bp.line, verified : false, message : "No code found here" });
+		}
+		if( !breakOnlyActive || isSessionActive )
+			setBreakPos(true);
+		sendResponse(response);
+	}
+
+	function setBreakPos(active : Bool) {
+		if( dbg == null )
+			return;
 		var forcePaused = false;
 		if( dbg.stoppedThread == null ) {
 			// On Linux, ptrace needs to be in ptrace-stop state in order to read/write
 			forcePaused = true;
 			safe(() -> dbg.pause());
 		}
-		for( f in files )
+		for( f in breakPos.keys() )
 			dbg.clearBreakpoints(f);
-		var bps = [];
-		response.body = { breakpoints : bps };
-		for( bp in args.breakpoints ) {
-			var line = -1;
-			for( f in files ) {
-				line = dbg.addBreakpoint(f, bp.line, bp.condition);
-				if( line >= 0 ) break;
+		if( active ) {
+			for( f => bps in breakPos ) {
+				for( bp in bps )
+					var line = dbg.addBreakpoint(f, bp.line, bp.condition);
 			}
-			if( line >= 0 )
-				bps.push({ line : line, verified : true, message : null });
-			else
-				bps.push({ line : bp.line, verified : false, message : "No code found here" });
 		}
 		if( forcePaused )
 			shouldRun = true;
-		sendResponse(response);
 	}
 
 	override function threadsRequest(response:ThreadsResponse) {
@@ -1114,11 +1150,9 @@ class HLAdapter extends DebugSession {
 	override function customRequest<T>(command:String, response:vscode.debugAdapter.Messages.Response<T>, args:Dynamic):Void {
 		switch( command ) {
 		case OnSessionActive:
-			if( BREAK_ONLY_ACTIVE )
-				disableBreakpoints = false;
+			isSessionActive = true;
 		case OnSessionInactive:
-			if( BREAK_ONLY_ACTIVE )
-				disableBreakpoints = true;
+			isSessionActive = false;
 		default:
 		}
 	}
@@ -1143,8 +1177,6 @@ class HLAdapter extends DebugSession {
 					if( param != null && (port = Std.parseInt(param)) != 0 )
 						HLAdapter.DEFAULT_PORT = port;
 					paramError("Require defaultPort int value");
-				case "--breakOnlyActive":
-					HLAdapter.BREAK_ONLY_ACTIVE = true;
 				default:
 					paramError("Unsupported parameter " + param);
 			}

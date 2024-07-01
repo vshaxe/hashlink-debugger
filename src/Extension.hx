@@ -66,7 +66,6 @@ class Extension {
 		var config = Vscode.workspace.getConfiguration("hldebug");
 		var isVerbose = config.get("verbose", false);
 		var defaultPort = config.get("defaultPort", 6112);
-		var isBreakOnlyActive = config.get("breakOnlyActive", false);
 
 		/*
 		// Can be used to communicate with one built-in adapter during execution. Build with -lib format -lib hscript.
@@ -84,8 +83,6 @@ class Extension {
 			executable.args.push("--verbose");
 		executable.args.push("--defaultPort");
 		executable.args.push("" + defaultPort);
-		if( isBreakOnlyActive )
-			executable.args.push("--breakOnlyActive");
 		return executable;
 	}
 

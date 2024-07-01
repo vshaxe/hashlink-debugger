@@ -943,6 +943,11 @@ class Debugger {
 			throw "Failed to set register " + reg;
 	}
 
+	public function checkBreakpointLine(file : String, line : Int) {
+		var breaks = module.getBreaks(file, line);
+		return breaks == null ? -1 : breaks.line;
+	}
+
 	public function addBreakpoint( file : String, line : Int, condition : Null<String> ) {
 		var breaks = module.getBreaks(file, line);
 		if( breaks == null )
