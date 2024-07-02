@@ -690,8 +690,10 @@ class Eval {
 		if( a != ANone )
 			return a;
 
-		if( localsRaw == null )
-			localsRaw = module.getGraph(funIndex).getLocalsRaw(codePos);
+		if( localsRaw == null ) {
+			var g = module.getGraph(funIndex);
+			@:privateAccess localsRaw = g.getLocalsRaw(codePos).concat(g.getArgsRaw());
+		}
 
 		// Inlined constructor variables
 		var relatedLocals = [];

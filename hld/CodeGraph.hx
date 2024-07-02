@@ -150,15 +150,14 @@ class CodeGraph {
 	}
 
 	public function getArgs() : Array<String> {
-		var arr = [];
-		for( a in args )
-			for( v in a.vars )
-				arr.push(v);
-		return arr;
+		return filterRaw(getArgsRaw());
 	}
 
 	public function getLocals( pos : Int ) : Array<String> {
-		var raw = getLocalsRaw(pos);
+		return filterRaw(getLocalsRaw(pos));
+	}
+
+	function filterRaw( raw : Array<String> ) {
 		var arr = [];
 		for( a in raw ) {
 			var name = a.split(".")[0];
@@ -168,7 +167,15 @@ class CodeGraph {
 		return arr;
 	}
 
-	public function getLocalsRaw( pos : Int ) : Array<String> {
+	function getArgsRaw() : Array<String> {
+		var arr = [];
+		for( a in args )
+			for( v in a.vars )
+				arr.push(v);
+		return arr;
+	}
+
+	function getLocalsRaw( pos : Int ) : Array<String> {
 		if( pos == localsRawCachePos )
 			return localsRawCache;
 		var arr = [];
