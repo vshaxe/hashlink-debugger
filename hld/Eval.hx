@@ -1185,7 +1185,7 @@ class Eval {
 			throw "Unsupported map " + tkey.toString();
 		}
 
-		var isSmall = isV13 && nentries < 128;
+		var isSmall = isV13 && maxEntries < 128;
 
 		var content : Array<{ key : Value, value : Value }> = [];
 		var curCell = 0;
