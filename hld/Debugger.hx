@@ -499,8 +499,10 @@ class Debugger {
 		var tid = currentThread;
 		var s = currentStack[0];
 		var depth = currentStack.length;
+		var onException = getException() != null;
 
-		if( s == null ) {
+		if( s == null || onException ) {
+			if( DEBUG ) trace("Step not supported, continue.");
 			resume();
 			return wait();
 		}
