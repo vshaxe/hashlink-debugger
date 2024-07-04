@@ -527,7 +527,7 @@ class Debugger {
 				return;
 			var l = module.resolveSymbol(s.fidx, pos);
 			var c = graph.control(pos);
-			var lineChange = mode != Out && (l.file != orig.file || l.line != orig.line);
+			var lineChange = mode != Out && (l.file != orig.file || l.line != orig.line) && !c.match(CCatch | CJAlways(_));
 			switch( c ) {
 			case CCall(f) if( f >= 0 && mode == Into ):
 				// skip calls to std library
@@ -555,21 +555,9 @@ class Debugger {
 			}
 			if( !c.match(CNo | CCall(_)) )
 				marked.set(pos, null);
-			switch( c ) {
-			case CJCond(d):
-				visitRec(pos + 1 + d);
-			case CJAlways(d):
-				visitRec(pos + 1 + d);
-				return;
-			case CLabel:
-			case CTry(d):
-				visitRec(pos + 1 + d);
-			case CSwitch(cases):
-				for( c in cases )
-					visitRec(pos + 1 + c);
-			default:
+			for( p in graph.getNextPos(pos) ) {
+				visitRec(p);
 			}
-			visitRec(++pos);
 		}
 		visitRec(s.fpos);
 		function cleanup() {

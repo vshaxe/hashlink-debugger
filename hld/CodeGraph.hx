@@ -5,6 +5,7 @@ private enum Control {
 	CJCond( d : Int );
 	CJAlways( d : Int );
 	CTry( d : Int );
+	CCatch;
 	CSwitch( arr : Array<Int> );
 	CRet;
 	CThrow;
@@ -22,6 +23,7 @@ class CodeBlock {
 	public var loop : Bool;
 	public var prev : Array<CodeBlock>;
 	public var next : Array<CodeBlock>;
+	public var trap : Array<Int>;
 
 	public var writtenRegs : Map<Int,Int>;
 	public var writtenVars : Map<String, Array<Int>>;
@@ -29,10 +31,11 @@ class CodeBlock {
 	public var visitTag : Int = 0;
 	public var visitResult : LocalAccess;
 
-	public function new(pos) {
+	public function new(pos, trapl) {
 		start = pos;
 		prev = [];
 		next = [];
+		trap = trapl;
 		writtenRegs = new Map();
 		writtenVars = new Map();
 	}
@@ -69,7 +72,7 @@ class CodeGraph {
 				allBlocks.set(i + 1 + d, true);
 			default:
 			}
-		makeBlock(0);
+		makeBlock(0, []);
 
 		// init assign args (slightly complicated, let's handle complex logic here)
 		args = [];
@@ -139,6 +142,13 @@ class CodeGraph {
 		var b;
 		while( (b = blockPos.get(bpos)) == null ) bpos--;
 		return b;
+	}
+
+	public function getNextPos( pos : Int ) : Array<Int> {
+		var b = getBlock(pos);
+		if( pos == b.end )
+			return b.next.map(bn -> bn.start);
+		return b.trap.concat([pos+1]);
 	}
 
 	public function isRegisterWritten( rid : Int, pos : Int ) {
@@ -273,29 +283,31 @@ class CodeGraph {
 		}
 	}
 
-	function makeBlock( pos : Int ) {
+	function makeBlock( pos : Int, trapl : Array<Int> ) {
 		var b = blockPos.get(pos);
 		if( b != null )
 			return b;
-		var b = new CodeBlock(pos);
+		var b = new CodeBlock(pos, trapl);
 		blockPos.set(pos, b);
 		var i = pos;
 		while( true ) {
-			inline function goto(d) {
-				var b2 = makeBlock(i + 1 + d);
+			inline function goto(d, ?tl : Array<Int>) {
+				var b2 = makeBlock(i + 1 + d, tl == null ? b.trap : tl);
 				b2.prev.push(b);
 				return b2;
 			}
 			if( i > pos && allBlocks.exists(i) ) {
 				b.end = i - 1;
-				b.next = [goto( -1)];
+				b.next = [goto(-1)];
 				break;
 			}
 			switch( control(i) ) {
 			case CNo, CCall(_):
 				i++;
 				continue;
-			case CRet, CThrow:
+			case CRet:
+				if( b.trap.length != 0 )
+					throw "assert";
 				b.end = i;
 			case CJAlways(d):
 				b.end = i;
@@ -305,9 +317,28 @@ class CodeGraph {
 				b.next.push(goto(0));
 				for( p in pl )
 					b.next.push(goto(p));
-			case CJCond(d), CTry(d):
+			case CJCond(d):
 				b.end = i;
 				b.next = [goto(0), goto(d)];
+			case CTry(d):
+				b.end = i;
+				var tl = b.trap.copy();
+				tl.push(i+1+d);
+				b.next = [goto(0, tl), goto(d)];
+			case CThrow:
+				b.end = i;
+				if( b.trap.length > 0 ) {
+					var tl = b.trap.copy();
+					var p = tl.pop();
+					b.next = [goto(p-1-i, tl)];
+				}
+			case CCatch:
+				if( b.trap.length == 0 )
+					throw "assert";
+				var tl = b.trap.copy();
+				var p = tl.pop();
+				b.end = i;
+				b.next = [goto(0, tl), goto(p-1-i, tl)];
 			case CLabel:
 				i++;
 				b.loop = true;
@@ -337,6 +368,8 @@ class CodeGraph {
 			CSwitch(cases);
 		case OTrap(_,d):
 			CTry(d);
+		case OEndTrap(_):
+			CCatch;
 		case OCallClosure(_), OCallMethod(_), OCallThis(_):
 			CCall(-1);
 		case OCall0(_,idx), OCall1(_,idx,_), OCall2(_,idx,_,_), OCall3(_,idx,_,_,_), OCall4(_,idx,_,_,_), OCallN(_,idx,_):
