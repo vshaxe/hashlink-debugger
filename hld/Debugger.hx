@@ -53,7 +53,7 @@ class Debugger {
 	var nextStep(default,set): Int = -1;
 	var currentStack : Array<StackRawInfo>;
 	var watches : Array<WatchPoint>;
-	var threads : Map<Int,{ id : Int, stackTop : Pointer, exception : Pointer, ?exceptionStack: Array<StackRawInfo>, name : String }>;
+	var threads : Map<Int,{ id : Int, stackTop : Pointer, exception : Pointer, ?exceptionStack: Array<StackRawInfo>, ?exceptionTrap: Pointer, name : String }>;
 	var afterStep = false;
 
 	public var is64(get, never) : Bool;
@@ -432,6 +432,7 @@ class Debugger {
 		var tinfos = eval.readPointer(jit.threads.offset(8));
 		var flagsPos = jit.align.ptr * 6 + 8;
 		var excPos = jit.align.ptr * 5 + 8;
+		var excTrapPos = jit.align.ptr * 2 + 8;
 		var excStackCountPos = flagsPos + 4;
 		var excStackPos = flagsPos + 8 + 256 + (jit.hlVersion >= 1.13 ? 128 : 0);
 		var namePos = jit.hlVersion >= 1.13 ? flagsPos + 8 : -1;
@@ -450,11 +451,13 @@ class Debugger {
 				if( tname != "" )
 					name = tname;
 			}
+			var trapCtx = eval.readPointer(tinf.offset(excTrapPos));
 			var t = {
 				id : tid,
 				stackTop : eval.readPointer(tinf.offset(8)),
 				exception : flags & 4 == 0 ? null : tinf.offset(excPos),
 				exceptionStack : flags & 1 == 0 ? null : readVMExceptionStack(tinf.offset(excStackPos), eval.readI32(tinf.offset(excStackCountPos))),
+				exceptionTrap : trapCtx.isNull() ? null : new Pointer(eval.readPointer(trapCtx.offset(10 * 8))),
 				name : name,
 			};
 			threads.set(tid, t);
@@ -521,6 +524,20 @@ class Debugger {
 				} else
 					marked.set(b.pos, null);
 			}
+
+		// Add trap breakpoint if current trap is not in current function
+		var trap = threads.get(tid).exceptionTrap;
+		if( trap != null && jit.codeStart < trap && trap < jit.codeEnd ) {
+			var codePos = trap.sub(jit.codeStart);
+			var e = jit.resolveAsmPos(codePos);
+			if( e.fidx != s.fidx ) {
+				var old = getAsm(codePos);
+				var bp = { fid : -4, pos : e.fpos, codePos : codePos, oldByte : old, condition : null };
+				breakPoints.push(bp);
+				marked.set(-1, bp);
+				setAsm(codePos, INT3);
+			}
+		}
 
 		function visitRec( pos : Int ) {
 			if( marked.exists(pos) )
