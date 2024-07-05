@@ -549,7 +549,6 @@ class Debugger {
 			case CCall(f) if( f >= 0 && mode == Into ):
 				// skip calls to std library
 				var fid = @:privateAccess module.functionsIndexes.get(f);
-				var ctx = module.getMethodContext(fid);
 				if( fid == null || fid >= module.code.functions.length /* native */ || skipFunction(fid) )
 					c = CNo;
 			default:
