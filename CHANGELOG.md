@@ -1,3 +1,10 @@
+## 1.4.18 (July 5, 2024)
+
+* fixed multi captured variable
+* fixed map value fetch when the size is around 128
+* fixed inlined variable display when captured as args
+* improved step on throw with try-catch handler
+
 ## 1.4.17 (July 1, 2024)
 
 * added break only active process for multi-target debugging
