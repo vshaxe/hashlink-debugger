@@ -645,7 +645,7 @@ class Eval {
 		}
 	}
 
-	function toInt( v : Value ) {
+	function toInt( v : Value ) : Int {
 		switch( v.v ) {
 		case VNull, VUndef:
 			return 0;
@@ -654,18 +654,18 @@ class Eval {
 		case VFloat(f):
 			return Std.int(f);
 		default:
-			throw "Can't case " + valueStr(v) + " to int";
+			throw "Can't cast " + valueStr(v) + " to int";
 		}
 	}
 
-	function toBool( v : Value ) {
+	function toBool( v : Value ) : Bool {
 		switch( v.v ) {
 		case VNull, VUndef:
 			return false;
 		case VBool(b):
 			return b;
 		default:
-			throw "Can't case " + valueStr(v) + " to int";
+			throw "Can't cast " + valueStr(v) + " to bool";
 		}
 	}
 
