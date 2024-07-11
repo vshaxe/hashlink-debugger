@@ -1,3 +1,7 @@
+## 1.4.19 (July 11, 2024)
+
+* fixed restart stopped thread still show as stopped
+
 ## 1.4.18 (July 5, 2024)
 
 * fixed multi captured variable
