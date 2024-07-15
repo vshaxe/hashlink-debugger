@@ -1,3 +1,7 @@
+## 1.4.20 (July 15, 2024)
+
+* fixed Sys.command detected as access violation on Linux
+
 ## 1.4.19 (July 11, 2024)
 
 * fixed restart stopped thread still show as stopped
