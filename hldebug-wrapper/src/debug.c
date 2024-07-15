@@ -269,7 +269,10 @@ HL_API int hl_debug_wait( int pid, int *thread, int timeout ) {
 		int sig = WSTOPSIG(status);
 		if( sig == SIGSTOP || sig == SIGTRAP )
 			return 1;
-		if( sig == SIGCHLD )
+		if( sig == SIGSEGV )
+			return 3;
+		// other signals such as SIGCHLD, ignore and continue
+		if( ptrace(PTRACE_CONT,pid,0,0) >= 0 )
 			return 4;
 		return 3;
 	}
