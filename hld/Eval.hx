@@ -1071,7 +1071,7 @@ class Eval {
 				v = makeArrayBytes(p, HI32);
 			case "hl.types.ArrayBytes_Float":
 				v = makeArrayBytes(p, HF64);
-			case "hl.types.ArrayBytes_Single":
+			case "hl.types.ArrayBytes_hl_F32":
 				v = makeArrayBytes(p, HF32);
 			case "hl.types.ArrayBytes_hl_UI16":
 				v = makeArrayBytes(p, HUi16);
