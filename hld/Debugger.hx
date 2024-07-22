@@ -658,6 +658,7 @@ class Debugger {
 		if( tinf == null || tinf.stackTop == null )
 			return stack;
 		var esp = getReg(tid, Esp);
+		var ebp = getReg(tid, Ebp);
 		var size = tinf.stackTop.sub(esp) + jit.align.ptr;
 		if( size < 0 ) size = 0;
 		var mem = readMem(esp.offset(-jit.align.ptr), size);
@@ -668,6 +669,16 @@ class Debugger {
 			asmPos -= 1;
 		var e = jit.resolveAsmPos(asmPos);
 		var inProlog = false;
+		var exc = getException();
+		var isExcCantCast = false;
+		if( exc != null ) {
+			switch( exc.v ){
+			case VString(v,_):
+				if( StringTools.startsWith(v, "Can't cast ") )
+					isExcCantCast = true;
+			default:
+			}
+		}
 
 		//trace(eip,"0x"+api.readByte(eip, 0), e);
 
@@ -684,7 +695,6 @@ class Debugger {
 		}
 
 		if( e != null ) {
-			var ebp = getReg(tid, Ebp);
 			if( e.fpos < 0 && jit.is64) {
 				// we can't consider being in a function while we are in the prolog
 				// because our regs args have not yet been stored on stack
@@ -714,7 +724,7 @@ class Debugger {
 			var skipFirstCheck = (e == null && jit.isWinCall);
 			for( i in 0...(size >> 3)-1 ) {
 				var val = mem.getPointer(i << 3, jit.align);
-				if( val > esp && val < tinf.stackTop || (inProlog && i == 0) || skipFirstCheck ) {
+				if( (val > esp && val < tinf.stackTop) || (inProlog && i == 0) || skipFirstCheck ) {
 					var codePtr = skipFirstCheck ? val : mem.getPointer((i + 1) << 3, jit.align);
 					if( codePtr < jit.codeStart || codePtr > jit.codeEnd )
 						continue;
@@ -722,16 +732,21 @@ class Debugger {
 					var e = jit.resolveAsmPos(codePos);
 					if( e != null && e.fpos >= 0 ) {
 						if( skipFirstCheck ) {
-							e.ebp = getReg(tid, Ebp);
+							e.ebp = ebp;
 							// this ebp might not be good, so let's look for
 							// the first potential ebp backup starting after our esi
 							var validEsp = esp.offset(i << 3);
 							if( e.ebp < validEsp || e.ebp > tinf.stackTop ) {
 								var k = i - 1;
-								if( is64 && jit.isWinCall ) {
+								if( isExcCantCast && is64 && jit.isWinCall ) {
+									// Only do this for can't cast, as Null access .xxx has RSP+10h valid but is wrong
 									// look first at saved RBP at prev RSP+10h
-									var val = mem.getPointer((i + 2) << 3, jit.align);
-									if( val > validEsp && val < tinf.stackTop ) {
+									var val2 = mem.getPointer((i + 2) << 3, jit.align); // Can't cast xxx to i32
+									var val4 = mem.getPointer((i + 4) << 3, jit.align); // Can't cast xxx to obj (e.g String)
+									var val = null;
+									if( val2 > validEsp && val2 < tinf.stackTop ) val = val2;
+									if( val4 > validEsp && val4 < tinf.stackTop ) val = val4;
+									if( val != null ) {
 										e.ebp = val;
 										k = -1;
 									}
