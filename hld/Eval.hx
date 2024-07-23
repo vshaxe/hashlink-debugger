@@ -911,7 +911,13 @@ class Eval {
 			case HObj(p), HStruct(p): p.name.split(".").pop(); // short form (no package)
 			default: typeStr(v.t);
 			}
-		case VString(s,_): "\"" + escape(s) + "\"";
+		case VString(s,p):
+			switch( [v.t, v.hint] ) {
+			case [HBytes, HReadBytes(t, pos)]:
+				readBytesStrAt(-1, i -> readByte(p.offset(i)), t, pos);
+			default:
+				"\"" + escape(s) + "\"";
+			}
 		case VClosure(f, d, _), VMethod(f, d, _): funStr(f) + "[" + valueStr(d,maxStringRec) + "]";
 		case VFunction(f,_): funStr(f);
 		case VArray(_, length, read, _):
@@ -933,14 +939,19 @@ class Eval {
 				"["+arr.join(",")+"]:"+length;
 			}
 		case VBytes(length, read, _):
-			var blen = length < maxBytesLength ? length : maxBytesLength;
-			var bytes = haxe.io.Bytes.alloc(blen);
-			for( i in 0...blen )
-				bytes.set(i, read(i));
-			var str = length+":0x" + bytes.toHex().toUpperCase();
-			if( length > maxBytesLength )
-				str += "...";
-			str;
+			switch( v.hint ) {
+			case HReadBytes(t, pos):
+				readBytesStrAt(length, read, t, pos);
+			default:
+				var blen = length < maxBytesLength ? length : maxBytesLength;
+				var bytes = haxe.io.Bytes.alloc(blen);
+				for( i in 0...blen )
+					bytes.set(i, read(i));
+				var str = length+":0x" + bytes.toHex().toUpperCase();
+				if( length > maxBytesLength )
+					str += "...";
+				str;
+			}
 		case VMap(_, 0, _):
 			"{}";
 		case VMap(_, nkeys, readKey, readValue, _):
@@ -962,6 +973,26 @@ class Eval {
 			"inlined";
 		}
 		return str;
+	}
+
+	function readBytesStrAt(length, read: Int->Int, t:HLType, pos:String) : String {
+		var pos = toInt(eval(pos));
+		var blen = align.typeSize(t);
+		if( pos < 0 || (length >= 0 && pos > length-blen) )
+			throw "Out of bound [0," + (length < 0 ? "???" : "" + length) + ") for " + pos + "+" + (blen - 1);
+		var bytes = haxe.io.Bytes.alloc(blen);
+		for( i in 0...blen )
+			bytes.set(i, read(pos+i));
+		return switch( t ) {
+		case HUi8: "" + bytes.get(0);
+		case HUi16: "" + bytes.getUInt16(0);
+		case HI32: "" + bytes.getInt32(0);
+		case HI64: "" + bytes.getInt64(0);
+		case HF32: "" + bytes.getFloat(0);
+		case HF64: "" + bytes.getDouble(0);
+		default:
+			throw "assert";
+		}
 	}
 
 	public function funStr( f : FunRepr ) {

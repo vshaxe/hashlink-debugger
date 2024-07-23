@@ -32,6 +32,7 @@ enum Hint {
 	HHex; // v:h
 	HBin; // v:b
 	HPointer; // v:p
+	HReadBytes(t : HLType, pos : String); // v:UI8(0), v:UI16(0), v:I32(0), v:I64(0), v:F32(0), v:F64(0)
 	HEnumFlags(t : String); // v:EnumFlags<T>, v:haxe.EnumFlags<T>
 	HEnumIndex(t : String); // v:EnumIndex<T>
 	HCdbEnum(t : String); // v:CDB<T>, v:CDBEnum<T> -- for CastleDB
@@ -49,6 +50,18 @@ enum Hint {
 			return HBin;
 		if( s == "p" )
 			return HPointer;
+		if( StringTools.startsWith(s,"UI8(") && StringTools.endsWith(s,")") )
+			return HReadBytes(HUi8, s.substr(4, s.length - 5));
+		if( StringTools.startsWith(s,"UI16(") && StringTools.endsWith(s,")") )
+			return HReadBytes(HUi16, s.substr(5, s.length - 6));
+		if( StringTools.startsWith(s,"I32(") && StringTools.endsWith(s,")") )
+			return HReadBytes(HI32, s.substr(4, s.length - 5));
+		if( StringTools.startsWith(s,"I64(") && StringTools.endsWith(s,")") )
+			return HReadBytes(HI64, s.substr(4, s.length - 5));
+		if( StringTools.startsWith(s,"F32(") && StringTools.endsWith(s,")") )
+			return HReadBytes(HF32, s.substr(4, s.length - 5));
+		if( StringTools.startsWith(s,"F64(") && StringTools.endsWith(s,")") )
+			return HReadBytes(HF64, s.substr(4, s.length - 5));
 		if( StringTools.startsWith(s,"EnumFlags<") && StringTools.endsWith(s,">") )
 			return HEnumFlags(s.substr(10, s.length - 11));
 		if( StringTools.startsWith(s,"haxe.EnumFlags<") && StringTools.endsWith(s,">") )
