@@ -223,6 +223,9 @@ class Eval {
 			case VBytes(len, read, _):
 				var i = toInt(i);
 				return i < 0 || i >= len ? { v : VUndef, t : HUi8 } : { v : VInt(read(i)), t : HUi8 };
+			case VString(_, p) if( v.t.match(HBytes) ):
+				var i = toInt(i);
+				return i < 0 ? { v : VUndef, t : HUi8 } : { v : VInt(readByte(p.offset(i))), t : HUi8 };
 			default:
 			}
 			throw "Can't access " + valueStr(v) + "[" + valueStr(i) + "]";
