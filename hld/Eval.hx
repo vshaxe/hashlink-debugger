@@ -219,7 +219,7 @@ class Eval {
 			switch( v.v ) {
 			case VArray(t, len, read, _):
 				var i = toInt(i);
-				return i < 0 || i >= len ? defVal(t) : read(i);
+				return i < 0 || i >= len ? { v : VUndef, t : t } : read(i);
 			case VBytes(len, read, _):
 				var i = toInt(i);
 				return i < 0 || i >= len ? { v : VUndef, t : HUi8 } : { v : VInt(read(i)), t : HUi8 };
