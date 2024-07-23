@@ -1,3 +1,10 @@
+## 1.4.21 (July 23, 2024)
+
+* fixed stack when Null access .xxx and Can't cast xxx to String
+* fixed f32 array display
+* added array access for bytes
+* added eval hint UI8(i), UI16(i), I32(i), I64(i), F32(i), F64(i) for bytes
+
 ## 1.4.20 (July 15, 2024)
 
 * fixed Sys.command detected as access violation on Linux
