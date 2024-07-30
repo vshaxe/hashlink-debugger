@@ -22,6 +22,7 @@ class HLAdapter extends DebugSession {
 	public static var inst : HLAdapter;
 	public static var DEBUG = false;
 	public static var DEFAULT_PORT : Int = 6112;
+	public static var CONNECTION_TIMEOUT : Float = 2;
 
 	var isSessionActive(default, set) : Bool;
 	var breakOnlyActive(default, set) : Bool;
@@ -335,7 +336,7 @@ class HLAdapter extends DebugSession {
 		dbg.loadModule(sys.io.File.getBytes(program));
 
 		debug("Connecting to 127.0.0.1:" + port);
-		dbg.connectTries("127.0.0.1", port, 2, function(b) {
+		dbg.connectTries("127.0.0.1", port, CONNECTION_TIMEOUT, function(b) {
 			if( !b ) {
 				// wait a bit (keep eventual HL error message)
 				haxe.Timer.delay(function() {
@@ -1185,7 +1186,13 @@ class HLAdapter extends DebugSession {
 					var port : Int;
 					if( param != null && (port = Std.parseInt(param)) != 0 )
 						HLAdapter.DEFAULT_PORT = port;
-					paramError("Require defaultPort int value");
+					paramError("--defaultPort requires int value (port number)");
+				case "--connectionTimeout":
+					param = args.shift();
+					var timeout : Float;
+					if( param != null && (timeout = Std.parseFloat(param)) != 0 )
+						HLAdapter.CONNECTION_TIMEOUT = timeout;
+					paramError("--connectionTimeout requires float value (seconds)");
 				default:
 					paramError("Unsupported parameter " + param);
 			}

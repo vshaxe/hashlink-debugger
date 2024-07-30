@@ -58,9 +58,14 @@
 					"default": false
 				},
 				"hldebug.defaultPort": {
-					"markdownDescription": "Default debug port used to connect to HL virtual machine.",
+					"markdownDescription": "Default debug port used to connect with HL virtual machine, when port is not specified in launch.json.",
 					"type": "integer",
 					"default": 6112
+				},
+				"hldebug.connectionTimeout": {
+					"markdownDescription": "Default connection timeout in second, when connecting the debugger to HL virtual machine.",
+					"type": "number",
+					"default": 2
 				}
 			}
 		},

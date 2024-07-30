@@ -66,6 +66,7 @@ class Extension {
 		var config = Vscode.workspace.getConfiguration("hldebug");
 		var isVerbose = config.get("verbose", false);
 		var defaultPort = config.get("defaultPort", 6112);
+		var connectionTimeout = config.get("connectionTimeout", 2);
 
 		/*
 		// Can be used to communicate with one built-in adapter during execution. Build with -lib format -lib hscript.
@@ -83,6 +84,8 @@ class Extension {
 			executable.args.push("--verbose");
 		executable.args.push("--defaultPort");
 		executable.args.push("" + defaultPort);
+		executable.args.push("--connectionTimeout");
+		executable.args.push("" + connectionTimeout);
 		return executable;
 	}
 
