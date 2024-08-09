@@ -1,3 +1,9 @@
+## 1.4.22 (August 9, 2024)
+
+* added connection timeout in settings
+* improved bin/hex hint display, now as 2's complement and full length
+* added ArrayBytes I64 support for haxe nightly build
+
 ## 1.4.21 (July 23, 2024)
 
 * fixed stack when Null access .xxx and Can't cast xxx to String
