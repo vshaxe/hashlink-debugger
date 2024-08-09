@@ -77,28 +77,31 @@ enum Hint {
 
 	static final INTBASE = "0123456789ABCDEF";
 	public static function intStr( value : Int, base : Int ) : String {
-		if( base < 2 || base > INTBASE.length )
-			throw "Unsupported int base";
-		var prefix = base == 2 ? "0b" : base == 16 ? "0x" : "";
-		if( base == 10 || value == 0 )
-			return prefix + value;
-		var s = "";
-		var abs = value >= 0 ? value : -value;
-		while( abs > 0 ) {
-			s = INTBASE.charAt(abs % base) + s;
-			abs = Std.int(abs / base);
-		}
-		return (value < 0 ? "-" : "") + prefix + s;
+		return int64Str(value, base, true);
 	}
 
-	public static function int64Hex( value : haxe.Int64 ) : String {
+	public static function int64Str( value : haxe.Int64, base : Int, is32bit : Bool = false ) : String {
+		if( base != 2 && base != 16 )
+			throw "Unsupported int base " + base;
+		var prefix = base == 2 ? "0b" : "0x";
+		if( value == haxe.Int64.make(0,0) )
+			return prefix + "0";
+		var mask = base - 1;
+		var shift = base == 2 ? 1 : 4;
+		var maxlen = base == 2 ? (is32bit ? 32 : 64) : (is32bit ? 8 : 16);
 		var s = "";
-		var abs = value >= haxe.Int64.make(0,0) ? value : -value;
+		var positive = value >= haxe.Int64.make(0,0);
+		var abs = positive ? value : -(value+1); // 2's complement
 		while( abs > 0 ) {
-			s = INTBASE.charAt(abs.low & 15) + s;
-			abs = abs >> 4;
+			var cur = positive ? (abs.low & mask) : (mask - abs.low & mask);
+			s = INTBASE.charAt(cur) + s;
+			abs = abs >> shift;
 		}
-		return (value < 0 ? "-" : "") + "0x" + s;
+		if( s.length < maxlen ) {
+			var lchar = positive ? "0" : (base == 2 ? "1" : "F");
+			s = StringTools.lpad(s, lchar, maxlen);
+		}
+		return prefix + s;
 	}
 
 	public static function intEnumFlags( value : Int, eproto : format.hl.Data.EnumPrototype ) : String {

@@ -897,7 +897,8 @@ class Eval {
 			}
 		case VInt64(i):
 			switch( v.hint ) {
-			case HHex: Value.int64Hex(i);
+			case HBin: Value.int64Str(i, 2);
+			case HHex: Value.int64Str(i, 16);
 			default: "" + i;
 			}
 		case VFloat(i):
