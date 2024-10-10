@@ -89,14 +89,14 @@ class Extension {
 		return executable;
 	}
 
-	static var prevSession : DebugSession = null;
+	static var currentSession : DebugSession = null;
 	static function onDidChangeActiveDebugSession(session: Null<DebugSession>) {
-		prevSession?.customRequest(CustomRequestCommand.OnSessionInactive);
+		currentSession?.customRequest(CustomRequestCommand.OnSessionInactive);
 		session?.customRequest(CustomRequestCommand.OnSessionActive);
-		prevSession = session;
+		currentSession = session;
 	}
 
-	static function formatInt( args:VariableContextCommandArg ) {
+	static function formatInt( args:VariableContext ) {
 		var i = Std.parseInt(args.variable.value);
 		if (i == null)
 			return;

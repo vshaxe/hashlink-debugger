@@ -19,7 +19,7 @@ typedef Container = {
 	var ?value : String;
 }
 
-typedef VariableContextCommandArg = {
+typedef VariableContext = {
 	var sessionId : String;
 	var container : Container;
 	var variable : vscode.debugProtocol.DebugProtocol.Variable;
