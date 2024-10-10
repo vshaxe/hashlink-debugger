@@ -362,6 +362,7 @@ class HLAdapter extends DebugSession {
 				return;
 			}
 			dbg.eval.allowEvalGetters = allowEvalGetters;
+			dbg.eval.printEvalCall = DEBUG;
 			syncThreads();
 			debug("Connected");
 			onError(null);

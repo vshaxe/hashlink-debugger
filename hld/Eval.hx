@@ -53,6 +53,7 @@ class Eval {
 	public var globalContext = false;
 	public var currentThread : Int;
 	public var allowEvalGetters = true;
+	public var printEvalCall = false;
 
 	static var HASH_PREFIX = "$_h$";
 
@@ -334,7 +335,7 @@ class Eval {
 				else
 					throw "Missing argument";
 			}
-			if( Debugger.DEBUG )
+			if( Debugger.DEBUG || printEvalCall )
 				trace("EVAL "+hscript.Printer.toString(e));
 			return evalCall(vfun, vargs);
 		default:
@@ -1392,7 +1393,7 @@ class Eval {
 				var f = readFieldAddress(v, "get_"+name);
 				switch( f ) {
 				case AMethod(obj, ptr, HFun(ft)) if( ft.args.length == 1 ):
-					if( Debugger.DEBUG )
+					if( Debugger.DEBUG || printEvalCall )
 						trace("EVAL "+valueStr(v)+".get_"+name+"()");
 					return AEvaled(evalCall(fetchAddr(f),[obj]));
 				default:
