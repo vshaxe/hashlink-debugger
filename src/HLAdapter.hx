@@ -1159,6 +1159,8 @@ class HLAdapter extends DebugSession {
 	// Runtime communication with extension
 
 	override function customRequest<T>(command:String, response:vscode.debugAdapter.Messages.Response<T>, args:Dynamic):Void {
+		// Value in response.body will be received by the extension in .then
+		var response : vscode.debugProtocol.DebugProtocol.Response<String> = cast response;
 		switch( command ) {
 		case OnSessionActive:
 			isSessionActive = true;
@@ -1166,6 +1168,7 @@ class HLAdapter extends DebugSession {
 			isSessionActive = false;
 		default:
 		}
+		sendResponse(cast response);
 	}
 
 	// Standalone adapter.js
