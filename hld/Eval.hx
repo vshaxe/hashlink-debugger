@@ -1043,7 +1043,7 @@ class Eval {
 		case HF64, HF32:
 			VFloat(haxe.io.FPHelper.i64ToDouble(p.i64.low,p.i64.high));
 		case HBool:
-			VBool(p.toInt() != 0);
+			VBool(p.toInt() & 0xFF != 0);
 		default:
 			return valueCast(p, t);
 		};
