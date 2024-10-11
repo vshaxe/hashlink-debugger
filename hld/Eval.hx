@@ -362,11 +362,6 @@ class Eval {
 		var prevEax = api.readRegister(currentThread, Eax);
 		var eip = api.readRegister(currentThread, Eip);
 		var prevEsp = api.readRegister(currentThread, Esp);
-		// align stack
-		var stackValue = prevEsp;
-		stackValue = stackValue.offset(-0xFF);
-		stackValue = stackValue.offset((-stackValue.toInt() & 0xFF));
-		api.writeRegister(currentThread, Esp, stackValue);
 		// set registers
 		var asmOut = new haxe.io.BytesBuffer();
 
@@ -500,6 +495,12 @@ class Eval {
 		var isSingleStep = (api.readRegister(currentThread, EFlags).toInt() & 256) == 256;
 		if( isSingleStep )
 			setSingleStep(currentThread, false);
+		// align stack
+		var stackValue = prevEsp;
+		stackValue = stackValue.offset(-0xFF);
+		stackValue = stackValue.offset((-stackValue.toInt() & 0xFF));
+		api.writeRegister(currentThread, Esp, stackValue);
+		// run
 		resumeDebug();
 		if( isSingleStep )
 			setSingleStep(currentThread, true);
