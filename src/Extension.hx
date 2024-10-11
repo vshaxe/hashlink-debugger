@@ -100,6 +100,8 @@ class Extension {
 		var i = Std.parseInt(args.variable.value);
 		if (i == null)
 			return;
-		Vscode.window.showInformationMessage(args.variable.name + "(" + i + ") = 0x" + Utils.toString(i,16) + " = 0b" + Utils.toString(i,2));
+		var msg = args.variable.name + "(" + i + ") = 0x" + Utils.toString(i,16) + " = 0b" + Utils.toString(i,2);
+		msg += "\n\n(You can also add `:h` `:b` suffix to variables in the watch section.)";
+		Vscode.window.showInformationMessage(msg);
 	}
 }
