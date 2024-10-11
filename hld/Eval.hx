@@ -445,7 +445,13 @@ class Eval {
 				var v = haxe.io.FPHelper.doubleToI64(f);
 				setReg(r, Pointer.make(v.low, v.high));
 			case _ if( v.t.isPtr() ):
-				setReg(r, getPtr(v));
+				var ptr = getPtr(v);
+				if( ptr.isNull() ) {
+					var msg = "Unsupported arg "+valueStr(v)+":"+typeStr(v.t);
+					msg += v.v.match(VString(_)) ? " literal" : " null pointer";
+					throw msg;
+				}
+				setReg(r, ptr);
 			default:
 				throw "Unsupported arg "+valueStr(v)+":"+typeStr(v.t);
 			}
@@ -513,8 +519,11 @@ class Eval {
 		api.writeRegister(currentThread, Eip, eip);
 		api.writeRegister(currentThread, Esp, prevEsp);
 		var hasError = nip != asmSize;
-		if( hasError )
+		if( hasError ) {
+			if( Debugger.DEBUG || printEvalCall )
+				trace("EVAL Exception has occured");
 			throw "Exception has occured";
+		}
 		return convertVal(ptr, tret);
 	}
 
