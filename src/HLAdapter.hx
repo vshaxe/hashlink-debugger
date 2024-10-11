@@ -8,9 +8,9 @@ import js.node.child_process.ChildProcess as ChildProcessObject;
 
 enum VarValue {
 	VScope( k : Int );
-	VValue( v : hld.Value );
+	VValue( v : hld.Value, evalName : String );
 	VUnkownFile( file : String );
-	VObjFields( v : hld.Value, o : format.hl.Data.ObjPrototype );
+	VObjFields( v : hld.Value, o : format.hl.Data.ObjPrototype, evalName : String );
 	VMapPair( key : hld.Value, value : hld.Value );
 	VStatics( cl : String );
 	VStack( stack : Array<hld.Debugger.StackInfo> );
@@ -669,7 +669,7 @@ class HLAdapter extends DebugSession {
 				else
 					response.body.scopes.push({
 						name : "Members",
-						variablesReference : allocValue(VValue(vthis)),
+						variablesReference : allocValue(VValue(vthis, "this")),
 						expensive : false,
 						namedVariables : fields.length,
 					});
@@ -707,7 +707,7 @@ class HLAdapter extends DebugSession {
 		sendResponse(response);
 	}
 
-	function makeVar( name : String, value : hld.Value ) : vscode.debugProtocol.DebugProtocol.Variable {
+	function makeVar( name : String, value : hld.Value, ?evalName : String ) : vscode.debugProtocol.DebugProtocol.Variable {
 		if( value == null )
 			return { name : name, value : "Unknown variable", variablesReference : 0 };
 		var tstr = dbg.eval.typeStr(value.t);
@@ -721,30 +721,30 @@ class HLAdapter extends DebugSession {
 		case VPointer(_):
 			var fields = dbg.eval.getFields(value);
 			if( fields != null && fields.length > 0 )
-				return { name : name, type : tstr, value : tstr + pstr, variablesReference : allocValue(VValue(value)), namedVariables : fields.length };
+				return { name : name, type : tstr, value : tstr + pstr, evaluateName : evalName, variablesReference : allocValue(VValue(value, evalName)), namedVariables : fields.length };
 		case VEnum(c,values,_) if( values.length > 0 ):
 			var str = c + "(" + [for( v in values ) switch( v.v ) {
 				case VEnum(c,values,_) if( values.length == 0 ): c;
 				case VPointer(_), VEnum(_), VArray(_), VMap(_), VBytes(_): "...";
 				default: dbg.eval.valueStr(v);
 			}].join(", ")+")";
-			return { name : name, type : tstr, value : str + pstr, variablesReference : allocValue(VValue(value)), namedVariables : values.length };
+			return { name : name, type : tstr, value : str + pstr, evaluateName : evalName, variablesReference : allocValue(VValue(value, evalName)), namedVariables : values.length };
 		case VArray(_, len, _, _), VMap(_, len, _, _):
-			return { name : name, type : tstr, value : dbg.eval.valueStr(value) + pstr, variablesReference : len == 0 ? 0 : allocValue(VValue(value)), indexedVariables : len };
+			return { name : name, type : tstr, value : dbg.eval.valueStr(value) + pstr, evaluateName : evalName, variablesReference : len == 0 ? 0 : allocValue(VValue(value, evalName)), indexedVariables : len };
 		case VBytes(len, _):
 			switch( value.hint ) {
 			case HReadBytes(t, _):
-				return { name : name, type : dbg.eval.typeStr(t), value : dbg.eval.valueStr(value), variablesReference : 0 };
+				return { name : name, type : dbg.eval.typeStr(t), value : dbg.eval.valueStr(value), evaluateName : evalName, variablesReference : 0 };
 			default:
 			}
-			return { name : name, type : tstr, value : tstr+":"+len + pstr, variablesReference : allocValue(VValue(value)), indexedVariables : (len+15)>>4 };
+			return { name : name, type : tstr, value : tstr+":"+len + pstr, evaluateName : evalName, variablesReference : allocValue(VValue(value, evalName)), indexedVariables : (len+15)>>4 };
 		case VClosure(f,context,_):
-			return { name : name, type : tstr, value : dbg.eval.funStr(f) + pstr, variablesReference : allocValue(VValue(value)), indexedVariables : 2 };
+			return { name : name, type : tstr, value : dbg.eval.funStr(f) + pstr, evaluateName : evalName, variablesReference : allocValue(VValue(value, evalName)), indexedVariables : 2 };
 		case VInlined(fields):
-			return { name : name, type : tstr, value : dbg.eval.valueStr(value), variablesReference : fields.length == 0 ? 0 : allocValue(VValue(value)), namedVariables : fields.length };
+			return { name : name, type : tstr, value : dbg.eval.valueStr(value), evaluateName : evalName, variablesReference : fields.length == 0 ? 0 : allocValue(VValue(value, evalName)), namedVariables : fields.length };
 		default:
 		}
-		return { name : name, type : tstr, value : dbg.eval.valueStr(value), variablesReference : 0 };
+		return { name : name, type : tstr, value : dbg.eval.valueStr(value), evaluateName : evalName, variablesReference : 0 };
 	}
 
 	override function variablesRequest(response:VariablesResponse, args:VariablesArguments) {
@@ -760,7 +760,7 @@ class HLAdapter extends DebugSession {
 				try {
 					var value = dbg.getValue(v);
 					if( v == "$ret" ) v = "(return)";
-					vars.push(makeVar(v, value));
+					vars.push(makeVar(v, value, v));
 				} catch( e : Dynamic ) {
 					vars.push({
 						name : v,
@@ -769,13 +769,13 @@ class HLAdapter extends DebugSession {
 					});
 				}
 			}
-		case VValue(v), VObjFields(v,_):
+		case VValue(v, evalName), VObjFields(v, _, evalName):
 			switch( v.v ) {
 			case VPointer(_):
 
 				var fields;
 				switch( [vref, v.t] ) {
-				case [VObjFields(_, p), _]:
+				case [VObjFields(_, p, _), _]:
 					fields = [for( f in p.fields ) if( f.name != "" ) f.name];
 				case [_,HObj(o)]:
 					var p = o.tsuper;
@@ -783,7 +783,7 @@ class HLAdapter extends DebugSession {
 						switch( p ) {
 						case HObj(o):
 							if( o.fields.length > 0 )
-								vars.unshift({ name : o.name, type : "", value : "", variablesReference : allocValue(VObjFields(v, o)) });
+								vars.unshift({ name : o.name, type : "", value : "", variablesReference : allocValue(VObjFields(v, o, evalName)) });
 							p = o.tsuper;
 						default:
 						}
@@ -795,7 +795,7 @@ class HLAdapter extends DebugSession {
 				for( f in fields ) {
 					try {
 						var value = dbg.eval.readField(v, f);
-						vars.push(makeVar(f, value));
+						vars.push(makeVar(f, value, evalName+"."+f));
 					} catch( e : Dynamic ) {
 						vars.push({
 							name : f,
@@ -810,7 +810,7 @@ class HLAdapter extends DebugSession {
 				for( i in start...start+count ) {
 					try {
 						var value = get(i);
-						vars.push(makeVar("" + i, value));
+						vars.push(makeVar("" + i, value, evalName+"["+i+"]"));
 					} catch( e : Dynamic ) {
 						vars.push({
 							name : "" + i,
@@ -875,7 +875,7 @@ class HLAdapter extends DebugSession {
 						vars.push({
 							name : "Context",
 							value : "",
-							variablesReference : allocValue(VValue(context))
+							variablesReference : allocValue(VValue(context, ""))
 						});
 					default:
 						vars.push(makeVar("Context", context));
@@ -891,7 +891,7 @@ class HLAdapter extends DebugSession {
 				for( f in fields )
 					try {
 						var value = dbg.eval.readField(v, f.name);
-						vars.push(makeVar(f.name, value));
+						vars.push(makeVar(f.name, value, evalName+"."+f.name));
 					} catch( e : Dynamic ) {
 						vars.push({
 							name : f.name,
@@ -910,7 +910,7 @@ class HLAdapter extends DebugSession {
 			for( f in dbg.getClassStatics(cl) ) {
 				var v = dbg.getValue(cl+"."+f, true);
 				if( v.t.match(HFun(_)) ) continue;
-				vars.push(makeVar(f,v));
+				vars.push(makeVar(f, v, cl+"."+f));
 			}
 		case VMapPair(key, value):
 			vars.push(makeVar("key", key));
@@ -1099,7 +1099,7 @@ class HLAdapter extends DebugSession {
 		case VScope(k):
 			dbg.currentStackFrame = k;
 			return dbg.getRef(name);
-		case VValue(v):
+		case VValue(v, _):
 			if( v.v.match(VArray(_)) )
 				dbg.eval.readArrayAddress(v, Std.parseInt(name));
 			else
@@ -1119,7 +1119,7 @@ class HLAdapter extends DebugSession {
 			if( ptr != null ) {
 				var desc = switch( varsValues.get(args.variablesReference) ) {
 				case VScope(_): "local "+args.name;
-				case VValue({ v : VArray(_) } ): "["+args.name+"]";
+				case VValue({v : VArray(_)}, _): "["+args.name+"]";
 				default: "field "+args.name;
 				}
 				response.body = {
