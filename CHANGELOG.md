@@ -1,3 +1,8 @@
+## 1.4.23 (October 14, 2024)
+
+* fixed reg corruption when eval call fail early (e.g. unsupported arg)
+* added variables section Add To Watch support
+
 ## 1.4.22 (August 9, 2024)
 
 * added connection timeout in settings
