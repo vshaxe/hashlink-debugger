@@ -446,7 +446,7 @@ class Eval {
 				setReg(r, Pointer.make(v.low, v.high));
 			case _ if( v.t.isPtr() ):
 				var ptr = getPtr(v);
-				if( ptr.isNull() ) {
+				if( ptr == null ) {
 					var msg = "Unsupported arg "+valueStr(v)+":"+typeStr(v.t);
 					msg += v.v.match(VString(_)) ? " literal" : " null pointer";
 					throw msg;
