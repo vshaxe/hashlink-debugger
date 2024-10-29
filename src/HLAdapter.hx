@@ -123,7 +123,7 @@ class HLAdapter extends DebugSession {
 		if( port == null ) port = debugPort;
 		if( args.allowEval != null ) allowEvalGetters = args.allowEval;
 
-		function onError(e) {
+		function onError(e : String) {
 			errorMessageAndResponse(cast response, e + "\n" + haxe.CallStack.toString(haxe.CallStack.exceptionStack()));
 			sendEvent(new TerminatedEvent());
 		}
@@ -143,7 +143,7 @@ class HLAdapter extends DebugSession {
 				});
 			}
 		} catch( e : Dynamic ) {
-			onError(e + "\n" + haxe.CallStack.toString(haxe.CallStack.exceptionStack()));
+			onError(e);
 		}
 	}
 
