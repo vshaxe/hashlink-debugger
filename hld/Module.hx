@@ -59,6 +59,9 @@ class Module {
 	public function load( data : haxe.io.Bytes ) {
 		code = new format.hl.Reader().read(new haxe.io.BytesInput(data));
 
+		if( code.debugFiles == null )
+			throw "Debug info not available in the bytecode";
+
 		for( t in code.types )
 			switch( t ) {
 			case HObj(o), HStruct(o):
