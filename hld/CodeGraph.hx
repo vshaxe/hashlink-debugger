@@ -76,32 +76,28 @@ class CodeGraph {
 
 		// init assign args (slightly complicated, let's handle complex logic here)
 		args = [];
-		var reg = -1;
 		for( a in fun.assigns ) {
 			if( a.position >= 0 ) break;
-			var vname = module.strings[a.varName];
-			if( a.position == -1 && args.length < nargs ) {
+			if( a.position == -2 && args.length == 0 ) {
+				args[0] = { hasIndex : true, vars : [] };
+			}
+			if( a.position == -1 ) {
+				var vname = module.strings[a.varName];
 				args.push({ hasIndex : false, vars : [vname] });
-				continue;
 			}
+		}
+		if( args.length == nargs - 1 )
+			args.unshift({ hasIndex : false, vars : ["this"] });
+		for( a in fun.assigns ) {
+			if( a.position >= -1 ) break;
+			var vname = module.strings[a.varName];
 			var r = -a.position - 2;
-			var vars;
-			if( r != reg && a.position != -1) {
-				reg = r;
-				vars = [];
-				args.unshift({ hasIndex : true, vars : vars });
-			} else {
-				vars = args[0].vars;
-			}
-			vars.push(vname);
+			args[r].vars.push(vname);
 		}
 
 		// single captured pointer => passed directly
 		if( args.length >= 1 && args[0].hasIndex && !f.regs[0].match(HEnum({constructs:[{name:""}]})) )
 			args[0].hasIndex = false;
-
-		if( args.length == nargs - 1 )
-			args.unshift({ hasIndex : false, vars : ["this"] });
 
 		// init assigns
 		assigns = new Map();
