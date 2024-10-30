@@ -13,6 +13,8 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - uses: krdlab/setup-haxe@v1
+    - name: Print haxe version
+      run: haxe -version
     - name: Install haxelib dependencies
       run: |
         haxelib git format https://github.com/HaxeFoundation/format.git
@@ -22,11 +24,50 @@ jobs:
         haxelib install vscode-debugadapter
     - name: Build extension
       run: make build
+    - name: Build standalone adapter.js
+      run: haxe build.hxml
     - name: Build CLI hl
       run: |
         cd debugger
         haxe debugger.hxml
         cd ..
+
+  build_and_test_nightly:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - uses: krdlab/setup-haxe@v1
+      with:
+        haxe-version: latest
+    - name: Print haxe version
+      run: haxe -version
+    - name: Install haxelib dependencies
+      run: |
+        haxelib git format https://github.com/HaxeFoundation/format.git
+        haxelib git hscript https://github.com/HaxeFoundation/hscript.git
+        haxelib install vshaxe
+        haxelib install vscode
+        haxelib install vscode-debugadapter
+    - name: Build extension
+      run: make build
     - name: Build standalone adapter.js
       run: haxe build.hxml
-
+    - name: Build CLI hl
+      run: |
+        cd debugger
+        haxe debugger.hxml
+        cd ..
+    - name: Install hl
+      run: |
+        git clone https://github.com/HaxeFoundation/hashlink.git hashlink
+        sudo apt-get install -qqy libpng-dev libjpeg-turbo8-dev libturbojpeg zlib1g-dev libvorbis-dev libsqlite3-dev
+        cd hashlink
+        make
+        sudo make install
+        hl --version
+        cd ..
+    - name: Run tests
+      run: |
+        cd tests
+        haxe RunCi.hxml
+        cd ..

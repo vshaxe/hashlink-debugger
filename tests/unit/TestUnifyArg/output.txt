@@ -1,0 +1,17 @@
+> b Test.hx:18
+Breakpoint set line 18
+> b Test.hx:19
+Breakpoint set line 19
+> r
+Thread paused Test.hx:18 (InventoryItemGroup::makeIcon)
+> p _tmp_item
+{...} : hl.DynObj
+  k = Item : Item
+  count = 1 : Int
+> r
+Thread paused Test.hx:19 (InventoryItemGroup::makeIcon)
+> p item
+{...} : hl.DynObj
+  k = Item : Item
+  count = 1 : Int
+> q

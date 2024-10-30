@@ -7,3 +7,4 @@ package-lock.json
 /debugger/args.txt
 /debugger/debug.hl
 /hldebug-wrapper/build
+*.hl

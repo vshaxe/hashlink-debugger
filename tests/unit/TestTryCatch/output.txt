@@ -1,0 +1,7 @@
+> b Test.hx:9
+Breakpoint set line 9
+> r
+Thread paused Test.hx:9 ($Test::main)
+> p e
+"from doThrow" : String
+> q
