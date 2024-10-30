@@ -76,10 +76,11 @@ class CodeGraph {
 
 		// init assign args (slightly complicated, let's handle complex logic here)
 		args = [];
+		var r0used = false;
 		for( a in fun.assigns ) {
 			if( a.position >= 0 ) break;
 			if( a.position == -2 && args.length == 0 ) {
-				args[0] = { hasIndex : true, vars : [] };
+				r0used = true;
 			}
 			if( a.position == -1 ) {
 				var vname = module.strings[a.varName];
@@ -87,7 +88,10 @@ class CodeGraph {
 			}
 		}
 		if( args.length == nargs - 1 )
-			args.unshift({ hasIndex : false, vars : ["this"] });
+			if( r0used )
+				args.unshift({ hasIndex : true, vars : [] });
+			else
+				args.unshift({ hasIndex : false, vars : ["this"] });
 		for( a in fun.assigns ) {
 			if( a.position >= -1 ) break;
 			var vname = module.strings[a.varName];
