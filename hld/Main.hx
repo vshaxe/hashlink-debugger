@@ -24,6 +24,7 @@ class Main {
 	var breaks = [];
 	var dbg : hld.Debugger;
 	var stdin = Sys.stdin();
+	var isCi = false;
 
 	#if nodejs
 	var process : js.node.child_process.ChildProcess;
@@ -62,7 +63,11 @@ class Main {
 				while( inputArgs.length > 0 ) {
 					var a = inputArgs.pop();
 					if( StringTools.endsWith(a,'"') ) {
-						var arg = [a.substr(0,-1)];
+						if( StringTools.startsWith(a,'"') ) {
+							args.unshift(a.substr(1,a.length-2));
+							continue;
+						}
+						var arg = [a.substr(0,a.length-1)];
 						while( true ) {
 							var a = inputArgs.pop();
 							if( a == null ) break;
@@ -77,6 +82,8 @@ class Main {
 					}
 					args.unshift(a);
 				}
+			case "--ci":
+				isCi = true;
 			case "--debug":
 				Debugger.DEBUG = true;
 			default:
@@ -85,7 +92,7 @@ class Main {
 		}
 		file = args.shift();
 		if( file == null ) {
-			Sys.println("hldebug [-port <port>] [--cwd <path>] <file.hl> [--args <args>] or [<commands>]");
+			Sys.println("hldebug [-port <port>] [--cwd <path>] <file.hl> [<commands>]");
 			Sys.exit(1);
 		}
 		if( !sys.FileSystem.exists(file) )
@@ -173,7 +180,8 @@ class Main {
 			Sys.println("Process has exit");
 			Sys.exit(0);
 		case Breakpoint:
-			Sys.println(dbg.getThreadName(dbg.stoppedThread) + " paused " + frameStr(dbg.getStackFrame()));
+			var threadName = if( isCi ) "Thread" else dbg.getThreadName(dbg.stoppedThread);
+			Sys.println(threadName + " paused " + frameStr(dbg.getStackFrame()));
 			var exc = dbg.getException();
 			if( exc != null )
 				Sys.println("Exception: "+dbg.eval.valueStr(exc));
@@ -218,7 +226,8 @@ class Main {
 		}
 		switch( cmd ) {
 		case "q", "quit":
-			dumpProcessOut();
+			if( !isCi )
+				dumpProcessOut();
 			return false;
 		case "r", "run", "c", "continue":
 			var time = args.shift();

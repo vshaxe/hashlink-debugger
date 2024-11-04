@@ -1,0 +1,29 @@
+> b Test.hx:18
+Breakpoint set line 18
+> b Test.hx:12
+Breakpoint set line 12
+> b Test.hx:7
+Breakpoint set line 7
+> r
+Thread paused Test.hx:18 (Test::foo)
+> p this
+Test : Test
+> p pt
+inlined : Dynamic
+  x = 10 : Int
+  y = 11 : Int
+> r
+Thread paused Test.hx:7
+> p functionvar
+15 : Int
+> p pt
+inlined : Dynamic
+  x = 12 : Int
+  y = 13 : Int
+> r
+Thread paused Test.hx:12
+> p pt
+inlined : Dynamic
+  x = 14 : Int
+  y = 15 : Int
+> q
