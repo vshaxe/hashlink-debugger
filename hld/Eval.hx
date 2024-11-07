@@ -572,6 +572,8 @@ class Eval {
 			return getPtr(a).sub(getPtr(b));
 		case [VString(as,_), VString(bs,_)]:
 			return Reflect.compare(as, bs);
+		case [VString(_,_) | VNull, VString(_,_) | VNull]:
+			return b.v == VNull ? 1 : -1;
 		case [VEnum(ac, avalues, _), VEnum(bc, bvalues, _)]:
 			switch [a.t, b.t] {
 			case [HEnum(aproto), HEnum(bproto)] if( aproto == bproto ):
