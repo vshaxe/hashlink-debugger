@@ -739,7 +739,7 @@ class HLAdapter extends DebugSession {
 			}
 			return { name : name, type : tstr, value : tstr+":"+len + pstr, evaluateName : evalName, variablesReference : allocValue(VValue(value, evalName)), indexedVariables : (len+15)>>4 };
 		case VClosure(f,context,_):
-			return { name : name, type : tstr, value : dbg.eval.funStr(f) + pstr, evaluateName : evalName, variablesReference : allocValue(VValue(value, evalName)), indexedVariables : 2 };
+			return { name : name, type : tstr, value : dbg.eval.funStr(f, value.hint == HPointer) + pstr, evaluateName : evalName, variablesReference : allocValue(VValue(value, evalName)), indexedVariables : 2 };
 		case VInlined(fields):
 			return { name : name, type : tstr, value : dbg.eval.valueStr(value), evaluateName : evalName, variablesReference : fields.length == 0 ? 0 : allocValue(VValue(value, evalName)), namedVariables : fields.length };
 		default:

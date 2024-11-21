@@ -22,7 +22,7 @@ enum ValueRepr {
 
 enum FunRepr {
 	FUnknown( p : Pointer );
-	FIndex( i : Int );
+	FIndex( i : Int, p : Pointer );
 }
 
 typedef InlinedField = { name : String, addr : Eval.VarAddress }

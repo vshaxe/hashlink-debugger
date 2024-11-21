@@ -932,8 +932,8 @@ class Eval {
 			default:
 				"\"" + escape(s) + "\"";
 			}
-		case VClosure(f, d, _), VMethod(f, d, _): funStr(f) + "[" + valueStr(d,maxStringRec) + "]";
-		case VFunction(f,_): funStr(f);
+		case VClosure(f, d, _), VMethod(f, d, _): funStr(f, v.hint == HPointer) + "[" + valueStr(d,maxStringRec) + "]";
+		case VFunction(f,_): funStr(f, v.hint == HPointer);
 		case VArray(_, length, read, _):
 			var hasDispValue = false;
 			for( i in 0...length ) {
@@ -1009,10 +1009,10 @@ class Eval {
 		}
 	}
 
-	public function funStr( f : FunRepr ) {
+	public function funStr( f : FunRepr, withAddr : Bool ) {
 		return switch( f ) {
 		case FUnknown(p): "fun(" + p.toString() + ")";
-		case FIndex(i): "fun(" + getFunctionName(i) + ")";
+		case FIndex(i, p): "fun(" + getFunctionName(i) + ( withAddr ? "@" + p.toString() : "") + ")";
 		}
 	}
 
@@ -1160,7 +1160,7 @@ class Eval {
 			var funPtr = readPointer(p.offset(align.ptr));
 			var hasValue = readI32(p.offset(align.ptr * 2));
 			var fidx = jit.functionFromAddr(funPtr);
-			var fval = fidx == null ? FUnknown(funPtr) : FIndex(fidx);
+			var fval = fidx == null ? FUnknown(funPtr) : FIndex(fidx, funPtr);
 			if( hasValue == 1 ) {
 				var value = readVal(p.offset(align.ptr * 3), HDyn);
 				v = VClosure(fval, value, p);
@@ -1353,7 +1353,7 @@ class Eval {
 			return readVal(ptr, t);
 		case AMethod(v, p, t):
 			var fidx = jit.functionFromAddr(p);
-			var fval = fidx == null ? FUnknown(p) : FIndex(fidx);
+			var fval = fidx == null ? FUnknown(p) : FIndex(fidx, p);
 			return { v : VMethod(fval,v,p), t : t };
 		case AEvaled(v):
 			return v;
