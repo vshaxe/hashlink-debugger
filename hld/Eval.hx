@@ -1290,6 +1290,8 @@ class Eval {
 			return [for( i in 0...values.length ) if( values[i].t.isPtr() ) "$"+i];
 		case VInlined(fields):
 			return [for( f in fields ) f.name];
+		case VArray(_):
+			return [];
 		default:
 			return null;
 		}
