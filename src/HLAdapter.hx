@@ -1006,7 +1006,7 @@ class HLAdapter extends DebugSession {
 	}
 
 	static var KEYWORDS = [for( k in [
-			// ref: haxe/src/core/ast.ml/s_keyword, without null/true/false
+			// ref: haxe/src/core/ast.ml/s_keyword, without null/true/false/this
 			"function","class","static","var","if","else","while","do","for","break","return","continue","extends","implements","import","switch","case","default",
 			"private","public","try","catch","new","throw","extern","enum","in","interface","untyped","cast","override","typedef","dynamic","package","inline",
 			"using","abstract","macro","final","operator","overload",
