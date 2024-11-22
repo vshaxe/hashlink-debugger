@@ -471,5 +471,4 @@ class CodeGraph {
 		}
 	}
 
-
 }

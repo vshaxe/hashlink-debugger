@@ -1043,5 +1043,4 @@ class Debugger {
 		return breakOnThrow = b;
 	}
 
-
 }
