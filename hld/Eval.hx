@@ -989,7 +989,7 @@ class Eval {
 		return str;
 	}
 
-	function readBytesStrAt(length, read: Int->Int, t:HLType, pos:String) : String {
+	function readBytesStrAt( length : Int , read : Int->Int, t : HLType, pos : String) : String {
 		var pos = toInt(eval(pos));
 		var blen = align.typeSize(t);
 		if( pos < 0 || (length >= 0 && pos > length-blen) )
@@ -1021,7 +1021,7 @@ class Eval {
 		return s.file+":" + s.line;
 	}
 
-	function readRegAddress(index) : VarAddress {
+	function readRegAddress( index ) : VarAddress {
 		var r = module.getFunctionRegs(funIndex)[index];
 		if( r == null )
 			return ANone;
