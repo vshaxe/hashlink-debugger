@@ -1021,6 +1021,33 @@ class HLAdapter extends DebugSession {
 				args.expression = args.expression.substr(1);
 			if( KEYWORDS.exists(args.expression) ) {
 				// Do nothing
+			} else if( args.expression.charCodeAt(0) == '@'.code ) {
+				// Advanced commands based on address
+				switch( args.expression.charCodeAt(1) ) {
+				case 'd'.code:
+					// @d + ptr: try to evaluate pointer as Dynamic value
+					var p = new hld.Pointer(hld.Value.parseInt64(args.expression.substr(2)));
+					var value = @:privateAccess dbg.eval.convertVal(p, HDyn);
+					value.hint = HPointer;
+					var v = makeVar("", value);
+					response.body = {
+						result : v.value,
+						type : v.type,
+						variablesReference : v.variablesReference,
+						namedVariables : v.namedVariables,
+						indexedVariables : v.indexedVariables,
+					};
+				case 'f'.code:
+					// @f + ptr: try to evaluate pointer as FunRepr
+					var p = new hld.Pointer(hld.Value.parseInt64(args.expression.substr(2)));
+					@:privateAccess var index = dbg.jit.functionFromAddr(p);
+					response.body = {
+						result : dbg.eval.funStr(index == null ? FUnknown(p) : FIndex(index, p), true),
+						variablesReference : 0,
+					};
+				default:
+					debug("Unsupported command");
+				}
 			} else {
 				var value = dbg.getValue(args.expression);
 				var v = makeVar("", value);

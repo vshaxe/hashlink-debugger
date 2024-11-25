@@ -104,6 +104,27 @@ enum Hint {
 		return prefix + s;
 	}
 
+	public static function parseInt64( str : String ) : haxe.Int64 {
+		var value = haxe.Int64.make(0, 0);
+		var base = 16;
+		var shift = 4;
+		var i = 0;
+		if( StringTools.startsWith(str,"0x") ) {
+			i += 2;
+		}
+		while( i < str.length ) {
+			var c = str.charCodeAt(i);
+			var cval = if( c >= '0'.code && c <= '9'.code ) c - '0'.code
+				else if( c >= 'A'.code && c <= 'F'.code ) c - 'A'.code + 10
+				else if( c >= 'a'.code && c <= 'f'.code ) c - 'a'.code + 10
+				else
+					break;
+			value = (value << shift) + cval;
+			i++;
+		}
+		return value;
+	}
+
 	public static function intEnumFlags( value : Int, eproto : format.hl.Data.EnumPrototype ) : String {
 		var f = "";
 		for( i in 0...eproto.constructs.length ) {
