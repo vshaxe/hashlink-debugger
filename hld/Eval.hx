@@ -411,7 +411,8 @@ class Eval {
 		}
 
 		var nextCpu = 0, nextFpu = 0;
-		var callRegs = jit.isWinCall ? [Ecx, Edx, R8, R9] : [Edi, Esi, Edx, Ecx, R8, R9];
+		// Save all SCRATCH_REGS because we might be in the middle of a function
+		var callRegs = jit.isWinCall ? [Ecx, Edx, R8, R9, R10, R11] : [Edi, Esi, Edx, Ecx, R8, R9, R10, R11];
 		for( i => r in callRegs ) {
 			pushReg(r);
 			pushReg(NativeReg.XMM(i));
