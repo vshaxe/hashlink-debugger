@@ -744,7 +744,7 @@ class HLAdapter extends DebugSession {
 			return { name : name, type : tstr, value : dbg.eval.valueStr(value), evaluateName : evalName, variablesReference : fields.length == 0 ? 0 : allocValue(VValue(value, evalName)), namedVariables : fields.length };
 		default:
 		}
-		return { name : name, type : tstr, value : dbg.eval.valueStr(value), evaluateName : evalName, variablesReference : 0 };
+		return { name : name, type : tstr, value : dbg.eval.valueStr(value) + pstr, evaluateName : evalName, variablesReference : 0 };
 	}
 
 	override function variablesRequest(response:VariablesResponse, args:VariablesArguments) {
