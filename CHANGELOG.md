@@ -1,3 +1,15 @@
+## 1.4.24 (November 26, 2024)
+
+* fixed launch error displayed twice
+* added error message when bytecode has no debug info
+* fixed eval error when variable reuse argument registers
+* added comparison string/null
+* fixed can't get fields for this warning when break in std
+* added pointer hint display for funRepr, HAbstract
+* added command @d @f for advanced debugging based on pointer
+* fixed evalCall corrupting jit registers R10, R11
+* fixed conditional breakpoint in small loop blocking the debugger
+
 ## 1.4.23 (October 14, 2024)
 
 * fixed reg corruption when eval call fail early (e.g. unsupported arg)
