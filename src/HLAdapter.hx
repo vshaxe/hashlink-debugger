@@ -416,6 +416,7 @@ class HLAdapter extends DebugSession {
 			return true;
 		dbg.customTimeout = 0;
 		var ret = false;
+		var count = 0;
 		while( true ) {
 			var msg = dbg.run();
 			handleWait(msg);
@@ -428,6 +429,12 @@ class HLAdapter extends DebugSession {
 			case Handled, SingleStep:
 				// wait a bit (prevent locking the process until next tick when many events are pending)
 				dbg.customTimeout = 0.1;
+				// prevent small loop with conditional breakpoint locking the adapter process
+				count++;
+				if( count > 100 ) {
+					shouldRun = true;
+					break;
+				}
 			}
 		}
 		if( dbg != null )

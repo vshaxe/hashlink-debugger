@@ -215,7 +215,7 @@ class Debugger {
 	public function pause() {
 		if( !api.breakpoint() )
 			throw "Failed to break process";
-		var r = wait();
+		var r = wait(false, false, true);
 		// if we have stopped on a not HL thread, let's switch on main thread
 		var found = false;
 		for( t in threads )
@@ -295,7 +295,7 @@ class Debugger {
 		return fields;
 	}
 
-	function wait( onStep = false, onEvalCall = false ) : Api.WaitResult {
+	function wait( onStep = false, onEvalCall = false, onPause = false ) : Api.WaitResult {
 		var cmd = null;
 		var condition : String = null;
 		watchBreak = null;
@@ -400,7 +400,7 @@ class Debugger {
 		prepareStack(cmd.r == Watchbreak);
 
 		// if breakpoint has a condition, try to evaluate and do not actually break on false
-		if( condition != null ) {
+		if( !onStep && !onEvalCall && !onPause && condition != null ) {
 			try {
 				var value = getValue(condition);
 				if( value != null ) {
