@@ -50,6 +50,10 @@ class Extension {
 						if (config.program == null) {
 							config.program = file;
 						}
+						if (StringTools.endsWith(config.program, ".c")) {
+							reject('Plase use a HashLink/JIT configuration (found "${config.program}" instead).');
+							return;
+						}
 						config.classPaths = haxeConfig.classPaths.map(cp -> cp.path);
 						resolve(config);
 
