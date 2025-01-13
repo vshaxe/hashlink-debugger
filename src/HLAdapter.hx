@@ -1053,7 +1053,7 @@ class HLAdapter extends DebugSession {
 						variablesReference : 0,
 					};
 				default:
-					debug("Unsupported command");
+					debug("Unsupported command " + args.expression);
 				}
 			} else {
 				var value = dbg.getValue(args.expression);
