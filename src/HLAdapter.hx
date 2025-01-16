@@ -728,30 +728,36 @@ class HLAdapter extends DebugSession {
 		case VPointer(_):
 			var fields = dbg.eval.getFields(value);
 			if( fields != null && fields.length > 0 )
-				return { name : name, type : tstr, value : tstr + pstr, evaluateName : evalName, variablesReference : allocValue(VValue(value, evalName)), namedVariables : fields.length };
+				return { name : name, type : tstr, value : tstr + pstr, evaluateName : evalName ?? "#" + tstr, variablesReference : allocValue(VValue(value, evalName)), namedVariables : fields.length };
 		case VEnum(c,values,_) if( values.length > 0 ):
 			var str = c + "(" + [for( v in values ) switch( v.v ) {
 				case VEnum(c,values,_) if( values.length == 0 ): c;
 				case VPointer(_), VEnum(_), VArray(_), VMap(_), VBytes(_): "...";
 				default: dbg.eval.valueStr(v);
 			}].join(", ")+")";
-			return { name : name, type : tstr, value : str + pstr, evaluateName : evalName, variablesReference : allocValue(VValue(value, evalName)), namedVariables : values.length };
+			return { name : name, type : tstr, value : str + pstr, evaluateName : evalName ?? "#" + str, variablesReference : allocValue(VValue(value, evalName)), namedVariables : values.length };
 		case VArray(_, len, _, _), VMap(_, len, _, _):
-			return { name : name, type : tstr, value : dbg.eval.valueStr(value) + pstr, evaluateName : evalName, variablesReference : len == 0 ? 0 : allocValue(VValue(value, evalName)), indexedVariables : len };
+			var str = dbg.eval.valueStr(value);
+			return { name : name, type : tstr, value : str + pstr, evaluateName : evalName ?? "#" + str, variablesReference : len == 0 ? 0 : allocValue(VValue(value, evalName)), indexedVariables : len };
 		case VBytes(len, _):
 			switch( value.hint ) {
 			case HReadBytes(t, _):
-				return { name : name, type : dbg.eval.typeStr(t), value : dbg.eval.valueStr(value), evaluateName : evalName, variablesReference : 0 };
+				var str = dbg.eval.valueStr(value);
+				return { name : name, type : dbg.eval.typeStr(t), value : str, evaluateName : evalName ?? "#" + str, variablesReference : 0 };
 			default:
 			}
-			return { name : name, type : tstr, value : tstr+":"+len + pstr, evaluateName : evalName, variablesReference : allocValue(VValue(value, evalName)), indexedVariables : (len+15)>>4 };
+			var str = tstr+":"+len;
+			return { name : name, type : tstr, value : str + pstr, evaluateName : evalName ?? "#" + str, variablesReference : allocValue(VValue(value, evalName)), indexedVariables : (len+15)>>4 };
 		case VClosure(f,context,_):
-			return { name : name, type : tstr, value : dbg.eval.funStr(f, value.hint == HPointer) + pstr, evaluateName : evalName, variablesReference : allocValue(VValue(value, evalName)), indexedVariables : 2 };
+			var str = dbg.eval.funStr(f, value.hint == HPointer);
+			return { name : name, type : tstr, value : str + pstr, evaluateName : evalName ?? "#" + str, variablesReference : allocValue(VValue(value, evalName)), indexedVariables : 2 };
 		case VInlined(fields):
-			return { name : name, type : tstr, value : dbg.eval.valueStr(value), evaluateName : evalName, variablesReference : fields.length == 0 ? 0 : allocValue(VValue(value, evalName)), namedVariables : fields.length };
+			var str = dbg.eval.valueStr(value);
+			return { name : name, type : tstr, value : str, evaluateName : evalName ?? "#" + str, variablesReference : fields.length == 0 ? 0 : allocValue(VValue(value, evalName)), namedVariables : fields.length };
 		default:
 		}
-		return { name : name, type : tstr, value : dbg.eval.valueStr(value) + pstr, evaluateName : evalName, variablesReference : 0 };
+		var str = dbg.eval.valueStr(value);
+		return { name : name, type : tstr, value : str + pstr, evaluateName : evalName ?? "#" + str, variablesReference : 0 };
 	}
 
 	override function variablesRequest(response:VariablesResponse, args:VariablesArguments) {
@@ -1055,6 +1061,12 @@ class HLAdapter extends DebugSession {
 				default:
 					debug("Unsupported command " + args.expression);
 				}
+			} else if( args.expression.charCodeAt(0) == '#'.code ) {
+				// Fake evalName for Copy value request
+				response.body = {
+					result : args.expression.substr(1),
+					variablesReference : 0,
+				};
 			} else {
 				var value = dbg.getValue(args.expression);
 				var v = makeVar("", value);
