@@ -595,11 +595,11 @@ class Debugger {
 					cleanup();
 					return r;
 				}
-				// fix for recursive methods that are breaking on the return we put
+				// fix recursive methods that are breaking on the inner function
 				if( (mode == Out || mode == Next) && currentStack.length > depth ) {
 					var isRecursive = false;
 					for( b in breakPoints )
-						if( b.fid == -2 && nextStep == b.codePos ) {
+						if( (b.fid == -2 || b.fid == -1) && nextStep == b.codePos ) {
 							isRecursive = true;
 							break;
 						}

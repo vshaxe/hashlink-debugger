@@ -1,0 +1,21 @@
+> b Test.hx:11
+Breakpoint set line 11
+> r
+Thread paused Test.hx:11 ($Test::main)
+> s
+Thread paused Test.hx:3 ($Test::foo)
+> p x
+3 : Int
+> n
+Thread paused Test.hx:4 ($Test::foo)
+> n
+Thread paused Test.hx:5 ($Test::foo)
+> n
+Thread paused Test.hx:6 ($Test::foo)
+> p x
+3 : Int
+> n
+Thread paused Test.hx:7 ($Test::foo)
+> n
+Thread paused Test.hx:11 ($Test::main)
+> q
