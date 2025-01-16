@@ -1,3 +1,10 @@
+## 1.4.25 (January 16, 2025)
+
+* fixed expression 1e2, 1e-5 showing as infinity (lib hscript)
+* added an early error when trying to debug hl/c
+* fixed step next break on inner recursive call
+* fixed copy value returning wrong result
+
 ## 1.4.24 (November 26, 2024)
 
 * fixed launch error displayed twice
