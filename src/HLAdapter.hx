@@ -802,7 +802,7 @@ class HLAdapter extends DebugSession {
 				for( f in fields ) {
 					try {
 						var value = dbg.eval.readField(v, f);
-						vars.push(makeVar(f, value, evalName+"."+f));
+						vars.push(makeVar(f, value, evalName == null ? null : evalName+"."+f));
 					} catch( e : Dynamic ) {
 						vars.push({
 							name : f,
@@ -817,7 +817,7 @@ class HLAdapter extends DebugSession {
 				for( i in start...start+count ) {
 					try {
 						var value = get(i);
-						vars.push(makeVar("" + i, value, evalName+"["+i+"]"));
+						vars.push(makeVar("" + i, value, evalName == null ? null : evalName+"["+i+"]"));
 					} catch( e : Dynamic ) {
 						vars.push({
 							name : "" + i,
@@ -898,7 +898,7 @@ class HLAdapter extends DebugSession {
 				for( f in fields )
 					try {
 						var value = dbg.eval.readField(v, f.name);
-						vars.push(makeVar(f.name, value, evalName+"."+f.name));
+						vars.push(makeVar(f.name, value, evalName == null ? null : evalName+"."+f.name));
 					} catch( e : Dynamic ) {
 						vars.push({
 							name : f.name,
