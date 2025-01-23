@@ -5,40 +5,17 @@ import Utils;
 class Extension {
 	@:expose("activate")
 	static function main(context:ExtensionContext) {
-		Vscode.debug.registerDebugConfigurationProvider("hl", {resolveDebugConfiguration: resolveDebugConfiguration});
+		Vscode.debug.registerDebugConfigurationProvider("hl", {resolveDebugConfiguration: resolveDebugConfiguration,
+			resolveDebugConfigurationWithSubstitutedVariables: resolveDebugConfigurationWithSubstitutedVariables});
 		Vscode.debug.registerDebugAdapterDescriptorFactory("hl", {createDebugAdapterDescriptor: createDebugAdapterDescriptor});
 		Vscode.debug.onDidChangeActiveDebugSession(onDidChangeActiveDebugSession);
 		context.subscriptions.push(Vscode.commands.registerCommand("hldebug.var.formatInt", args -> formatInt(args)));
 	}
 
+	// Run before preLaunchTask
 	static function resolveDebugConfiguration(folder:Null<WorkspaceFolder>, config:DebugConfiguration,
 			?token:CancellationToken):ProviderResult<DebugConfiguration> {
 		var config:DebugConfiguration & Arguments = cast config;
-
-		if (Sys.systemName() == "Mac") {
-			final hl = config.hl != null ? config.hl : 'hl';
-
-			var hlVersion:String = js.node.ChildProcess.execSync('$hl --version');
-			if(hlVersion <= "1.11.0") {
-				final visitButton = "Get from GitHub";
-				Vscode.window.showErrorMessage('Your version of Hashlink (${hlVersion}) does not support debugging on Mac. Install a newer version from here:', null, visitButton).then(function(choice) {
-					if (choice == visitButton) {
-						Vscode.env.openExternal(Uri.parse("https://github.com/HaxeFoundation/hashlink"));
-					}
-				});
-				return null;
-			}
-			var validSignature = false;
-			try {
-				var entitlements:String = js.node.ChildProcess.execSync('codesign -d --entitlements - "$$(which $hl)"');
-				validSignature = entitlements.indexOf("com.apple.security.get-task-allow") >= 0;
-			} catch(ex: Dynamic) {}
-			if(!validSignature) {
-				Vscode.window.showErrorMessage('Your Hashlink executable is not properly codesigned. Run `make codesign_osx` during Hashlink installation.\n\nPath: ${hl}');
-				return null;
-			}
-		}
-
 		if (config.type == null) {
 			return null; // show launch.json
 		}
@@ -64,6 +41,35 @@ class Extension {
 				reject("Unable to retrieve active Haxe configuration: " + error);
 			});
 		});
+	}
+
+	// Run after preLaunchTask
+	static function resolveDebugConfigurationWithSubstitutedVariables(folder:Null<WorkspaceFolder>, config:DebugConfiguration,
+		?token:CancellationToken):ProviderResult<DebugConfiguration> {
+		var config:DebugConfiguration & Arguments = cast config;
+		if( Sys.systemName() == "Mac" ) {
+			final hl = config.hl != null ? config.hl : 'hl';
+			var hlVersion:String = js.node.ChildProcess.execSync('$hl --version');
+			if( hlVersion <= "1.11.0" ) {
+				final visitButton = "Get from GitHub";
+				Vscode.window.showErrorMessage('Your version of Hashlink (${hlVersion}) does not support debugging on Mac. Install a newer version from here:', null, visitButton).then(function(choice) {
+					if( choice == visitButton ) {
+						Vscode.env.openExternal(Uri.parse("https://github.com/HaxeFoundation/hashlink"));
+					}
+				});
+				return null;
+			}
+			var validSignature = false;
+			try {
+				var entitlements:String = js.node.ChildProcess.execSync('codesign -d --entitlements - "$$(which $hl)"');
+				validSignature = entitlements.indexOf("com.apple.security.get-task-allow") >= 0;
+			} catch( ex: Dynamic ) {}
+			if( !validSignature ) {
+				Vscode.window.showErrorMessage('Your Hashlink executable is not properly codesigned. Run `make codesign_osx` during Hashlink installation.\n\nPath: ${hl}');
+				return null;
+			}
+		}
+		return config;
 	}
 
 	static function createDebugAdapterDescriptor(session: DebugSession, ?executable:DebugAdapterExecutable): ProviderResult<vscode.DebugAdapterDescriptor> {
