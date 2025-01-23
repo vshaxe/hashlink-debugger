@@ -1,3 +1,7 @@
+## 1.4.26 (January 23, 2025)
+
+* fixed error on mac when hl is only available after preLaunchTask (#135)
+
 ## 1.4.25 (January 16, 2025)
 
 * fixed expression 1e2, 1e-5 showing as infinity (lib hscript)
