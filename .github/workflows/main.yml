@@ -6,6 +6,8 @@ on:
     branches:
       - "**"
   pull_request:
+  workflow_dispatch:
+  # https://github.blog/changelog/2020-07-06-github-actions-manual-triggers-with-workflow_dispatch/
 
 jobs:
   build:
@@ -13,6 +15,8 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - uses: krdlab/setup-haxe@v1
+      with:
+        haxe-version: 4.3.6
     - name: Print haxe version
       run: haxe -version
     - name: Install haxelib dependencies
@@ -31,6 +35,33 @@ jobs:
         cd debugger
         haxe debugger.hxml
         cd ..
+    - uses: actions/setup-node@v4
+      with:
+        node-version: '22.x'
+    - name: Print npm and node version
+      run: |
+        npm --version
+        node --version
+    - name: Install global vsce package
+      run: |
+        npm install vsce -g
+        npm list vsce -g
+    - name: Package nightly build
+      run: |
+        export PKG_VER=$(npm pkg get version | xargs)
+        export SHORT_HASH=$(git rev-parse --short HEAD)
+        npm pkg set 'version'=${PKG_VER}-dev-${SHORT_HASH}
+        npm install
+        # Double install workaround for node-addon-api invalid error (instead of deduped), see https://github.com/npm/cli/issues/4859
+        npm install
+        npm list node-addon-api
+        make package
+        cp haxe-hl-${PKG_VER}-dev-${SHORT_HASH}.vsix haxe-hl-dev.vsix
+    - name: Upload extension artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: vscode_extension
+        path: haxe-hl-dev.vsix
 
   build_and_test_nightly:
     runs-on: ubuntu-latest
