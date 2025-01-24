@@ -51,10 +51,11 @@ jobs:
         export PKG_VER=$(npm pkg get version | xargs)
         export SHORT_HASH=$(git rev-parse --short HEAD)
         npm pkg set 'version'=${PKG_VER}-dev-${SHORT_HASH}
+        # Prevent build node-gyp
+        rm -f hldebug-wrapper/binding.gyp
         npm install
         # Double install workaround for node-addon-api invalid error (instead of deduped), see https://github.com/npm/cli/issues/4859
         npm install
-        cd hldebug-wrapper && rm -rf build && cd ..
         npm list node-addon-api
         make package
         cp haxe-hl-${PKG_VER}-dev-${SHORT_HASH}.vsix haxe-hl-dev.vsix
