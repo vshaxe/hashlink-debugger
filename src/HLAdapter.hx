@@ -636,6 +636,14 @@ class HLAdapter extends DebugSession {
 			}],
 			totalFrames : bt.length,
 		};
+		if( response.body.stackFrames.length == 0 ) {
+			response.body.stackFrames.push({
+				id : start + 0,
+				name : "Empty Stack",
+				line : 0,
+				column : 0,
+			});
+		}
 		sendResponse(response);
 	}
 
