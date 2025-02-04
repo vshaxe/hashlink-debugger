@@ -47,6 +47,7 @@ class Eval {
 	var funIndex : Int;
 	var codePos : Int;
 	var ebp : Pointer;
+	var guidNames : Int64Map<String>;
 
 	public var maxArrLength : Int = 10;
 	public var maxBytesLength : Int = 128;
@@ -81,6 +82,10 @@ class Eval {
 		this.funIndex = funIndex;
 		this.codePos = codePos;
 		this.ebp = ebp;
+	}
+
+	public function onBeforeBreak() {
+		this.guidNames = null;
 	}
 
 	public function eval( expr : String ) : Value {
@@ -986,6 +991,16 @@ class Eval {
 				c + "(" + [for( v in values ) valueStr(v,maxStringRec)].join(", ") + ")";
 		case VInlined(_):
 			"inlined";
+		case VGuid(i, name):
+			switch( v.hint ) {
+			case HBin: Value.int64Str(i, 2);
+			case HHex: Value.int64Str(i, 16);
+			default:
+				var str = Value.int64GuidStr(i);
+				if( name != null )
+					str = '$name ($str)';
+				str;
+			}
 		}
 		return str;
 	}
@@ -1078,6 +1093,10 @@ class Eval {
 			VBool(m.getUI8(0) != 0);
 		case HPacked(t):
 			return { v : VPointer(p), t : t.v };
+		case HGUID:
+			var i64 = haxe.Int64.make(readI32(p.offset(4)), readI32(p));
+			var name = getGuidName(i64);
+			return { v : VGuid(i64, name), t : t };
 		default:
 			p = readPointer(p);
 			return valueCast(p, t);
@@ -1611,4 +1630,43 @@ class Eval {
 		return module.code.types[tid];
 	}
 
+	function getGuidName( i64 : haxe.Int64 ) : Null<String> {
+		if( guidNames == null ) {
+			guidNames = new Int64Map();
+			if( jit.hlVersion >= 1.15 ) {
+				var pmap = readPointer(jit.threads.offset(jit.align.ptr*3 + 8));
+				if( !pmap.isNull() ) {
+					var m = @:privateAccess makeMap(pmap, HI64);
+					switch( m ) {
+					case VMap(_, nkeys, readKey, readValue, _):
+						for (n in 0...nkeys) {
+							var k = readKey(n);
+							var v = readValue(n);
+							switch( [k.v, v.v] ) {
+							case [VInt64(ki64), VString(vname, _)]:
+								guidNames.set(ki64, vname);
+							default:
+							}
+						}
+					default: throw "assert";
+					}
+				}
+			}
+		}
+		return guidNames.get(i64);
+	}
+
+}
+
+// Map<Int64, V> does not work on JS, see https://github.com/HaxeFoundation/haxe/issues/9872
+class Int64Map<T> extends haxe.ds.BalancedTree<haxe.Int64, T> {
+	override function compare(k1:haxe.Int64, k2:haxe.Int64):Int {
+		return if( k1 == k2 ) {
+			0;
+		} else if( k1 > k2 ) {
+			1;
+		} else {
+			-1;
+		}
+	}
 }

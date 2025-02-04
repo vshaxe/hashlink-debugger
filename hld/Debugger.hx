@@ -398,6 +398,7 @@ class Debugger {
 
 		readThreads();
 		prepareStack(cmd.r == Watchbreak);
+		eval.onBeforeBreak();
 
 		// if breakpoint has a condition, try to evaluate and do not actually break on false
 		if( !onStep && !onEvalCall && !onPause && condition != null ) {

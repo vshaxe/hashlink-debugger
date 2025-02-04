@@ -1,0 +1,17 @@
+> b Test.hx:5
+Breakpoint set line 5
+> b Test.hx:7
+Breakpoint set line 7
+> r
+Thread paused Test.hx:5 ($Test::main)
+> p id
+z3K4-MI#w-J#6 : hl.GUID
+> p id2
+z3K4-MI#w-J#7 : hl.GUID
+> r
+Thread paused Test.hx:7 ($Test::main)
+> p id
+SomeName (z3K4-MI#w-J#6) : hl.GUID
+> p id2
+z3K4-MI#w-J#7 : hl.GUID
+> q
