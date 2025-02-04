@@ -11,7 +11,15 @@ class RunCi {
 			var fullPath = sys.FileSystem.absolutePath(basePath + "unit/" + test);
 			log('[INFO] $test begin');
 			changeDirectory(fullPath);
-			Sys.command("haxe", ["--main", "Test", "-hl", "test.hl"]);
+			var compileargs = ["--main", "Test", "-hl", "test.hl"];
+			try {
+				var flags = sys.io.File.getContent(fullPath + "/compile.txt").split(" ");
+				compileargs = compileargs.concat(flags);
+			} catch( e ) {
+				trace("error" + e.message);
+			}
+			trace("run haxe with " + compileargs);
+			Sys.command("haxe", compileargs);
 			var process = new sys.io.Process("hl", [debuggerHL, "--input", "input.txt"]);
 			var expectedOutput = sys.io.File.getContent(fullPath + "/output.txt");
 			var startingTime = haxe.Timer.stamp();

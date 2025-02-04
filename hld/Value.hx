@@ -18,6 +18,7 @@ enum ValueRepr {
 	VEnum( c : String, values : Array<Value>, p : Pointer );
 	VBytes( length : Int, read : Int -> Int, p : Pointer );
 	VInlined( fields : Array<InlinedField> );
+	VGuid( i : haxe.Int64, name : String );
 }
 
 enum FunRepr {
@@ -123,6 +124,20 @@ enum Hint {
 			i++;
 		}
 		return value;
+	}
+
+	static final GUIDBASE = "#&0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+	public static function int64GuidStr( value : haxe.Int64 ) : String {
+		if( value == 0 )
+			return "0";
+		var s = "";
+		for( i in 0...11 ) {
+			if( i == 3 || i == 7 )
+				s = '-' + s;
+			s = GUIDBASE.charAt(value.low&63) + s;
+			value = value >> 6;
+		}
+		return s;
 	}
 
 	public static function intEnumFlags( value : Int, eproto : format.hl.Data.EnumPrototype ) : String {
