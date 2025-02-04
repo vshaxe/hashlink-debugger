@@ -1,3 +1,8 @@
+## 1.4.27 (February 4, 2025)
+
+* fixed vscode not focusing on exception when the stack is empty
+* added hl.GUID support for hl & haxe nightly
+
 ## 1.4.26 (January 23, 2025)
 
 * fixed error on mac when hl is only available after preLaunchTask (#135)
