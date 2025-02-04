@@ -93,6 +93,7 @@ jobs:
     - name: Install hl
       run: |
         git clone https://github.com/HaxeFoundation/hashlink.git hashlink
+        sudo apt-get update
         sudo apt-get install -qqy libpng-dev libturbojpeg-dev libvorbis-dev libopenal-dev libsdl2-dev libglu1-mesa-dev libmbedtls-dev libuv1-dev libsqlite3-dev
         cd hashlink
         make
