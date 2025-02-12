@@ -1,0 +1,11 @@
+--ci
+test.hl
+"b Test.hx:7"
+"b Test.hx:11"
+r
+"p this"
+"p functionvar"
+r
+"p this"
+"p functionvar"
+q
