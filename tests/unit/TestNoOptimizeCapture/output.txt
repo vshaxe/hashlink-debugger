@@ -1,0 +1,19 @@
+> b Test.hx:7
+Breakpoint set line 7
+> b Test.hx:11
+Breakpoint set line 11
+> r
+Thread paused Test.hx:7
+> p this
+Test : Test
+  classvar = 10 : Int
+> p functionvar
+[15] : Array<Int>
+> r
+Thread paused Test.hx:11 ($Test::__constructor__)
+> p this
+Test : Test
+  classvar = 22 : Int
+> p functionvar
+[8] : Array<Int>
+> q
