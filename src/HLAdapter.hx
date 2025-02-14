@@ -860,7 +860,7 @@ class HLAdapter extends DebugSession {
 				for( i in 0...values.length )
 					try {
 						var value = values[i];
-						vars.push(makeVar("" + i, value));
+						vars.push(makeVar("" + i, value, evalName == null ? null : evalName+".$"+i));
 					} catch( e : Dynamic ) {
 						vars.push({
 							name : "" + i,
