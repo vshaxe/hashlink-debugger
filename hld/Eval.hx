@@ -984,6 +984,8 @@ class Eval {
 				content.toString() + ":" + nkeys;
 			} else
 				content.toString();
+		case VMapPair(key, value):
+			valueStr(key, maxStringRec) + "=>" + valueStr(value, maxStringRec);
 		case VType(t):
 			typeStr(t);
 		case VEnum(c, values, _):
@@ -1353,10 +1355,19 @@ class Eval {
 		}
 	}
 
-	public function readField( v : Value, name : String ) {
+	public function readField( v : Value, name : String ) : Value {
 		switch( v.v ) {
 		case VEnum(_,values,_) if( name.charCodeAt(0) == "$".code ):
 			return values[Std.parseInt(name.substr(1))];
+		case VMap(t, len, readKey, readValue, _) if( name.charCodeAt(0) == "$".code ):
+			var i = Std.parseInt(name.substr(1));
+			var key = readKey(i);
+			var value = readValue(i);
+			return i < 0 || i >= len ? { v : VUndef, t : t } : { v: VMapPair(key,value), t : t };
+		case VMapPair(key, _) if( name == "$key" ):
+			return key;
+		case VMapPair(_, value) if( name == "$value" ):
+			return value;
 		default:
 		}
 		var a = readFieldAddress(v, name);

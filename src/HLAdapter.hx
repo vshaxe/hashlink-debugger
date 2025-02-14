@@ -11,7 +11,6 @@ enum VarValue {
 	VValue( v : hld.Value, evalName : String );
 	VUnkownFile( file : String );
 	VObjFields( v : hld.Value, o : format.hl.Data.ObjPrototype, evalName : String );
-	VMapPair( key : hld.Value, value : hld.Value );
 	VStatics( cl : String );
 	VStack( stack : Array<hld.Debugger.StackInfo> );
 }
@@ -762,6 +761,9 @@ class HLAdapter extends DebugSession {
 		case VInlined(fields):
 			var str = dbg.eval.valueStr(value);
 			return { name : name, type : tstr, value : str, evaluateName : evalName ?? "#" + str, variablesReference : fields.length == 0 ? 0 : allocValue(VValue(value, evalName)), namedVariables : fields.length };
+		case VMapPair(_, _):
+			var str = dbg.eval.valueStr(value);
+			return { name : name, type : tstr, value : str + pstr, evaluateName : evalName ?? "#" + str, variablesReference : allocValue(VValue(value, evalName)), namedVariables : 2 };
 		case VString(_, _):
 			if( value.hint == HNone )
 				value.hint = HNoEscape;
@@ -877,13 +879,9 @@ class HLAdapter extends DebugSession {
 						var key = getKey(i);
 						var value = getValue(i);
 						if( tkey == HDyn ) {
-							vars.push({
-								name : "" + i,
-								value : "",
-								variablesReference : allocValue(VMapPair(key,value)),
-							});
+							vars.push(makeVar("" + i, { v: VMapPair(key,value), t : tkey }, evalName == null ? null : evalName+".$"+i));
 						} else
-							vars.push(makeVar(dbg.eval.valueStr(key), value));
+							vars.push(makeVar(dbg.eval.valueStr(key), value, evalName == null ? null : evalName+".$"+i+".$value"));
 					} catch( e : Dynamic ) {
 						vars.push({
 							name : "" + i,
@@ -892,6 +890,9 @@ class HLAdapter extends DebugSession {
 						});
 					}
 				}
+			case VMapPair(key, value):
+				vars.push(makeVar("key", key, evalName == null ? null : evalName+".$key"));
+				vars.push(makeVar("value", value, evalName == null ? null : evalName+".$value"));
 			case VClosure(_, context, _):
 				if( context != null )
 					switch( context.t ) {
@@ -936,9 +937,6 @@ class HLAdapter extends DebugSession {
 				if( v.t.match(HFun(_)) ) continue;
 				vars.push(makeVar(f, v, cl+"."+f));
 			}
-		case VMapPair(key, value):
-			vars.push(makeVar("key", key));
-			vars.push(makeVar("value", value));
 		case VStack(stack):
 			for( i in 0...stack.length ) {
 				var st = stack[i];
