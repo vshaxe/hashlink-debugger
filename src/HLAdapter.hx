@@ -762,6 +762,9 @@ class HLAdapter extends DebugSession {
 		case VInlined(fields):
 			var str = dbg.eval.valueStr(value);
 			return { name : name, type : tstr, value : str, evaluateName : evalName ?? "#" + str, variablesReference : fields.length == 0 ? 0 : allocValue(VValue(value, evalName)), namedVariables : fields.length };
+		case VString(_, _):
+			if( value.hint == HNone )
+				value.hint = HNoEscape;
 		default:
 		}
 		var str = dbg.eval.valueStr(value);

@@ -935,10 +935,10 @@ class Eval {
 			switch( [v.t, v.hint] ) {
 			case [HBytes, HReadBytes(t, pos)]:
 				readBytesStrAt(-1, i -> readByte(p.offset(i)), t, pos);
-			case [_, HEscape]:
-				"\"" + escape(s) + "\"";
-			default:
+			case [_, HNoEscape]:
 				"\"" + s + "\"";
+			default:
+				"\"" + escape(s) + "\"";
 			}
 		case VClosure(f, d, _), VMethod(f, d, _): funStr(f, v.hint == HPointer) + "[" + valueStr(d,maxStringRec) + "]";
 		case VFunction(f,_): funStr(f, v.hint == HPointer);

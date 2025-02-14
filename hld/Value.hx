@@ -34,6 +34,7 @@ enum Hint {
 	HBin; // v:b
 	HPointer; // v:p
 	HEscape; // v:s
+	HNoEscape;
 	HReadBytes(t : HLType, pos : String); // v:UI8(0), v:UI16(0), v:I32(0), v:I64(0), v:F32(0), v:F64(0)
 	HEnumFlags(t : String); // v:EnumFlags<T>, v:haxe.EnumFlags<T>
 	HEnumIndex(t : String); // v:EnumIndex<T>
