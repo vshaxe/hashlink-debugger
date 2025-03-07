@@ -1,3 +1,8 @@
+## 1.4.28 (March 7, 2025)
+
+* improved support for multi-line string
+* added Add To Watch support for Enum, Map (by index)
+
 ## 1.4.27 (February 4, 2025)
 
 * fixed vscode not focusing on exception when the stack is empty
