@@ -1061,7 +1061,7 @@ class Eval {
 		case HUi8, HUi16, HI32:
 			VInt(p.i64.low);
 		case HI64:
-			throw "TODO:"+t;
+			VInt64(haxe.Int64.make(p.i64.high,p.i64.low));
 		case HF64, HF32:
 			VFloat(haxe.io.FPHelper.i64ToDouble(p.i64.low,p.i64.high));
 		case HBool:
