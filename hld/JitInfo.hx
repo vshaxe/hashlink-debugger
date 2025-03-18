@@ -22,8 +22,8 @@ class JitInfo {
 
 	public var hlVersion : Float;
 	public var globals : Pointer;
-	public var codeStart : Pointer;
-	public var codeEnd : Pointer;
+	var codeStart : Pointer;
+	var codeEnd : Pointer;
 	public var threads : Pointer;
 	var codeSize : Int;
 	var allTypes : Pointer;
@@ -107,19 +107,26 @@ class JitInfo {
 		return true;
 	}
 
-	public function getFunctionPos( fidx : Int ) {
-		return functions[fidx].start;
+	public function getFunctionPos( fidx : Int ) : Pointer {
+		return codeStart.offset(functions[fidx].start);
 	}
 
-	public function getCodePos( fidx : Int, pos : Int ) {
+	public function getCodePos( fidx : Int, pos : Int ) : Pointer {
 		var dbg = functions[fidx];
-		return dbg.start + (dbg.large ? dbg.offsets.getInt32(pos << 2) : dbg.offsets.getUInt16(pos << 1));
+		var offset = dbg.start + (dbg.large ? dbg.offsets.getInt32(pos << 2) : dbg.offsets.getUInt16(pos << 1));
+		return codeStart.offset(offset);
+	}
+
+	public inline function isCodePtr( codePtr : Pointer ) {
+		if( codePtr < codeStart || codePtr > codeEnd )
+			return false;
+		return true;
 	}
 
 	public function resolveAsmPos( codePtr : Pointer ) {
-		var asmPos = codePtr.sub(codeStart);
-		if( asmPos < 0 || asmPos > codeSize )
+		if( !isCodePtr(codePtr) )
 			return null;
+		var asmPos = codePtr.sub(codeStart);
 		var min = 0;
 		var max = functions.length;
 		while( min < max ) {
