@@ -116,7 +116,8 @@ class JitInfo {
 		return dbg.start + (dbg.large ? dbg.offsets.getInt32(pos << 2) : dbg.offsets.getUInt16(pos << 1));
 	}
 
-	public function resolveAsmPos( asmPos : Int ) {
+	public function resolveAsmPos( codePtr : Pointer ) {
+		var asmPos = codePtr.sub(codeStart);
 		if( asmPos < 0 || asmPos > codeSize )
 			return null;
 		var min = 0;

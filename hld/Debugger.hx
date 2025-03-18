@@ -475,8 +475,7 @@ class Debugger {
 			var codePtr = eval.readPointer(base.offset(i * jit.align.ptr));
 			if( codePtr < jit.codeStart || codePtr > jit.codeEnd)
 				continue;
-			var codePos = codePtr.sub(jit.codeStart);
-			var e = jit.resolveAsmPos(codePos);
+			var e = jit.resolveAsmPos(codePtr);
 			stack.push(e);
 		}
 		return [for( s in stack ) if( module.isValid(s.fidx, s.fpos) ) s];
@@ -530,7 +529,7 @@ class Debugger {
 		var trap = threads.get(tid).exceptionTrap;
 		if( trap != null && jit.codeStart < trap && trap < jit.codeEnd ) {
 			var codePos = trap.sub(jit.codeStart);
-			var e = jit.resolveAsmPos(codePos);
+			var e = jit.resolveAsmPos(trap);
 			if( e.fidx != s.fidx ) {
 				var old = getAsm(codePos);
 				var bp = { fid : -4, pos : e.fpos, codePos : codePos, oldByte : old, condition : null };
@@ -665,9 +664,9 @@ class Debugger {
 		var mem = readMem(esp.offset(-jit.align.ptr), size);
 
 		var eip = getReg(tid, Eip);
-		var asmPos = eip.sub(jit.codeStart);
+		var asmPos = eip;
 		if( isWatchbreak )
-			asmPos -= 1;
+			asmPos = eip.offset(-1);
 		var e = jit.resolveAsmPos(asmPos);
 		var inProlog = false;
 		var exc = getException();
@@ -702,7 +701,7 @@ class Debugger {
 				e = null;
 			} else if( e.fpos < 0 ) {
 				// we are in function prolog
-				var delta = jit.getFunctionPos(e.fidx) - asmPos;
+				var delta = jit.getFunctionPos(e.fidx) - asmPos.sub(jit.codeStart);
 				e.fpos = 0;
 				if( delta == 0 )
 					e.ebp = esp.offset(-jit.align.ptr); // not yet pushed ebp
@@ -729,8 +728,7 @@ class Debugger {
 					var codePtr = skipFirstCheck ? val : mem.getPointer((i + 1) << 3, jit.align);
 					if( codePtr < jit.codeStart || codePtr > jit.codeEnd )
 						continue;
-					var codePos = codePtr.sub(jit.codeStart);
-					var e = jit.resolveAsmPos(codePos);
+					var e = jit.resolveAsmPos(codePtr);
 					if( e != null && e.fpos >= 0 ) {
 						if( skipFirstCheck ) {
 							e.ebp = ebp;
@@ -779,8 +777,8 @@ class Debugger {
 			for( i in 0...size >> 2 ) {
 				var val = mem.getI32(i << 2);
 				if( val > stackBottom && val < stackTop || (inProlog && i == 0) ) {
-					var codePos = mem.getI32((i + 1) << 2) - jit.codeStart.toInt();
-					var e = jit.resolveAsmPos(codePos);
+					var codePtr = mem.getPointer((i + 1) << 2, jit.align);
+					var e = jit.resolveAsmPos(codePtr);
 					if( e != null && e.fpos >= 0 ) {
 						e.ebp = Pointer.make(val,0);
 						stack.push(e);
@@ -811,8 +809,7 @@ class Debugger {
 		var stack = @:privateAccess eval.getClosureStack(value);
 		var out = [];
 		for( ptr in stack ) {
-			var codePos = ptr.sub(jit.codeStart);
-			var e = jit.resolveAsmPos(codePos);
+			var e = jit.resolveAsmPos(ptr);
 			if( e == null || !module.isValid(e.fidx,e.fpos) || e.fpos < 0 ) continue;
 			out.push(stackInfo({ fidx : e.fidx, fpos : e.fpos, ebp: null }));
 		}
