@@ -14,7 +14,13 @@ typedef WatchPoint = {
 	var forReadWrite : Bool;
 }
 
-typedef StackRawInfo = { fidx : Int, fpos : Int, codePos : Int, ebp : hld.Pointer };
+@:publicFields @:structInit
+class StackRawInfo {
+	var fidx : Int;
+	var fpos : Int;
+	var codePos : Pointer;
+	var ebp : hld.Pointer;
+}
 
 typedef StackInfo = { file : String, line : Int, ebp : Pointer, ?context : { obj : format.hl.Data.ObjPrototype, field : String } };
 

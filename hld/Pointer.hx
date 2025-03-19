@@ -34,8 +34,14 @@ abstract Pointer(hl.Bytes) to hl.Bytes {
 	@:op(a > b) static function opGt( a : Pointer, b : Pointer ) : Bool {
 		return a.addr() > b.addr();
 	}
+	@:op(a >= b) static function opGte( a : Pointer, b : Pointer ) : Bool {
+		return a.addr() >= b.addr();
+	}
 	@:op(a < b) static function opLt( a : Pointer, b : Pointer ) : Bool {
 		return a.addr() < b.addr();
+	}
+	@:op(a <= b) static function opLte( a : Pointer, b : Pointer ) : Bool {
+		return a.addr() <= b.addr();
 	}
 	@:op(a == b) static function opEq( a : Pointer, b : Pointer ) : Bool {
 		return a.addr() == b.addr();
@@ -90,8 +96,14 @@ abstract Pointer(haxe.Int64) to haxe.Int64 {
 	@:op(a > b) static function opGt( a : Pointer, b : Pointer ) : Bool {
 		return a.i64 > b.i64;
 	}
+	@:op(a >= b) static function opGte( a : Pointer, b : Pointer ) : Bool {
+		return a.i64 >= b.i64;
+	}
 	@:op(a < b) static function opLt( a : Pointer, b : Pointer ) : Bool {
 		return a.i64 < b.i64;
+	}
+	@:op(a <= b) static function opLte( a : Pointer, b : Pointer ) : Bool {
+		return a.i64 <= b.i64;
 	}
 	@:op(a == b) static function opEq( a : Pointer, b : Pointer ) : Bool {
 		return a.i64 == b.i64;
