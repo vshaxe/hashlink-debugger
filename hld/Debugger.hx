@@ -6,9 +6,14 @@ enum StepMode {
 	Into;
 }
 
-typedef Address = { ptr : Pointer, t : format.hl.Data.HLType };
+@:publicFields @:structInit
+class Address {
+	var ptr : Pointer;
+	var t : format.hl.Data.HLType;
+}
 
-typedef WatchPoint = {
+@:publicFields @:structInit
+class WatchPoint {
 	var addr : Address;
 	var regs : Array<{ offset : Int, bits : Int, r : Api.Register }>;
 	var forReadWrite : Bool;
@@ -19,10 +24,16 @@ class StackRawInfo {
 	var fidx : Int;
 	var fpos : Int;
 	var codePos : Pointer;
-	var ebp : hld.Pointer;
+	var ebp : Null<hld.Pointer>;
 }
 
-typedef StackInfo = { file : String, line : Int, ebp : Pointer, ?context : { obj : format.hl.Data.ObjPrototype, field : String } };
+@:publicFields @:structInit
+class StackInfo {
+	var file : String;
+	var line : Int;
+	var ebp : Pointer;
+	var context : Null<{ obj : format.hl.Data.ObjPrototype, field : String }>;
+}
 
 class Debugger {
 
@@ -806,7 +817,7 @@ class Debugger {
 		if( frame == null ) frame = currentStackFrame;
 		var f = currentStack[frame];
 		if( f == null )
-			return {file:"???", line:0, ebp:Pointer.make(0, 0)};
+			return { file : "???", line : 0, ebp : Pointer.make(0, 0), context : null };
 		return stackInfo(f);
 	}
 
@@ -821,7 +832,7 @@ class Debugger {
 		return out;
 	}
 
-	function stackInfo( f ) {
+	function stackInfo( f ) : StackInfo {
 		var s = module.resolveSymbol(f.fidx, f.fpos);
 		return { file : s.file, line : s.line, ebp : f.ebp, context : module.getMethodContext(f.fidx) };
 	}

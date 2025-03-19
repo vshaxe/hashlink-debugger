@@ -39,7 +39,7 @@ class JitInfo {
 		return oldThreadInfos != null || flags.has(Threads);
 	}
 
-	function readPointer() : Pointer {
+	private function readPointer() : Pointer {
 		if( is64 )
 			return Pointer.make(input.readInt32(), input.readInt32());
 		return Pointer.make(input.readInt32(),0);
