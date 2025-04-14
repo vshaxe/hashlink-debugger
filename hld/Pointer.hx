@@ -13,7 +13,7 @@ abstract Pointer(hl.Bytes) to hl.Bytes {
 		return new Pointer(this.offset(pos));
 	}
 
-	public inline function sub( p : Pointer ) {
+	public inline function sub( p : Pointer ) : Int {
 		return this.subtract(p);
 	}
 
@@ -34,8 +34,20 @@ abstract Pointer(hl.Bytes) to hl.Bytes {
 	@:op(a > b) static function opGt( a : Pointer, b : Pointer ) : Bool {
 		return a.addr() > b.addr();
 	}
+	@:op(a >= b) static function opGte( a : Pointer, b : Pointer ) : Bool {
+		return a.addr() >= b.addr();
+	}
 	@:op(a < b) static function opLt( a : Pointer, b : Pointer ) : Bool {
 		return a.addr() < b.addr();
+	}
+	@:op(a <= b) static function opLte( a : Pointer, b : Pointer ) : Bool {
+		return a.addr() <= b.addr();
+	}
+	@:op(a == b) static function opEq( a : Pointer, b : Pointer ) : Bool {
+		return a.addr() == b.addr();
+	}
+	@:op(a != b) static function opNeq( a : Pointer, b : Pointer ) : Bool {
+		return a.addr() != b.addr();
 	}
 
 	public function toString() {
@@ -87,8 +99,20 @@ abstract Pointer(haxe.Int64) to haxe.Int64 {
 	@:op(a > b) static function opGt( a : Pointer, b : Pointer ) : Bool {
 		return a.i64 > b.i64;
 	}
+	@:op(a >= b) static function opGte( a : Pointer, b : Pointer ) : Bool {
+		return a.i64 >= b.i64;
+	}
 	@:op(a < b) static function opLt( a : Pointer, b : Pointer ) : Bool {
 		return a.i64 < b.i64;
+	}
+	@:op(a <= b) static function opLte( a : Pointer, b : Pointer ) : Bool {
+		return a.i64 <= b.i64;
+	}
+	@:op(a == b) static function opEq( a : Pointer, b : Pointer ) : Bool {
+		return a.i64 == b.i64;
+	}
+	@:op(a != b) static function opNeq( a : Pointer, b : Pointer ) : Bool {
+		return a.i64 != b.i64;
 	}
 
 	public function toString() {

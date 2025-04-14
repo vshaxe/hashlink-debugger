@@ -22,14 +22,14 @@ class JitInfo {
 
 	public var hlVersion : Float;
 	public var globals : Pointer;
-	public var codeStart : Pointer;
-	public var codeEnd : Pointer;
+	var codeStart : Pointer;
+	var codeEnd : Pointer;
 	public var threads : Pointer;
 	var codeSize : Int;
 	var allTypes : Pointer;
 
-	var functions : Array<{ start : Int, large : Bool, offsets : haxe.io.Bytes }>;
-	var functionByCodePos : Map<Int,Int>;
+	var functions : Array<{ start : Pointer, large : Bool, offsets : haxe.io.Bytes }>;
+	var functionByCodePos : Int64Map<Int>;
 	var module : Module;
 
 	public function new() {
@@ -39,7 +39,7 @@ class JitInfo {
 		return oldThreadInfos != null || flags.has(Threads);
 	}
 
-	function readPointer() : Pointer {
+	private function readPointer() : Pointer {
 		if( is64 )
 			return Pointer.make(input.readInt32(), input.readInt32());
 		return Pointer.make(input.readInt32(),0);
@@ -89,15 +89,15 @@ class JitInfo {
 		if( nfunctions != module.code.functions.length )
 			return false;
 
-		functionByCodePos = new Map();
+		functionByCodePos = new Int64Map();
 		for( i in 0...nfunctions ) {
 			var nops = input.readInt32();
 			if( module.code.functions[i].debug.length >> 1 != nops )
 				return false;
-			var start = input.readInt32();
+			var start = codeStart.offset(input.readInt32());
 			var large = input.readByte() != 0;
 			var offsets = input.read((nops + 1) * (large ? 4 : 2));
-			functionByCodePos.set(start, i);
+			functionByCodePos.set(start.i64, i);
 			functions.push({
 				start : start,
 				large : large,
@@ -107,24 +107,36 @@ class JitInfo {
 		return true;
 	}
 
-	public function getFunctionPos( fidx : Int ) {
+	public function getFunctionPos( fidx : Int ) : Pointer {
 		return functions[fidx].start;
 	}
 
-	public function getCodePos( fidx : Int, pos : Int ) {
+	public function getCodePos( fidx : Int, pos : Int ) : Pointer {
 		var dbg = functions[fidx];
-		return dbg.start + (dbg.large ? dbg.offsets.getInt32(pos << 2) : dbg.offsets.getUInt16(pos << 1));
+		return dbg.start.offset(dbg.large ? dbg.offsets.getInt32(pos << 2) : dbg.offsets.getUInt16(pos << 1));
 	}
 
-	public function resolveAsmPos( asmPos : Int ) {
-		if( asmPos < 0 || asmPos > codeSize )
+	public function isCodePtr( codePtr : Pointer ) : Bool {
+		if( codePtr < codeStart || codePtr > codeEnd )
+			return false;
+		return true;
+	}
+
+	public function codePtrToString( codePtr : Pointer ) : String {
+		if( codePtr < codeStart || codePtr > codeEnd )
+			return '$codePtr';
+		return '$codePtr(${codePtr.sub(codeStart)})';
+	}
+
+	public function resolveAsmPos( codePtr : Pointer ) : Null<Debugger.StackRawInfo> {
+		if( !isCodePtr(codePtr) )
 			return null;
 		var min = 0;
 		var max = functions.length;
 		while( min < max ) {
 			var mid = (min + max) >> 1;
 			var p = functions[mid];
-			if( p.start <= asmPos )
+			if( p.start <= codePtr )
 				min = mid + 1;
 			else
 				max = mid;
@@ -136,7 +148,7 @@ class JitInfo {
 		var fdebug = module.code.functions[fidx];
 		min = 0;
 		max = fdebug.debug.length>>1;
-		var relPos = asmPos - dbg.start;
+		var relPos = codePtr.sub(dbg.start);
 		while( min < max ) {
 			var mid = (min + max) >> 1;
 			var offset = dbg.large ? dbg.offsets.getInt32(mid * 4) : dbg.offsets.getUInt16(mid * 2);
@@ -145,11 +157,11 @@ class JitInfo {
 			else
 				max = mid;
 		}
-		return { fidx : fidx, fpos : min - 1, codePos : asmPos, ebp : null };
+		return { fidx : fidx, fpos : min - 1, codePos : codePtr, ebp : null };
 	}
 
 	public function functionFromAddr( p : Pointer ) {
-		return functionByCodePos.get(p.sub(codeStart));
+		return functionByCodePos.get(p.i64);
 	}
 
 }

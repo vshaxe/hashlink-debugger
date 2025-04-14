@@ -6,17 +6,34 @@ enum StepMode {
 	Into;
 }
 
-typedef Address = { ptr : Pointer, t : format.hl.Data.HLType };
+@:publicFields @:structInit
+class Address {
+	var ptr : Pointer;
+	var t : format.hl.Data.HLType;
+}
 
-typedef WatchPoint = {
+@:publicFields @:structInit
+class WatchPoint {
 	var addr : Address;
 	var regs : Array<{ offset : Int, bits : Int, r : Api.Register }>;
 	var forReadWrite : Bool;
 }
 
-typedef StackRawInfo = { fidx : Int, fpos : Int, codePos : Int, ebp : hld.Pointer };
+@:publicFields @:structInit
+class StackRawInfo {
+	var fidx : Int;
+	var fpos : Int;
+	var codePos : Pointer;
+	var ebp : Null<hld.Pointer>;
+}
 
-typedef StackInfo = { file : String, line : Int, ebp : Pointer, ?context : { obj : format.hl.Data.ObjPrototype, field : String } };
+@:publicFields @:structInit
+class StackInfo {
+	var file : String;
+	var line : Int;
+	var ebp : Pointer;
+	var context : Null<{ obj : format.hl.Data.ObjPrototype, field : String }>;
+}
 
 class Debugger {
 
@@ -49,8 +66,8 @@ class Debugger {
 	var processExit : Bool;
 	var ignoredRoots : Map<String,Bool>;
 
-	var breakPoints : Array<{ fid : Int, pos : Int, codePos : Int, oldByte : Int, condition : String }>;
-	var nextStep(default,set): Int = -1;
+	var breakPoints : Array<{ fid : Int, pos : Int, codePos : Pointer, oldByte : Int, condition : String }>;
+	var nextStep(default,set): Pointer = Pointer.make(0,0);
 	var currentStack : Array<StackRawInfo>;
 	var watches : Array<WatchPoint>;
 	var threads : Map<Int,{ id : Int, stackTop : Pointer, exception : Pointer, ?exceptionStack: Array<StackRawInfo>, ?exceptionTrap: Pointer, name : String }>;
@@ -75,8 +92,8 @@ class Debugger {
 		watches = [];
 	}
 
-	function set_nextStep(v:Int) {
-		if( DEBUG ) trace("NEXT STEP "+v);
+	function set_nextStep(v:Pointer) {
+		if( DEBUG ) trace("NEXT STEP "+jit.codePtrToString(v));
 		return nextStep = v;
 	}
 
@@ -295,14 +312,14 @@ class Debugger {
 		return fields;
 	}
 
-	function wait( onStep = false, onEvalCall = false, onPause = false ) : Api.WaitResult {
+	function wait( onSingleStep = false, onEvalCall = false, onPause = false ) : Api.WaitResult {
 		var cmd = null;
 		var condition : String = null;
 		watchBreak = null;
 		while( true ) {
 			cmd = api.wait(customTimeout == null ? 1000 : Math.ceil(customTimeout * 1000));
 
-			if( cmd.r == Breakpoint && !onEvalCall && (nextStep >= 0 || onStep) ) {
+			if( cmd.r == Breakpoint && !onEvalCall && (jit.isCodePtr(nextStep) || onSingleStep) ) {
 				// On Linux, singlestep is not reset
 				cmd.r = SingleStep;
 				singleStep(cmd.tid,false);
@@ -330,7 +347,7 @@ class Debugger {
 					return cmd.r;
 
 			case Breakpoint:
-				var codePos = getCodePos(tid) - 1;
+				var codePos = getCodePos(tid).offset(-1);
 				for( b in breakPoints ) {
 					if( b.codePos == codePos ) {
 						condition = b.condition;
@@ -346,9 +363,9 @@ class Debugger {
 				break;
 			case SingleStep:
 				// restore our breakpoint
-				if( nextStep >= 0 ) {
+				if( jit.isCodePtr(nextStep) ) {
 					setAsm(nextStep, INT3);
-					nextStep = -1;
+					nextStep = Pointer.make(0, 0);
 				} else if( watches.length > 0 ) {
 
 					// check if we have a break on a watchpoint
@@ -370,7 +387,7 @@ class Debugger {
 
 				}
 				stoppedThread = tid;
-				if( onStep )
+				if( onSingleStep )
 					return SingleStep;
 				resume();
 			case Exit:
@@ -401,7 +418,7 @@ class Debugger {
 		eval.onBeforeBreak();
 
 		// if breakpoint has a condition, try to evaluate and do not actually break on false
-		if( !onStep && !onEvalCall && !onPause && condition != null ) {
+		if( !onSingleStep && !onEvalCall && !onPause && condition != null ) {
 			try {
 				var value = getValue(condition);
 				if( value != null ) {
@@ -473,11 +490,9 @@ class Debugger {
 			return stack;
 		for( i in 0...count ) {
 			var codePtr = eval.readPointer(base.offset(i * jit.align.ptr));
-			if( codePtr < jit.codeStart || codePtr > jit.codeEnd)
-				continue;
-			var codePos = codePtr.sub(jit.codeStart);
-			var e = jit.resolveAsmPos(codePos);
-			stack.push(e);
+			var e = jit.resolveAsmPos(codePtr);
+			if( e != null )
+				stack.push(e);
 		}
 		return [for( s in stack ) if( module.isValid(s.fidx, s.fpos) ) s];
 	}
@@ -528,15 +543,14 @@ class Debugger {
 
 		// Add trap breakpoint if current trap is not in current function
 		var trap = threads.get(tid).exceptionTrap;
-		if( trap != null && jit.codeStart < trap && trap < jit.codeEnd ) {
-			var codePos = trap.sub(jit.codeStart);
-			var e = jit.resolveAsmPos(codePos);
-			if( e.fidx != s.fidx ) {
-				var old = getAsm(codePos);
-				var bp = { fid : -4, pos : e.fpos, codePos : codePos, oldByte : old, condition : null };
+		if( trap != null ) {
+			var e = jit.resolveAsmPos(trap);
+			if( e != null && e.fidx != s.fidx ) {
+				var old = getAsm(trap);
+				var bp = { fid : -4, pos : e.fpos, codePos : trap, oldByte : old, condition : null };
 				breakPoints.push(bp);
 				marked.set(-1, bp);
-				setAsm(codePos, INT3);
+				setAsm(trap, INT3);
 			}
 		}
 
@@ -665,9 +679,9 @@ class Debugger {
 		var mem = readMem(esp.offset(-jit.align.ptr), size);
 
 		var eip = getReg(tid, Eip);
-		var asmPos = eip.sub(jit.codeStart);
+		var asmPos = eip;
 		if( isWatchbreak )
-			asmPos -= 1;
+			asmPos = asmPos.offset(-1);
 		var e = jit.resolveAsmPos(asmPos);
 		var inProlog = false;
 		var exc = getException();
@@ -702,7 +716,7 @@ class Debugger {
 				e = null;
 			} else if( e.fpos < 0 ) {
 				// we are in function prolog
-				var delta = jit.getFunctionPos(e.fidx) - asmPos;
+				var delta = jit.getFunctionPos(e.fidx).sub(asmPos);
 				e.fpos = 0;
 				if( delta == 0 )
 					e.ebp = esp.offset(-jit.align.ptr); // not yet pushed ebp
@@ -727,10 +741,7 @@ class Debugger {
 				var val = mem.getPointer(i << 3, jit.align);
 				if( (val > esp && val < tinf.stackTop) || (inProlog && i == 0) || skipFirstCheck ) {
 					var codePtr = skipFirstCheck ? val : mem.getPointer((i + 1) << 3, jit.align);
-					if( codePtr < jit.codeStart || codePtr > jit.codeEnd )
-						continue;
-					var codePos = codePtr.sub(jit.codeStart);
-					var e = jit.resolveAsmPos(codePos);
+					var e = jit.resolveAsmPos(codePtr);
 					if( e != null && e.fpos >= 0 ) {
 						if( skipFirstCheck ) {
 							e.ebp = ebp;
@@ -757,7 +768,7 @@ class Debugger {
 									var val = mem.getPointer((k--) << 3, jit.align);
 									if( val > validEsp && val < tinf.stackTop ) {
 										var code = readMem(val.offset(jit.align.ptr),jit.align.ptr).getPointer(0, jit.align);
-										if( code < jit.codeStart || code > jit.codeEnd ) continue;
+										if( !jit.isCodePtr(code) ) continue;
 										if( first || val < e.ebp ) {
 											e.ebp = val;
 											first = false;
@@ -779,8 +790,8 @@ class Debugger {
 			for( i in 0...size >> 2 ) {
 				var val = mem.getI32(i << 2);
 				if( val > stackBottom && val < stackTop || (inProlog && i == 0) ) {
-					var codePos = mem.getI32((i + 1) << 2) - jit.codeStart.toInt();
-					var e = jit.resolveAsmPos(codePos);
+					var codePtr = mem.getPointer((i + 1) << 2, jit.align);
+					var e = jit.resolveAsmPos(codePtr);
 					if( e != null && e.fpos >= 0 ) {
 						e.ebp = Pointer.make(val,0);
 						stack.push(e);
@@ -803,7 +814,7 @@ class Debugger {
 		if( frame == null ) frame = currentStackFrame;
 		var f = currentStack[frame];
 		if( f == null )
-			return {file:"???", line:0, ebp:Pointer.make(0, 0)};
+			return { file : "???", line : 0, ebp : Pointer.make(0, 0), context : null };
 		return stackInfo(f);
 	}
 
@@ -811,15 +822,14 @@ class Debugger {
 		var stack = @:privateAccess eval.getClosureStack(value);
 		var out = [];
 		for( ptr in stack ) {
-			var codePos = ptr.sub(jit.codeStart);
-			var e = jit.resolveAsmPos(codePos);
+			var e = jit.resolveAsmPos(ptr);
 			if( e == null || !module.isValid(e.fidx,e.fpos) || e.fpos < 0 ) continue;
 			out.push(stackInfo({ fidx : e.fidx, fpos : e.fpos, ebp: null }));
 		}
 		return out;
 	}
 
-	function stackInfo( f ) {
+	function stackInfo( f ) : StackInfo {
 		var s = module.resolveSymbol(f.fidx, f.fpos);
 		return { file : s.file, line : s.line, ebp : f.ebp, context : module.getMethodContext(f.fidx) };
 	}
@@ -918,13 +928,13 @@ class Debugger {
 
 	function getCodePos(tid) {
 		var eip = getReg(tid, Eip);
-		return eip.sub(jit.codeStart);
+		return eip;
 	}
 
 	public function resume() {
 		if( stoppedThread == null )
 			throw "No thread stopped";
-		if( DEBUG ) trace("RUN "+getCodePos(currentThread));
+		if( DEBUG ) trace("RUN " + jit.codePtrToString(getCodePos(currentThread)));
 		if( !api.resume(stoppedThread) && !processExit )
 			throw "Could not resume "+stoppedThread;
 		stoppedThread = null;
@@ -946,14 +956,18 @@ class Debugger {
 		return mem;
 	}
 
-	function getAsm( pos : Int ) {
-		return api.readByte(jit.codeStart,pos);
+	function getAsm( ptr : Pointer ) {
+		if( !jit.isCodePtr(ptr) )
+			throw "Assert invalid ptr " + ptr;
+		return api.readByte(ptr, 0);
 	}
 
-	function setAsm( pos : Int, byte : Int ) {
-		if( DEBUG ) trace("Set "+pos+"="+byte);
-		api.writeByte(jit.codeStart, pos, byte);
-		api.flush(jit.codeStart.offset(pos),1);
+	function setAsm( ptr : Pointer, byte : Int ) {
+		if( !jit.isCodePtr(ptr) )
+			throw "Assert invalid ptr " + ptr;
+		if( DEBUG ) trace('Set ${jit.codePtrToString(ptr)}=$byte');
+		api.writeByte(ptr, 0, byte);
+		api.flush(ptr, 1);
 	}
 
 	function getReg(tid, reg) {
@@ -1012,7 +1026,7 @@ class Debugger {
 		setAsm(bp.codePos, bp.oldByte);
 		if( nextStep == bp.codePos ) {
 			singleStep(currentThread, false);
-			nextStep = -1;
+			nextStep = Pointer.make(0, 0);
 		}
 	}
 
