@@ -1109,15 +1109,20 @@ class Eval {
 	}
 
 	public function readArrayAddress( value : Value, index : Int ) {
-		return switch( value.v ) {
-		case VArray(t,len,_,ptr) if( index >= 0 && index < len ):
-			var content = readPointer(ptr.offset(align.ptr * 2));
+		switch( value.v ) {
+		case VArray(t,len,_,ptr) if( index >= 0 && index < len && ptr != null ):
+			var content = ptr;
 			var offset = align.typeSize(t) * index;
-			if( t.isPtr() ) offset += sizeofVArray;
+			if( readType(ptr).match(HArray) ) {
+				offset += sizeofVArray;
+			} else {
+				content = readPointer(ptr.offset(align.ptr * 2));
+				if( t.isPtr() ) offset += sizeofVArray; // ArrayBytes
+			}
 			return AAddr(content.offset(offset),t);
 		default:
-			return ANone;
 		}
+		return ANone;
 	}
 
 	function valueCast( p : Pointer, t : HLType ) : Value {
@@ -1212,6 +1217,11 @@ class Eval {
 			v = VEnum(c.name,[for( a in c.params ) readVal(p.offset(a.offset),a.t)], p);
 		case HAbstract("hl_int64_map"):
 			v = makeMap(p, HI64);
+		case HArray:
+			var type = readType(p.offset(align.ptr));
+			var length = readI32(p.offset(align.ptr*2));
+			var size = align.typeSize(type);
+			v = VArray(type, length, function(i) return readVal(p.offset(sizeofVArray + i * size), type), p);
 		default:
 		}
 		return { v : v, t : t };
