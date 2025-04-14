@@ -93,7 +93,7 @@ class Debugger {
 	}
 
 	function set_nextStep(v:Pointer) {
-		if( DEBUG ) trace("NEXT STEP "+v);
+		if( DEBUG ) trace("NEXT STEP "+jit.codePtrToString(v));
 		return nextStep = v;
 	}
 
@@ -312,14 +312,14 @@ class Debugger {
 		return fields;
 	}
 
-	function wait( onStep = false, onEvalCall = false, onPause = false ) : Api.WaitResult {
+	function wait( onSingleStep = false, onEvalCall = false, onPause = false ) : Api.WaitResult {
 		var cmd = null;
 		var condition : String = null;
 		watchBreak = null;
 		while( true ) {
 			cmd = api.wait(customTimeout == null ? 1000 : Math.ceil(customTimeout * 1000));
 
-			if( cmd.r == Breakpoint && !onEvalCall && (jit.isCodePtr(nextStep) || onStep) ) {
+			if( cmd.r == Breakpoint && !onEvalCall && (jit.isCodePtr(nextStep) || onSingleStep) ) {
 				// On Linux, singlestep is not reset
 				cmd.r = SingleStep;
 				singleStep(cmd.tid,false);
@@ -387,7 +387,7 @@ class Debugger {
 
 				}
 				stoppedThread = tid;
-				if( onStep )
+				if( onSingleStep )
 					return SingleStep;
 				resume();
 			case Exit:
@@ -418,7 +418,7 @@ class Debugger {
 		eval.onBeforeBreak();
 
 		// if breakpoint has a condition, try to evaluate and do not actually break on false
-		if( !onStep && !onEvalCall && !onPause && condition != null ) {
+		if( !onSingleStep && !onEvalCall && !onPause && condition != null ) {
 			try {
 				var value = getValue(condition);
 				if( value != null ) {
@@ -490,10 +490,9 @@ class Debugger {
 			return stack;
 		for( i in 0...count ) {
 			var codePtr = eval.readPointer(base.offset(i * jit.align.ptr));
-			if( !jit.isCodePtr(codePtr) )
-				continue;
 			var e = jit.resolveAsmPos(codePtr);
-			stack.push(e);
+			if( e != null )
+				stack.push(e);
 		}
 		return [for( s in stack ) if( module.isValid(s.fidx, s.fpos) ) s];
 	}
@@ -544,9 +543,9 @@ class Debugger {
 
 		// Add trap breakpoint if current trap is not in current function
 		var trap = threads.get(tid).exceptionTrap;
-		if( trap != null && jit.isCodePtr(trap) ) {
+		if( trap != null ) {
 			var e = jit.resolveAsmPos(trap);
-			if( e.fidx != s.fidx ) {
+			if( e != null && e.fidx != s.fidx ) {
 				var old = getAsm(trap);
 				var bp = { fid : -4, pos : e.fpos, codePos : trap, oldByte : old, condition : null };
 				breakPoints.push(bp);
@@ -682,7 +681,7 @@ class Debugger {
 		var eip = getReg(tid, Eip);
 		var asmPos = eip;
 		if( isWatchbreak )
-			asmPos = eip.offset(-1);
+			asmPos = asmPos.offset(-1);
 		var e = jit.resolveAsmPos(asmPos);
 		var inProlog = false;
 		var exc = getException();
@@ -742,8 +741,6 @@ class Debugger {
 				var val = mem.getPointer(i << 3, jit.align);
 				if( (val > esp && val < tinf.stackTop) || (inProlog && i == 0) || skipFirstCheck ) {
 					var codePtr = skipFirstCheck ? val : mem.getPointer((i + 1) << 3, jit.align);
-					if( !jit.isCodePtr(codePtr) )
-						continue;
 					var e = jit.resolveAsmPos(codePtr);
 					if( e != null && e.fpos >= 0 ) {
 						if( skipFirstCheck ) {
@@ -937,7 +934,7 @@ class Debugger {
 	public function resume() {
 		if( stoppedThread == null )
 			throw "No thread stopped";
-		if( DEBUG ) trace("RUN "+getCodePos(currentThread));
+		if( DEBUG ) trace("RUN " + jit.codePtrToString(getCodePos(currentThread)));
 		if( !api.resume(stoppedThread) && !processExit )
 			throw "Could not resume "+stoppedThread;
 		stoppedThread = null;
@@ -961,14 +958,14 @@ class Debugger {
 
 	function getAsm( ptr : Pointer ) {
 		if( !jit.isCodePtr(ptr) )
-			throw "Not a valid ptr"; // TODO remove
+			throw "Assert invalid ptr " + ptr;
 		return api.readByte(ptr, 0);
 	}
 
 	function setAsm( ptr : Pointer, byte : Int ) {
 		if( !jit.isCodePtr(ptr) )
-			throw "Not a valid ptr"; // TODO remove
-		if( DEBUG ) trace('Set $ptr=$byte'); // TODO print relative pos
+			throw "Assert invalid ptr " + ptr;
+		if( DEBUG ) trace('Set ${jit.codePtrToString(ptr)}=$byte');
 		api.writeByte(ptr, 0, byte);
 		api.flush(ptr, 1);
 	}

@@ -116,10 +116,16 @@ class JitInfo {
 		return dbg.start.offset(dbg.large ? dbg.offsets.getInt32(pos << 2) : dbg.offsets.getUInt16(pos << 1));
 	}
 
-	public inline function isCodePtr( codePtr : Pointer ) {
+	public function isCodePtr( codePtr : Pointer ) : Bool {
 		if( codePtr < codeStart || codePtr > codeEnd )
 			return false;
 		return true;
+	}
+
+	public function codePtrToString( codePtr : Pointer ) : String {
+		if( codePtr < codeStart || codePtr > codeEnd )
+			return '$codePtr';
+		return '$codePtr(${codePtr.sub(codeStart)})';
 	}
 
 	public function resolveAsmPos( codePtr : Pointer ) : Null<Debugger.StackRawInfo> {
