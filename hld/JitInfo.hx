@@ -97,7 +97,7 @@ class JitInfo {
 			var start = codeStart.offset(input.readInt32());
 			var large = input.readByte() != 0;
 			var offsets = input.read((nops + 1) * (large ? 4 : 2));
-			functionByCodePos.set(start, i);
+			functionByCodePos.set(start.i64, i);
 			functions.push({
 				start : start,
 				large : large,
@@ -161,7 +161,7 @@ class JitInfo {
 	}
 
 	public function functionFromAddr( p : Pointer ) {
-		return functionByCodePos.get(p);
+		return functionByCodePos.get(p.i64);
 	}
 
 }
