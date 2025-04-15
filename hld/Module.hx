@@ -170,7 +170,7 @@ class Module {
 		eprotoTable = [];
 		for( t in code.types )
 			switch( t ) {
-			case HObj(o) if( o.globalValue != null ):
+			case HObj(o), HStruct(o) if( o.globalValue != null ):
 				var path = o.name.split(".");
 				addGlobal(path, o.globalValue);
 				// Add abstract type's original name as alias
