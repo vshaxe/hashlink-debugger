@@ -1218,6 +1218,7 @@ class Eval {
 		case HAbstract("hl_int64_map"):
 			v = makeMap(p, HI64);
 		case HArray:
+			// hl.NativeArray
 			var type = readType(p.offset(align.ptr));
 			var length = readI32(p.offset(align.ptr*2));
 			var size = align.typeSize(type);
@@ -1314,6 +1315,24 @@ class Eval {
 		function getValue(k):Value return k < 0 || k >= nentries ? { v : VUndef, t : HDyn } : fetch(k).value;
 
 		return VMap(tkey == HBytes ? t_string : tkey,nentries,getKey, getValue, p);
+	}
+
+	public function makeCArray( v : Value ) : Value {
+		switch( [v.v, v.t, v.hint] ) {
+		case [VPointer(p), HAbstract("hl_carray"), HCArray(t, size)]:
+			var at = module.resolveType(t);
+			var mproto = switch( at ) {
+			case HObj(o): module.getObjectProto(o, false);
+			case HStruct(o): module.getObjectProto(o, true);
+			default: throw "assert: invalid CArray t";
+			}
+			var length = toInt(eval(size));
+			if( length < 0 )
+				throw "assert: invalid CArray size " + length;
+			var varr = VArray(at, length, function(i) return convertVal(p.offset(mproto.size * i), at), null);
+			return { v : varr, t : v.t };
+		default: throw "assert: invalid CArray read";
+		}
 	}
 
 	public function getFields( v : Value ) : Array<String> {

@@ -9,6 +9,8 @@ private typedef GlobalAccess = {
 typedef ModuleProto = {
 	var name : String;
 	var size : Int;
+	var padSize : Int;
+	var largestField : Int;
 	var fieldNames : Array<String>;
 	var parent : ModuleProto;
 	var fields : Map<String,{
@@ -28,7 +30,7 @@ class Module {
 	var functionsByFile : Map<Int, Array<{ f : HLFunction, ifun : Int, lmin : Int, lmax : Int }>>;
 	var globalsOffsets : Array<Int>;
 	var globalTable : GlobalAccess;
-	var eprotoTable : Map<String,EnumPrototype>;
+	var typeCache : Map<String, HLType>;
 	var protoCache : Map<String,ModuleProto>;
 	var eprotoCache : Map<String,ModuleEProto>;
 	var functionRegsCache : Array<Array<{ t : HLType, offset : Int }>>;
@@ -167,10 +169,13 @@ class Module {
 			}
 			t.gid = gid;
 		}
-		eprotoTable = [];
+		typeCache = [];
 		for( t in code.types )
 			switch( t ) {
-			case HObj(o), HStruct(o) if( o.globalValue != null ):
+			case HObj(o), HStruct(o):
+				typeCache.set(o.name, t);
+				if( o.globalValue == null )
+					continue;
 				var path = o.name.split(".");
 				addGlobal(path, o.globalValue);
 				// Add abstract type's original name as alias
@@ -187,9 +192,11 @@ class Module {
 					apath.push(n1);
 				}
 				if( hasAlias ) addGlobal(apath, o.globalValue);
-			case HEnum(e) if( e.globalValue != null ):
+			case HEnum(e):
+				typeCache.set(e.name, t);
+				if( e.globalValue == null )
+					continue;
 				addGlobal(e.name.split("."), e.globalValue);
-				eprotoTable.set(e.name, e);
 			default:
 			}
 	}
@@ -201,7 +208,8 @@ class Module {
 			return p;
 
 		var parent = o.tsuper == null ? null : switch( o.tsuper ) { case HObj(o), HStruct(o): getObjectProto(o,isStruct); default: throw "assert"; };
-		var size = parent == null ? (isStruct ? 0 : align.ptr) : parent.size;
+		var size = parent == null ? (isStruct ? 0 : align.ptr) : parent.size - parent.padSize;
+		var largestField = parent == null ? size : parent.largestField;
 		var fields = parent == null ? new Map() : [for( k in parent.fields.keys() ) k => parent.fields.get(k)];
 		var mindex = 0;
 		var methods = parent == null ? new Map() : [for( k => v in parent.methods ) k => {
@@ -211,34 +219,39 @@ class Module {
 
 		for( f in o.fields ) {
 			var pad = f.t;
-			// locate first field
-			while( true ) {
-				switch( pad ) {
-				case HPacked(t):
-					switch( t.v ) {
-					case HStruct(o):
-						while( o.tsuper != null ) {
-							switch( o.tsuper ) {
-							case HStruct(o2):
-								if( getObjectProto(o2,isStruct).size == 0 )
-									break;
-								o = o2;
-							default: throw "assert";
-							}
-						}
-						pad = o.fields[0].t;
-					default: throw "assert";
-					}
-				default:
-					break;
+			switch( pad ) {
+			case HPacked(t):
+				// align on packed largest field
+				switch( t.v ) {
+				case HStruct(o):
+					var large = getObjectProto(o,isStruct).largestField;
+					var pad = size % large;
+					if( pad != 0 )
+						size += large - pad;
+					if( large > largestField )
+						largestField = large;
+				default: throw "assert";
 				}
+			default:
+				size += align.padStruct(size, pad);
 			}
-			size += align.padStruct(size, pad);
 			fields.set(f.name, { name : f.name, t : f.t, offset : size });
 			size += switch( f.t ) {
 			case HPacked({ v : HStruct(o) }): getObjectProto(o,true).size;
 			case HPacked(_): throw "assert";
-			default: align.typeSize(f.t);
+			default:
+				var sz = align.typeSize(f.t);
+				if( sz > largestField ) largestField = sz;
+				sz;
+			}
+		}
+
+		var padSize = 0;
+		if( largestField > 0 ) {
+			var pad = size % largestField;
+			if( pad != 0 ) {
+				padSize = largestField - pad;
+				size += padSize;
 			}
 		}
 
@@ -260,6 +273,8 @@ class Module {
 		p = {
 			name : o.name,
 			size : size,
+			padSize : padSize,
+			largestField: largestField,
 			parent : parent,
 			fields : fields,
 			methods : methods,
@@ -306,8 +321,16 @@ class Module {
 		return g == globalTable || g.gid == null ? null : { type : code.globals[g.gid], offset : globalsOffsets[g.gid] };
 	}
 
+	public function resolveType( path : String ) {
+		return typeCache.get(path);
+	}
+
 	public function resolveEnum( path : String ) {
-		return eprotoTable.get(path);
+		var et = typeCache.get(path);
+		return switch( et ) {
+		case HEnum(e): e;
+		default: null;
+		}
 	}
 
 	public function getFileFunctions( file : String ) {
