@@ -16,7 +16,6 @@ class RunCi {
 				var flags = sys.io.File.getContent(fullPath + "/compile.txt").split(" ");
 				compileargs = compileargs.concat(flags);
 			} catch( e ) {
-				trace("error" + e.message);
 			}
 			trace("run haxe with " + compileargs);
 			Sys.command("haxe", compileargs);
@@ -30,8 +29,8 @@ class RunCi {
 				if( exitCode != null || currentTime - startingTime > MAX_TIME_PER_TEST )
 					break;
 			}
-			process.kill();
 			var output = process.stdout.readAll().toString();
+			process.kill();
 			process.close();
 			if( exitCode == null ) {
 				errorCount ++;
@@ -39,6 +38,7 @@ class RunCi {
 			} else if( exitCode != 0 ) {
 				errorCount ++;
 				log('[ERROR] $test: exitCode:$exitCode');
+				log('[STDOUT] $output');
 			} else if( output != expectedOutput ) {
 				errorCount ++;
 				log('[ERROR] $test: output:\n$output');

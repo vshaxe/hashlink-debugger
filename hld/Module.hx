@@ -193,7 +193,8 @@ class Module {
 				}
 				if( hasAlias ) addGlobal(apath, o.globalValue);
 			case HEnum(e):
-				typeCache.set(e.name, t);
+				if( e.name != null )
+					typeCache.set(e.name, t);
 				if( e.globalValue == null )
 					continue;
 				addGlobal(e.name.split("."), e.globalValue);
