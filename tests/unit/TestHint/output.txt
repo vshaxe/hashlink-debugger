@@ -1,0 +1,44 @@
+> b Test.hx:23
+Breakpoint set line 23
+> r
+Thread paused Test.hx:23 ($Test::__constructor__)
+> p i
+7764 : Int
+> p i:h
+0x00001E54 : Int
+> p i:b
+0b00000000000000000001111001010100 : Int
+> p multilineString
+"AAA
+BBB" : String
+> p multilineString:s
+"AAA\nBBB" : String
+> p bytes:UI8(0)
+1 : hl.Bytes
+> p bytes:UI16(0)
+513 : hl.Bytes
+> p bytes:I32(0)
+67305985 : hl.Bytes
+> p bytes:I64(0)
+578437695752307201 : hl.Bytes
+> p flags
+6 : Int
+> p flags:EnumFlags<MyFlag>
+BFlag | CFlag : Int
+> p ef
+CFlag : MyFlag
+> p ef:EnumIndex<MyFlag>
+CFlag : MyFlag
+> p cArr
+#hl_carray : hl.NativeAbstract<hl_carray>
+> p cArr:CArray<Point,count>
+[Point, Point, Point, Point, Point, Point, Point, Point, Point, Point] : hl.NativeAbstract<hl_carray>
+> p cArr:CArray<Point>[2]
+Point : Point
+  x = 32 : Int
+  y = 132 : Int
+> p cArr:CArray<Point>[count-1]
+Point : Point
+  x = 39 : Int
+  y = 139 : Int
+> q

@@ -286,6 +286,12 @@ class Main {
 				Sys.println("Unknown var " + expr);
 				return true;
 			}
+			switch( v.v ) {
+			case VString(_, _):
+			if( v.hint == HNone )
+				v.hint = HNoEscape;
+			default:
+			}
 			Sys.println(dbg.eval.valueStr(v) + " : " + v.t.toString());
 			var fields = dbg.eval.getFields(v);
 			if( fields != null )

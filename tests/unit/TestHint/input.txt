@@ -1,0 +1,22 @@
+--ci
+test.hl
+"b Test.hx:23"
+r
+"p i"
+"p i:h"
+"p i:b"
+"p multilineString"
+"p multilineString:s"
+"p bytes:UI8(0)"
+"p bytes:UI16(0)"
+"p bytes:I32(0)"
+"p bytes:I64(0)"
+"p flags"
+"p flags:EnumFlags<MyFlag>"
+"p ef"
+"p ef:EnumIndex<MyFlag>"
+"p cArr"
+"p cArr:CArray<Point,count>"
+"p cArr:CArray<Point>[2]"
+"p cArr:CArray<Point>[count-1]"
+q
