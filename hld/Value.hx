@@ -39,7 +39,7 @@ enum Hint {
 	HReadBytes(t : HLType, pos : String); // v:UI8(0), v:UI16(0), v:I32(0), v:I64(0), v:F32(0), v:F64(0)
 	HEnumFlags(t : String); // v:EnumFlags<T>, v:haxe.EnumFlags<T>
 	HEnumIndex(t : String); // v:EnumIndex<T>
-	HCArray(t : String, size : String); // v:CArray<T,0>
+	HCArray(t : String, size : Null<String>, pos : Null<String>); // v:CArray<T,size>, v:CArray<T>[pos]
 	HCdbEnum(t : String); // v:CDB<T>, v:CDBEnum<T> -- for CastleDB
 }
 
@@ -47,6 +47,8 @@ enum Hint {
 	public var v : ValueRepr;
 	public var t : HLType;
 	@:optional public var hint : Hint = HNone;
+
+	// --- static ---
 
 	public static function parseHint( s : String ) : Hint {
 		if( s == "h" )
@@ -75,10 +77,17 @@ enum Hint {
 			return HEnumFlags(s.substr(15, s.length - 16));
 		if( StringTools.startsWith(s,"EnumIndex<") && StringTools.endsWith(s,">") )
 			return HEnumIndex(s.substr(10, s.length - 11));
-		if( StringTools.startsWith(s, "CArray<") && StringTools.endsWith(s,">") ) {
-			var parts = s.substr(7, s.length - 8).split(",");
-			if( parts.length == 2 )
-				return HCArray(parts[0], parts[1]);
+		if( StringTools.startsWith(s, "CArray<") ) {
+			if( StringTools.endsWith(s,">")) {
+				var parts = s.substr(7, s.length - 8).split(",");
+				if( parts.length == 2 )
+					return HCArray(parts[0], parts[1], null);
+			}
+			if( StringTools.endsWith(s,"]")) {
+				var parts = s.substr(7, s.length - 8).split(">[");
+				if( parts.length == 2 )
+					return HCArray(parts[0], null, parts[1]);
+			}
 		}
 		if( StringTools.startsWith(s,"CDB<") && StringTools.endsWith(s,">") )
 			return HCdbEnum(s.substr(4, s.length - 5));

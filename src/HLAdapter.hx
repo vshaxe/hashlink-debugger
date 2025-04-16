@@ -745,11 +745,6 @@ class HLAdapter extends DebugSession {
 			var fields = dbg.eval.getFields(value);
 			if( fields != null && fields.length > 0 )
 				return { name : name, type : tstr, value : tstr + pstr, evaluateName : evalName ?? "#" + tstr, variablesReference : allocValue(VValue(value, evalName)), namedVariables : fields.length };
-			switch( value.hint ) {
-			case HCArray(_):
-				return makeVar("", dbg.eval.makeCArray(value));
-			default:
-			}
 		case VEnum(c,values,_) if( values.length > 0 ):
 			var str = c + "(" + [for( v in values ) switch( v.v ) {
 				case VEnum(c,values,_) if( values.length == 0 ): c;

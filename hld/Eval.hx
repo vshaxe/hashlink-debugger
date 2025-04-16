@@ -100,6 +100,8 @@ class Eval {
 		var expr = try parser.parseString(expr) catch( e : hscript.Expr.Error ) throw hscript.Printer.errorToString(e);
 		var v = evalExpr(expr);
 		v.hint = hint;
+		// additional convert based on hint
+		v = makeValueWithHint(v);
 		return v;
 	}
 
@@ -1317,22 +1319,31 @@ class Eval {
 		return VMap(tkey == HBytes ? t_string : tkey,nentries,getKey, getValue, p);
 	}
 
-	public function makeCArray( v : Value ) : Value {
+	function makeValueWithHint( v : Value ) : Value {
 		switch( [v.v, v.t, v.hint] ) {
-		case [VPointer(p), HAbstract("hl_carray"), HCArray(t, size)]:
+		case [VPointer(p), HAbstract("hl_carray"), HCArray(t, size, pos)]:
+			// hl.CArray
 			var at = module.resolveType(t);
 			var mproto = switch( at ) {
 			case HObj(o): module.getObjectProto(o, false);
 			case HStruct(o): module.getObjectProto(o, true);
 			default: throw "assert: invalid CArray t";
 			}
-			var length = toInt(eval(size));
-			if( length < 0 )
-				throw "assert: invalid CArray size " + length;
-			var varr = VArray(at, length, function(i) return convertVal(p.offset(mproto.size * i), at), null);
-			return { v : varr, t : v.t };
-		default: throw "assert: invalid CArray read";
+			if( pos != null ) {
+				var index = toInt(eval(pos));
+				if( index < 0 )
+					throw "assert: invalid CArray index " + index;
+				return convertVal(p.offset(mproto.size * index), at);
+			} else if( size != null ) {
+				var length = toInt(eval(size));
+				if( length < 0 )
+					throw "assert: invalid CArray size " + length;
+				var varr = VArray(at, length, function(i) return convertVal(p.offset(mproto.size * i), at), null);
+				return { v : varr, t : v.t };
+			}
+		default:
 		}
+		return v;
 	}
 
 	public function getFields( v : Value ) : Array<String> {
