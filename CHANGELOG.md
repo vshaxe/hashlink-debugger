@@ -1,3 +1,11 @@
+## 1.4.29 (April 17, 2025)
+
+* improved display on ValueException, now show inner error
+* fixed return I64 display
+* fixed missing static var inside @:struct
+* allow eval hl.NativeArray similar to an Array
+* allow inspect inside hl.CArray with hint
+
 ## 1.4.28 (March 7, 2025)
 
 * improved support for multi-line string
