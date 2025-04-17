@@ -50,6 +50,16 @@ enum Hint {
 
 	// --- static ---
 
+	public static inline function extractHint( expr : String ) : { expr : String, hint : Hint } {
+		var exprs = expr.split(":");
+		var hint = HNone;
+		if( exprs.length > 1 ) {
+			hint = Value.parseHint(exprs.pop()); // content after the last ":" is considered as a display hint
+			expr = exprs.join(":");
+		}
+		return { expr : expr, hint : hint };
+	}
+
 	public static function parseHint( s : String ) : Hint {
 		if( s == "h" )
 			return HHex;

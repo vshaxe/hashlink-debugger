@@ -1087,7 +1087,8 @@ class HLAdapter extends DebugSession {
 				};
 			} else {
 				var value = dbg.getValue(args.expression);
-				var v = makeVar("", value);
+				var ext = hld.Value.extractHint(args.expression);
+				var v = makeVar(ext.expr, value, ext.expr);
 				response.body = {
 					result : v.value,
 					type : v.type,

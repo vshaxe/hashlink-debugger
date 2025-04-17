@@ -91,15 +91,10 @@ class Eval {
 	public function eval( expr : String ) : Value {
 		if( expr == null || expr == "" )
 			return null;
-		var exprs = expr.split(":");
-		var hint = HNone;
-		if( exprs.length > 1 ) {
-			hint = Value.parseHint(exprs.pop()); // content after the last ":" is considered as a display hint
-			expr = exprs.join(":");
-		}
-		var expr = try parser.parseString(expr) catch( e : hscript.Expr.Error ) throw hscript.Printer.errorToString(e);
+		var ext = Value.extractHint(expr);
+		var expr = try parser.parseString(ext.expr) catch( e : hscript.Expr.Error ) throw hscript.Printer.errorToString(e);
 		var v = evalExpr(expr);
-		v.hint = hint;
+		v.hint = ext.hint;
 		// additional convert based on hint
 		v = makeValueWithHint(v);
 		return v;
