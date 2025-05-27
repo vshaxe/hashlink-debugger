@@ -225,7 +225,7 @@ class Module {
 				// align on packed largest field
 				switch( t.v ) {
 				case HStruct(o):
-					var large = getObjectProto(o,isStruct).largestField;
+					var large = getObjectProto(o,true).largestField;
 					var pad = size % large;
 					if( pad != 0 )
 						size += large - pad;
