@@ -1,3 +1,7 @@
+## 1.4.30 (May 28, 2025)
+
+* fixed field offset of packed struct inside object
+
 ## 1.4.29 (April 17, 2025)
 
 * improved display on ValueException, now show inner error
