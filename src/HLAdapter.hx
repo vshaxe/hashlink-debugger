@@ -1164,7 +1164,7 @@ class HLAdapter extends DebugSession {
 		case VScope(k):
 			dbg.currentStackFrame = k;
 			return dbg.getRef(name);
-		case VValue(v, _):
+		case VValue(v, _) | VObjFields(v, _, _):
 			if( v.v.match(VArray(_)) )
 				dbg.eval.readArrayAddress(v, Std.parseInt(name));
 			else
