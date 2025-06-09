@@ -1055,6 +1055,8 @@ class HLAdapter extends DebugSession {
 			} else if( args.expression.charCodeAt(0) == '@'.code ) {
 				// Advanced commands based on address
 				switch( args.expression.charCodeAt(1) ) {
+				case ':'.code:
+					// skip metadata hover, such as @:privateAccess
 				case 'd'.code:
 					// @d + ptr: try to evaluate pointer as Dynamic value
 					var p = new hld.Pointer(hld.Value.parseInt64(args.expression.substr(2)));
