@@ -486,6 +486,19 @@ class HLAdapter extends DebugSession {
 					}
 				default:
 				}
+				switch( exc.t ) {
+				case HObj({ name:"SysError" }):
+					try {
+						switch( dbg.eval.readField(exc, "msg").v ) {
+						case VString(str, _):
+							exc = { v: VString("SysError: " + str, hld.Pointer.make(0,0)), t: HVoid };
+						default:
+						};
+					} catch(e) {
+						debug("Error extracting SysError value: " + e.message);
+					}
+				default:
+				}
 				str = switch( exc.v ) {
 				case VString(str, _): str;
 				default: dbg.eval.valueStr(exc);
