@@ -169,6 +169,10 @@ class HLAdapter extends DebugSession {
 		}
 		// make sure the paths have the format we expect
 		this.classPath = classPath.map((path) -> formatDirPath(path));
+		var stdPath = this.classPath[this.classPath.length-1];
+		if( stdPath != null ) {
+			this.classPath.insert(-1, stdPath+"/hl/_std/");
+		}
 		this.classPath.push(""); // for absolute paths
 	}
 
