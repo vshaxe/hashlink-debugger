@@ -116,7 +116,7 @@ class HLAdapter extends DebugSession {
 		var args:Arguments = cast args;
 
 		setClassPath(args.classPaths);
-		workspaceDirectory = if( args.cwd == null ) haxe.io.Path.directory(args.program) else args.cwd;
+		workspaceDirectory = formatDirPath(if( args.cwd == null ) haxe.io.Path.directory(args.program) else args.cwd);
 		Sys.setCwd(workspaceDirectory);
 		var port = args.port;
 		if( port == null ) port = debugPort;
@@ -154,19 +154,21 @@ class HLAdapter extends DebugSession {
 		sendResponse(response);
 	}
 
+	function formatDirPath(path:String) {
+		path = haxe.io.Path.addTrailingSlash(haxe.io.Path.normalize(path));
+		// capitalize the drive letter on Windows
+		if (isWindows && haxe.io.Path.isAbsolute(path)) {
+			path = path.charAt(0).toUpperCase() + path.substr(1);
+		}
+		return path;
+	}
+
 	function setClassPath(classPath:Array<String>) {
 		if (classPath == null) {
 			throw "Missing classPath";
 		}
 		// make sure the paths have the format we expect
-		this.classPath = classPath.map(function(path) {
-			path = haxe.io.Path.addTrailingSlash(haxe.io.Path.normalize(path));
-			// capitalize the drive letter on Windows
-			if (isWindows && haxe.io.Path.isAbsolute(path)) {
-				path = path.charAt(0).toUpperCase() + path.substr(1);
-			}
-			return path;
-		});
+		this.classPath = classPath.map((path) -> formatDirPath(path));
 		this.classPath.push(""); // for absolute paths
 	}
 
@@ -175,7 +177,7 @@ class HLAdapter extends DebugSession {
 
 		var args:Arguments = cast args;
 		setClassPath(args.classPaths);
-		workspaceDirectory = args.cwd;
+		workspaceDirectory = formatDirPath(args.cwd);
 		Sys.setCwd(workspaceDirectory);
 		startDebug(args.program,args.port, function(msg) {
 			if( msg != null ) {
@@ -198,6 +200,8 @@ class HLAdapter extends DebugSession {
 		Returns null if not found
 	**/
 	function getFilePath( file : String ) {
+		if( sys.FileSystem.exists(workspaceDirectory + file) )
+			return workspaceDirectory + file;
 		for( c in classPath )
 			if( sys.FileSystem.exists(c + file) )
 				return c + file;
