@@ -1,3 +1,9 @@
+## 1.4.31 (June 13, 2025)
+
+* fixed data breakpoint not showing for parent class field
+* fixed filepath resolution for hl/_std and for haxe nightly
+* improved display on SysError, now with message
+
 ## 1.4.30 (May 28, 2025)
 
 * fixed field offset of packed struct inside object
