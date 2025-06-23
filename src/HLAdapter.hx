@@ -561,6 +561,8 @@ class HLAdapter extends DebugSession {
 		file = file.split("\\").join("/");
 		var filePath = file.toLowerCase();
 		var matches = [];
+		if( StringTools.startsWith(filePath, workspaceDirectory.toLowerCase()) )
+			matches.push(file.substr(workspaceDirectory.length));
 		for( c in classPath )
 			if( StringTools.startsWith(filePath, c.toLowerCase()) )
 				matches.push(file.substr(c.length));
