@@ -518,7 +518,7 @@ class HLAdapter extends DebugSession {
 			syncThreads();
 			beforeStop();
 			debug("Stopped (" + reason+ ") on " + tid);
-			if( isPause && tid != dbg.mainThread && !dbg.hasStack() ) {
+			if( tid != dbg.mainThread && !dbg.hasStack() ) {
 				tid = dbg.mainThread;
 				dbg.setCurrentThread(tid);
 				debug("Switch thread "+tid);
