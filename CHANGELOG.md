@@ -1,3 +1,8 @@
+## 1.4.32 (June 30, 2025)
+
+* fixed filepath resolution on breakpoint for haxe nightly
+* fixed display when pause on non-hl thread (F12)
+
 ## 1.4.31 (June 13, 2025)
 
 * fixed data breakpoint not showing for parent class field
