@@ -1403,6 +1403,8 @@ class Eval {
 			return key;
 		case VMapPair(_, value) if( name == "$value" ):
 			return value;
+		case VBytes(length, _, _) if( name == "length"):
+			return { v : VInt(length), t : HI32 };
 		default:
 		}
 		var a = readFieldAddress(v, name);
