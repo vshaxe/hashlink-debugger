@@ -836,6 +836,8 @@ class Eval {
 			if( v == null )
 				path.unshift(p);
 		} else {
+			if( path[0] == "std" )
+				path.shift();
 			v = fetchAddr(getGlobalAddress(path));
 		}
 		return v;
