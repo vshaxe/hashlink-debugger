@@ -127,6 +127,10 @@
 							"profileSamples": {
 								"type": "number",
 								"description": "Start profiling with the specified number of samples per second."
+							},
+							"allowEval": {
+								"type": "boolean",
+								"description": "Automatically call the getter function for non-physical fields."
 							}
 						}
 					},
