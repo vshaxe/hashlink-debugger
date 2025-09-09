@@ -1,3 +1,11 @@
+## 1.4.33 (September 9, 2025)
+
+* fixed unknown value length for haxe.io.Bytes
+* fixed eval not treat std prefix correctly
+* exposed allowEval config which allow auto getter call on non-physical fields
+* added OCatch support for haxe nightly
+* added array hint for bytes
+
 ## 1.4.32 (June 30, 2025)
 
 * fixed filepath resolution on breakpoint for haxe nightly
