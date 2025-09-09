@@ -37,6 +37,7 @@ enum Hint {
 	HEscape; // v:s
 	HNoEscape;
 	HReadBytes(t : HLType, pos : String); // v:UI8(0), v:UI16(0), v:I32(0), v:I64(0), v:F32(0), v:F64(0)
+	HArray(t : HLType, size : Null<String>, pos : Null<String>); // v:Array<T>, v:Array<T,size>, v:Array<T>[pos] (T=Int,Float,UI8,UI16,I32,I64,F32,F64)
 	HEnumFlags(t : String); // v:EnumFlags<T>, v:haxe.EnumFlags<T>
 	HEnumIndex(t : String); // v:EnumIndex<T>
 	HCArray(t : String, size : Null<String>, pos : Null<String>); // v:CArray<T,size>, v:CArray<T>[pos]
@@ -81,6 +82,31 @@ enum Hint {
 			return HReadBytes(HF32, s.substr(4, s.length - 5));
 		if( StringTools.startsWith(s,"F64(") && StringTools.endsWith(s,")") )
 			return HReadBytes(HF64, s.substr(4, s.length - 5));
+		if( StringTools.startsWith(s, "Array<") ) {
+			var typeStr : String = null;
+			var size : String = null;
+			var pos : String = null;
+			if( StringTools.endsWith(s,">")) {
+				var parts = s.substr(6, s.length - 7).split(",");
+				typeStr = parts[0];
+				size = parts.length > 1 ? parts[1] : null;
+			}
+			if( StringTools.endsWith(s,"]")) {
+				var parts = s.substr(6, s.length - 7).split(">[");
+				typeStr = parts[0];
+				pos = parts[1];
+			}
+			var btype = switch(typeStr) {
+				case "UI8": HUi8;
+				case "UI16": HUi16;
+				case "I32", "Int": HI32;
+				case "I64": HI64;
+				case "F32": HF32;
+				case "F64", "Float": HF64;
+				case null, _: return HNone;
+			}
+			return HArray(btype, size, pos);
+		}
 		if( StringTools.startsWith(s,"EnumFlags<") && StringTools.endsWith(s,">") )
 			return HEnumFlags(s.substr(10, s.length - 11));
 		if( StringTools.startsWith(s,"haxe.EnumFlags<") && StringTools.endsWith(s,">") )

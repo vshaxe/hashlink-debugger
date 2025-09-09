@@ -933,7 +933,8 @@ class Eval {
 		case VString(s,p):
 			switch( [v.t, v.hint] ) {
 			case [HBytes, HReadBytes(t, pos)]:
-				readBytesStrAt(-1, i -> readByte(p.offset(i)), t, pos);
+				var pos = toInt(eval(pos));
+				valueStr(readBytesAt(-1, i -> readByte(p.offset(i)), t, pos));
 			case [_, HNoEscape]:
 				"\"" + s + "\"";
 			default:
@@ -962,7 +963,8 @@ class Eval {
 		case VBytes(length, read, _):
 			switch( v.hint ) {
 			case HReadBytes(t, pos):
-				readBytesStrAt(length, read, t, pos);
+				var pos = toInt(eval(pos));
+				valueStr(readBytesAt(length, read, t, pos));
 			default:
 				var blen = length < maxBytesLength ? length : maxBytesLength;
 				var bytes = haxe.io.Bytes.alloc(blen);
@@ -1008,8 +1010,7 @@ class Eval {
 		return str;
 	}
 
-	function readBytesStrAt( length : Int , read : Int->Int, t : HLType, pos : String) : String {
-		var pos = toInt(eval(pos));
+	function readBytesAt( length : Int , read : Int->Int, t : HLType, pos : Int) : Value {
 		var blen = align.typeSize(t);
 		if( pos < 0 || (length >= 0 && pos > length-blen) )
 			throw "Out of bound [0," + (length < 0 ? "???" : "" + length) + ") for " + pos + "+" + (blen - 1);
@@ -1017,12 +1018,12 @@ class Eval {
 		for( i in 0...blen )
 			bytes.set(i, read(pos+i));
 		return switch( t ) {
-		case HUi8: "" + bytes.get(0);
-		case HUi16: "" + bytes.getUInt16(0);
-		case HI32: "" + bytes.getInt32(0);
-		case HI64: "" + bytes.getInt64(0);
-		case HF32: "" + bytes.getFloat(0);
-		case HF64: "" + bytes.getDouble(0);
+		case HUi8: { v : VInt(bytes.get(0)), t : t };
+		case HUi16: { v : VInt(bytes.getUInt16(0)), t : t };
+		case HI32: { v : VInt(bytes.getInt32(0)), t : t };
+		case HI64: { v : VInt64(bytes.getInt64(0)), t : t };
+		case HF32: { v : VFloat(bytes.getFloat(0)), t : t };
+		case HF64: { v : VFloat(bytes.getDouble(0)), t : t };
 		default:
 			throw "assert";
 		}
@@ -1334,9 +1335,35 @@ class Eval {
 			} else if( size != null ) {
 				var length = toInt(eval(size));
 				if( length < 0 )
-					throw "assert: invalid CArray size " + length;
+					throw "assert: invalid CArray size " + size;
 				var varr = VArray(at, length, function(i) return convertVal(p.offset(mproto.size * i), at), null);
 				return { v : varr, t : v.t };
+			} else {
+				throw "Missing CArray size or pos";
+			}
+		case [VBytes(length, read, _), _, HArray(t, _, pos)]:
+			// haxe.io.Bytes
+			var tsize = align.typeSize(t);
+			if( pos != null ) {
+				var pos = toInt(eval(pos));
+				return readBytesAt(length, read, t, pos*tsize);
+			} else {
+				var alen = Std.int(length / tsize);
+				var varr = VArray(t, alen, function(i) return readBytesAt(length, read, t, i*tsize), null);
+				return { v : varr, t : v.t };
+			}
+		case [VString(_, p), HBytes, HArray(t, size, pos)]:
+			// hl.Bytes
+			var tsize = align.typeSize(t);
+			if( pos != null ) {
+				var pos = toInt(eval(pos));
+				return readBytesAt(-1, i -> readByte(p.offset(i)), t, pos*tsize);
+			} else if( size != null ) {
+				var length = toInt(eval(size));
+				var varr = VArray(t, length, function(i) return readBytesAt(-1, i -> readByte(p.offset(i)), t, i*tsize), null);
+				return { v : varr, t : v.t };
+			} else {
+				throw "Missing Array size or pos";
 			}
 		default:
 		}
