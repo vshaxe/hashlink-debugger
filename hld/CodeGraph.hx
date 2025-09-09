@@ -468,6 +468,8 @@ class CodeGraph {
 				read(r);
 				write(r);
 			}
+		case OCatch(_):
+			// nothing
 		}
 	}
 
