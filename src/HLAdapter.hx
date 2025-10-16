@@ -113,6 +113,9 @@ class HLAdapter extends DebugSession {
 
 		debug("Launch");
 
+		if( args.noDebug )
+			doDebug = false;
+
 		var args:Arguments = cast args;
 
 		setClassPath(args.classPaths);
