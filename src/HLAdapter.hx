@@ -391,6 +391,7 @@ class HLAdapter extends DebugSession {
 				run();
 			}
 		};
+		sendResponse(response);
 	}
 
 	function stopDebug() {
@@ -650,8 +651,9 @@ class HLAdapter extends DebugSession {
 		//debug("Stacktrace request");
 		setThread(args.threadId);
 		var bt = dbg.getBackTrace();
-		var start = args.startFrame;
-		var count = args.levels == null || args.levels + start > bt.length ? bt.length - start : args.levels;
+		var start = args.startFrame == null ? 0 : args.startFrame;
+		var levels = args.levels == null ? bt.length : args.levels;
+		var count = levels + start > bt.length ? bt.length - start : levels;
 		response.body = {
 			stackFrames : [for( i in 0...count ) {
 				var f = bt[start + i];
