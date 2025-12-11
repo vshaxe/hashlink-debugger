@@ -1155,8 +1155,12 @@ class Eval {
 				v = makeArrayBytes(p, HF32);
 			case "hl.types.ArrayBytes_hl_UI16":
 				v = makeArrayBytes(p, HUi16);
+			case "hl.types.ArrayBytes_hl_UI8":
+				v = makeArrayBytes(p, HUi8);
 			case "hl.types.ArrayBytes_hl_I64":
 				v = makeArrayBytes(p, HI64);
+			case "hl.types.ArrayBytes_hl_GUID":
+				v = makeArrayBytes(p, HGUID);
 			case "hl.types.ArrayDyn":
 				// hide implementation details, substitute underlying array
 				v = readField({ v : v, t : t }, "array").v;
@@ -1695,6 +1699,8 @@ class Eval {
 			return typeFromAddr(p);
 		case 19:
 			return HNull(readType(p.offset(align.ptr)));
+		case 23:
+			return HGUID;
 		case x:
 			throw "Unknown type #" + x;
 		}
