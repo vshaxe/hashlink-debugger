@@ -891,6 +891,7 @@ class Eval {
 			switch( v.hint ) {
 			case HHex: Value.intStr(i, 16);
 			case HBin: Value.intStr(i, 2);
+			case HGuid: Value.int64GuidStr(i);
 			case HEnumFlags(t):
 				var eproto = module.resolveEnum(t);
 				if( eproto == null )
@@ -917,11 +918,22 @@ class Eval {
 			switch( v.hint ) {
 			case HBin: Value.int64Str(i, 2);
 			case HHex: Value.int64Str(i, 16);
+			case HGuid: Value.int64GuidStr(i);
 			default: "" + i;
 			}
 		case VFloat(i):
 			switch( v.hint ) {
-			case HHex: Value.intStr(Std.int(i), 16);
+			case HHex:
+				var i64 = haxe.Int64.fromFloat(i);
+				var is32 = i64.high == (i64.low >> 31);
+				is32 ? Value.intStr(i64.low, 16) : Value.int64Str(i64, 16);
+			case HBin:
+				var i64 = haxe.Int64.fromFloat(i);
+				var is32 = i64.high == (i64.low >> 31);
+				is32 ? Value.intStr(i64.low, 2) : Value.int64Str(i64, 2);
+			case HGuid:
+				var i64 = haxe.Int64.fromFloat(i);
+				Value.int64GuidStr(i64);
 			default: "" + i;
 			}
 		case VBool(b): b ? "true" : "false";

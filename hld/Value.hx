@@ -36,6 +36,7 @@ enum Hint {
 	HPointer; // v:p
 	HEscape; // v:s
 	HNoEscape;
+	HGuid; // v:GUID
 	HReadBytes(t : HLType, pos : String); // v:UI8(0), v:UI16(0), v:I32(0), v:I64(0), v:F32(0), v:F64(0)
 	HArray(t : HLType, size : Null<String>, pos : Null<String>); // v:Array<T>, v:Array<T,size>, v:Array<T>[pos] (T=Int,Float,UI8,UI16,I32,I64,F32,F64)
 	HEnumFlags(t : String); // v:EnumFlags<T>, v:haxe.EnumFlags<T>
@@ -70,6 +71,8 @@ enum Hint {
 			return HPointer;
 		if( s == "s" )
 			return HEscape;
+		if( s == "GUID" )
+			return HGuid;
 		if( StringTools.startsWith(s,"UI8(") && StringTools.endsWith(s,")") )
 			return HReadBytes(HUi8, s.substr(4, s.length - 5));
 		if( StringTools.startsWith(s,"UI16(") && StringTools.endsWith(s,")") )
