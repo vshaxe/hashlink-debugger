@@ -4,6 +4,9 @@ This VSCode extension allows you to debug [HashLink](https://hashlink.haxe.org/)
 
 *Only available on VSCode 64 bit*
 
+Additional features:
+- **Watch hints**: add `:h` to the end of a watch expression (for example, `myvar:h`) to display the value in hexadecimal. For the full list of hints, see [enum Hint](https://github.com/vshaxe/hashlink-debugger/blob/master/hld/Value.hx#L32).
+
 ## Building from Source
 
 The following instructions are only relevant for building the extension from source and are **not required when installing it from the marketplace**.
