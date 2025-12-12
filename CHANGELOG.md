@@ -1,3 +1,10 @@
+## 1.4.34 (December 12, 2025)
+
+* fixed noDebug option still attach debugger
+* added Array UI8/GUID support, map value GUID support for haxe nightly
+* fixed stacktrace request with non-VSCode DAP server (#141)
+* added guid hint, fixed hex/bin hint on big float
+
 ## 1.4.33 (September 9, 2025)
 
 * fixed unknown value length for haxe.io.Bytes
