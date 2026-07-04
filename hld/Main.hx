@@ -59,7 +59,7 @@ class Main {
 				Sys.setCwd(args.shift());
 			case "--input":
 				var file = args.shift();
-				var inputArgs = ~/[ \n\r\t]+/g.split(StringTools.trim(sys.io.File.getContent(file)));
+				var inputArgs = ~/[\n\r\t]+/g.split(StringTools.trim(sys.io.File.getContent(file)));
 				while( inputArgs.length > 0 ) {
 					var a = inputArgs.pop();
 					if( StringTools.endsWith(a,'"') ) {
