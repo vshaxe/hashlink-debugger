@@ -22,8 +22,8 @@ enum abstract Register(Int) {
 	public var Dr3 = 7;
 	public var Dr6 = 8;
 	public var Dr7 = 9;
-	public var Eax = 10;
-	public var Xmm0 = 11;
+	public static function makeCpu( id : Int ) : Register return cast (10 + id*2);
+	public static function makeFpu( id : Int ) : Register return cast (11 + id*2);
 	public inline function toInt() return this;
 }
 

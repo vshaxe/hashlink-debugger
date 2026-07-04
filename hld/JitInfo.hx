@@ -28,7 +28,7 @@ class JitInfo {
 	var codeSize : Int;
 	var allTypes : Pointer;
 
-	var functions : Array<{ start : Pointer, large : Bool, offsets : haxe.io.Bytes }>;
+	var functions : Array<{ start : Pointer, large : Bool, offsets : haxe.io.Bytes, ?vars : haxe.io.Bytes }>;
 	var functionByCodePos : Int64Map<Int>;
 	var module : Module;
 
@@ -52,38 +52,65 @@ class JitInfo {
 		if( input.readString(3) != "HLD" )
 			return false;
 		var version = input.readByte() - "0".code;
-		if( version > 1 )
+		if( version <= 0 || version > 2 )
 			return false;
 		flags = haxe.EnumFlags.ofInt(input.readInt32());
 		is64 = flags.has(Is64);
 		align = new Align(is64, flags.has(Bool4)?4:1);
 		isWinCall = flags.has(IsWinCall) || Sys.systemName() == "Windows" /* todo : disable this for cross platform remote debug */;
 
-		if( version == 0 ) {
-			var mainThread = input.readInt32();
-			globals = readPointer();
-			var debugExc = readPointer();
-			var stackTop = readPointer();
-			oldThreadInfos = { id : mainThread, stackTop : stackTop, debugExc : debugExc };
-			hlVersion = 1.05;
-		} else {
-			var ver = input.readInt32();
-			hlVersion = (ver >> 16) + ((ver >> 8) & 0xFF) / 100;
-			if( hlVersion >= 1.07 )
-				pid = input.readInt32();
-			threads = readPointer();
-			globals = readPointer();
-		}
-		codeStart = readPointer();
-		codeSize = input.readInt32();
-		codeEnd = codeStart.offset(codeSize);
-		allTypes = readPointer();
+		var ver = input.readInt32();
+		hlVersion = (ver >> 16) + ((ver >> 8) & 0xFF) / 100;
+		if( hlVersion >= 1.07 )
+			pid = input.readInt32();
+		threads = readPointer();
+
 		functions = [];
 
-		var structSizes = [0];
-		for( i in 1...9 )
-			structSizes[i] = input.readInt32();
-		@:privateAccess align.structSizes = structSizes;
+		if( version == 1 ) {
+
+			globals = readPointer();
+			codeStart = readPointer();
+			codeSize = input.readInt32();
+			allTypes = readPointer();
+
+			var structSizes = [0];
+			for( i in 1...9 )
+				structSizes[i] = input.readInt32();
+			@:privateAccess align.structSizes = structSizes;
+
+			if( !readModule(true) )
+				return false;
+
+		} else {
+			var structSizes = [0];
+			for( i in 1...9 )
+				structSizes[i] = input.readInt32();
+			@:privateAccess align.structSizes = structSizes;
+
+			var nmodules = input.readInt32();
+			if( nmodules != 1 ) {
+				#if hl
+				throw "TODO : multiple modules support";
+				#end
+				return false;
+			}
+
+			if( !readModule() )
+				return false;
+		}
+
+		return true;
+	}
+
+	function readModule( skipHeader=false ) {
+
+		if( !skipHeader ) {
+			globals = readPointer();
+			codeStart = readPointer();
+			codeSize = input.readInt32();
+			allTypes = readPointer();
+		}
 
 		var nfunctions = input.readInt32();
 		if( nfunctions != module.code.functions.length )
@@ -95,16 +122,25 @@ class JitInfo {
 			if( module.code.functions[i].debug.length >> 1 != nops )
 				return false;
 			var start = codeStart.offset(input.readInt32());
+			var varsSize = hlVersion >= 2 ? input.readInt32() : 0;
 			var large = input.readByte() != 0;
 			var offsets = input.read((nops + 1) * (large ? 4 : 2));
+			var vars = hlVersion >= 2 ? input.read(varsSize) : null;
 			functionByCodePos.set(start.i64, i);
 			functions.push({
 				start : start,
 				large : large,
 				offsets : offsets,
+				vars : vars,
 			});
 		}
+
+		codeEnd = codeStart.offset(codeSize);
 		return true;
+	}
+
+	public function getFunctionVars( fidx : Int ) {
+		return functions[fidx].vars;
 	}
 
 	public function getFunctionPos( fidx : Int ) : Pointer {
@@ -120,6 +156,10 @@ class JitInfo {
 		if( codePtr < codeStart || codePtr > codeEnd )
 			return false;
 		return true;
+	}
+
+	public function getNativeCodePos( codePtr : Pointer ) {
+		return codePtr.sub(codeStart);
 	}
 
 	public function codePtrToString( codePtr : Pointer ) : String {

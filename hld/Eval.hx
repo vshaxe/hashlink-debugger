@@ -31,6 +31,7 @@ enum VarAddress {
 	AMethod( v : Value, ptr : Pointer, t : HLType );
 	AEvaled( v : Value );
 	AInlined( fields : Array<InlinedField> );
+	ANative( v : NativeReg, t : HLType );
 }
 
 class Eval {
@@ -46,6 +47,7 @@ class Eval {
 
 	var funIndex : Int;
 	var codePos : Int;
+	var nativeCodePos : Int;
 	var ebp : Pointer;
 	var guidNames : Int64Map<String>;
 
@@ -78,9 +80,10 @@ class Eval {
 			}
 	}
 
-	public function setContext( funIndex : Int, codePos : Int, ebp : Pointer ) {
+	public function setContext( funIndex : Int, codePos : Int, nativeCodePos : Int, ebp : Pointer ) {
 		this.funIndex = funIndex;
 		this.codePos = codePos;
+		this.nativeCodePos = nativeCodePos;
 		this.ebp = ebp;
 	}
 
@@ -199,6 +202,10 @@ class Eval {
 		default:
 		}
 		return [];
+	}
+
+	function readNatReg( r : NativeReg ) : Pointer {
+		return api.readRegister(currentThread, r.isFpu() ? hld.Api.Register.makeFpu(r.toInt() - 16) : hld.Api.Register.makeCpu(r.toInt()));
 	}
 
 	function evalExpr( e : hscript.Expr ) : Value {
@@ -361,7 +368,8 @@ class Eval {
 		case VMethod(_, _, p): p;
 		default: throw "Not a function";
 		}
-		var prevEax = api.readRegister(currentThread, Eax);
+		var eax = hld.Api.Register.makeCpu(0);
+		var prevEax = api.readRegister(currentThread, eax);
 		var eip = api.readRegister(currentThread, Eip);
 		var prevEsp = api.readRegister(currentThread, Esp);
 		// set registers
@@ -516,9 +524,9 @@ class Eval {
 		// restore
 		api.write(eip, prevAsm, asmSize);
 		api.flush(eip, asmSize);
-		var ptr = api.readRegister(currentThread, Eax);
+		var ptr = api.readRegister(currentThread, eax);
 		var nip = api.readRegister(currentThread, Eip).sub(eip);
-		api.writeRegister(currentThread, Eax, prevEax);
+		api.writeRegister(currentThread, eax, prevEax);
 		api.writeRegister(currentThread, Eip, eip);
 		api.writeRegister(currentThread, Esp, prevEsp);
 		var hasError = nip != asmSize;
@@ -700,7 +708,7 @@ class Eval {
 			var t = module.getGraph(funIndex).getReturnReg(codePos);
 			if( t == null )
 				return null;
-			return convertVal(api.readRegister(currentThread,t == HF64 || t == HF32 ? Xmm0 : Eax), t);
+			return convertVal(api.readRegister(currentThread,t == HF64 || t == HF32 ? hld.Api.Register.makeFpu(0) : hld.Api.Register.makeCpu(0)), t);
 		default:
 			fetchAddr(getVarAddress(name));
 		}
@@ -1053,12 +1061,47 @@ class Eval {
 		return s.file+":" + s.line;
 	}
 
+	function decodeNativeReg( reg : Int, t : HLType ) {
+		if( reg & 0x40000000 != 0x40000000 )
+			return AUndef(t);
+		var r = reg & 0x7F;
+		if( r >= 0x40 )
+			return ANative(NativeReg.XMM(r-0x40), t);
+		if( reg & 0x10000000 != 0 ) {
+			if( r != 5 ) // RBP offset
+				return AUndef(t);
+			var offset = (reg < 0 ? (reg | 0xF0000000) : (reg & 0x0FFFFFFF)) >> 7;
+			return AAddr(ebp.offset(offset), t);
+		}
+		return ANative(cast r,t);
+	}
+
 	function readRegAddress( index ) : VarAddress {
 		var r = module.getFunctionRegs(funIndex)[index];
 		if( r == null )
 			return ANone;
 		if( !module.getGraph(funIndex).isRegisterWritten(index, codePos) )
 			return AUndef(r.t);
+		if( jit.hlVersion >= 2 ) {
+			var vars = jit.getFunctionVars(funIndex);
+			var funPos = nativeCodePos - jit.getNativeCodePos(jit.getFunctionPos(funIndex));
+			//trace("R"+index+"@"+StringTools.hex(module.code.functions[funIndex].findex)+":"+StringTools.hex(codePos)+"("+StringTools.hex(funPos)+")");
+			var count = vars.length >> 4;
+			for( i in 0...count ) {
+				var p = (count - i - 1) << 4;
+				var rid = vars.getInt32(p);
+				if( rid == index ) {
+					var start = vars.getInt32(p + 4);
+					var end = vars.getInt32(p + 8);
+					//trace('[$start,$end]');
+					if( funPos >= start && funPos < end ) {
+						var reg = vars.getInt32(p + 12);
+						return decodeNativeReg(reg, r.t);
+					}
+				}
+			}
+			return AUndef(r.t);
+		}
 		return AAddr(ebp.offset(r.offset), r.t);
 	}
 
@@ -1468,6 +1511,8 @@ class Eval {
 			return { v : VUndef, t : t };
 		case AAddr(ptr,t):
 			return readVal(ptr, t);
+		case ANative(r, t):
+			return convertVal(readNatReg(r), t);
 		case AMethod(v, p, t):
 			var fidx = jit.functionFromAddr(p);
 			var fval = fidx == null ? FUnknown(p) : FIndex(fidx, p);

@@ -834,28 +834,31 @@ class Debugger {
 		return { file : s.file, line : s.line, ebp : f.ebp, context : module.getMethodContext(f.fidx) };
 	}
 
-	public function getValue( expr : String, global = false ) : Value {
+	function setContext(global:Bool) {
 		var cur = currentStack[currentStackFrame];
-		if( cur == null ) return null;
+		if( cur == null ) return false;
 		eval.globalContext = global;
-		eval.setContext(cur.fidx, cur.fpos, cur.ebp);
+		eval.setContext(cur.fidx, cur.fpos, jit.getNativeCodePos(cur.codePos), cur.ebp);
+		return true;
+	}
+
+	public function getValue( expr : String, global = false ) : Value {
+		if( !setContext(global) )
+			return null;
 		var v = eval.eval(expr);
 		eval.globalContext = false;
 		return v;
 	}
 
-	public function setValue( expr : String, value : String ) : Value {
-		var cur = currentStack[currentStackFrame];
-		if( cur == null ) return null;
-		eval.setContext(cur.fidx, cur.fpos, cur.ebp);
+	public function setValue( expr : String, value : String, global = false ) : Value {
+		if( !setContext(global) )
+			return null;
 		return eval.setValue(expr, value);
 	}
 
 	public function getRef( expr : String, global = false ) : Address {
-		var cur = currentStack[currentStackFrame];
-		if( cur == null ) return null;
-		eval.globalContext = global;
-		eval.setContext(cur.fidx, cur.fpos, cur.ebp);
+		if( !setContext(global) )
+			return null;
 		var v = eval.ref(expr);
 		eval.globalContext = global;
 		return v;
