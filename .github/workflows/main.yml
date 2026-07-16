@@ -13,10 +13,10 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
-    - uses: krdlab/setup-haxe@v1
+    - uses: actions/checkout@v7
+    - uses: krdlab/setup-haxe@v2
       with:
-        haxe-version: 4.3.6
+        haxe-version: 4.3.7
     - name: Print haxe version
       run: haxe -version
     - name: Install haxelib dependencies
