@@ -13,10 +13,10 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
-    - uses: krdlab/setup-haxe@v1
+    - uses: actions/checkout@v7
+    - uses: krdlab/setup-haxe@v2
       with:
-        haxe-version: 4.3.6
+        haxe-version: 4.3.7
     - name: Print haxe version
       run: haxe -version
     - name: Install haxelib dependencies
@@ -68,8 +68,8 @@ jobs:
   build_and_test_nightly:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
-    - uses: krdlab/setup-haxe@v1
+    - uses: actions/checkout@v7
+    - uses: krdlab/setup-haxe@v2
       with:
         haxe-version: latest
     - name: Print haxe version
@@ -94,9 +94,9 @@ jobs:
       run: |
         git clone https://github.com/HaxeFoundation/hashlink.git hashlink
         sudo apt-get update
-        sudo apt-get install -qqy libpng-dev libturbojpeg-dev libvorbis-dev libopenal-dev libsdl2-dev libglu1-mesa-dev libmbedtls-dev libuv1-dev libsqlite3-dev
+        sudo apt-get install -qqy libpng-dev libturbojpeg-dev libvorbis-dev libopenal-dev libmbedtls-dev libuv1-dev libsqlite3-dev
         cd hashlink
-        make
+        make hl libhl.so fmt.hdll ssl.hdll ui.hdll uv.hdll
         sudo make install
         hl --version
         cd ..
