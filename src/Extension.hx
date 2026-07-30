@@ -28,7 +28,7 @@ class Extension {
 							config.program = file;
 						}
 						if (StringTools.endsWith(config.program, ".c")) {
-							reject('Plase use a HashLink/JIT configuration (found "${config.program}" instead).');
+							reject('Please use a HashLink/JIT configuration (found "${config.program}" instead).');
 							return;
 						}
 						config.classPaths = haxeConfig.classPaths.map(cp -> cp.path);
