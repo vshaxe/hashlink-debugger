@@ -1,7 +1,10 @@
 --ci
 test.hl
+"b Test.hx:52"
 "b Test.hx:58"
 r
+"p pos"
+c
 "p pos"
 "p prevPos"
 "p front"

@@ -1,0 +1,14 @@
+> b Test.hx:29
+Breakpoint set line 29
+> r
+Thread paused Test.hx:29 ($Test::main)
+> info variables
+ potentialMove = { x : 1, y : 2, z : 3 } : Dynamic
+ len = 3.74165738677394 : Float
+ scaled = { x : 2, y : 4, z : 6 } : Dynamic
+> p potentialMove
+{ x : 1, y : 2, z : 3 } : Dynamic
+  x = 1 : Float
+  y = 2 : Float
+  z = 3 : Float
+> q

@@ -1,0 +1,7 @@
+--ci
+test.hl
+"b Test.hx:29"
+r
+"info variables"
+"p potentialMove"
+q

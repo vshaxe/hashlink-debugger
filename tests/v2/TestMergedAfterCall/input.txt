@@ -1,0 +1,12 @@
+--ci
+test.hl
+"b Test.hx:42"
+r
+"info variables"
+"p o1.x"
+"p o6.x"
+c
+"info variables"
+"p o1.x"
+"p o6.x"
+q
