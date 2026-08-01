@@ -6,6 +6,12 @@ enum StepMode {
 	Into;
 }
 
+enum DebugRegsKind {
+	HLRegs;
+	Regs;
+	NatRegs;
+}
+
 @:publicFields @:structInit
 class Address {
 	var ptr : Pointer;
@@ -288,6 +294,22 @@ class Debugger {
 		if( afterStep && currentStackFrame == 0 && g.getReturnReg(s.fpos) != null )
 			locals.push("$ret");
 		return locals;
+	}
+
+	public function getDebugContext() : String {
+		if( !setContext(false) )
+			return null;
+		return eval.getContextStr();
+	}
+
+	public function getDebugRegs( kind : DebugRegsKind ) : Array<String> {
+		if( !setContext(false) )
+			return [];
+		return switch( kind ) {
+		case HLRegs: eval.getHLRegs();
+		case Regs: eval.getRegs();
+		case NatRegs: eval.getNatRegs();
+		}
 	}
 
 	public function getCurrentClass() {

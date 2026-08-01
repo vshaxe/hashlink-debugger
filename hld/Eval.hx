@@ -884,7 +884,8 @@ class Eval {
 		case HNull(t):
 			return typeStr(t);
 		default:
-			return t.toString();
+			var s = t.toString();
+			return s == null || s == "" ? "<" + Type.enumConstructor(t) + ">" : s;
 		}
 	}
 
@@ -1107,6 +1108,101 @@ class Eval {
 
 	function readReg(index) {
 		return fetchAddr(readRegAddress(index));
+	}
+
+	static var CPU_NAMES = ["rax","rcx","rdx","rbx","rsp","rbp","rsi","rdi","r8","r9","r10","r11","r12","r13","r14","r15"];
+
+	public function nativeRegName( r : NativeReg ) : String {
+		var i = r.toInt();
+		if( i >= 16 )
+			return "xmm" + (i - 16);
+		var n = CPU_NAMES[i];
+		return n == null ? "reg" + i : n;
+	}
+
+	function hexOffset( v : Int ) {
+		return (v < 0 ? "-0x" : "+0x") + StringTools.hex(v < 0 ? -v : v);
+	}
+
+	function nativeLocStr( reg : Int ) : String {
+		return switch( decodeNativeReg(reg, HDyn) ) {
+		case ANative(r, _):
+			nativeRegName(r);
+		case AAddr(ptr, _):
+			"[" + nativeRegName(Ebp) + hexOffset(ptr.sub(ebp)) + "]";
+		default:
+			"<undefined>";
+		}
+	}
+
+	public function getContextStr() {
+		var f = module.code.functions[funIndex];
+		var s = module.resolveSymbol(funIndex, codePos);
+		return 'fun@${f.findex} ${s.file}:${s.line} (fidx=$funIndex, op=$codePos)';
+	}
+
+	public function getHLRegs() : Array<String> {
+		var out = [];
+		var f = module.code.functions[funIndex];
+
+		out.push("-- register types --");
+		for( i in 0...f.regs.length )
+			out.push('  R$i : ${typeStr(f.regs[i])}');
+
+		out.push("-- assigns --");
+		if( f.assigns == null || f.assigns.length == 0 )
+			out.push("  <none> (module compiled without -D hl-debug ?)");
+		else {
+			var argIndex = 0;
+			for( a in f.assigns ) {
+				var name = module.code.strings[a.varName];
+				if( a.position == -1 )
+					out.push('  arg${argIndex++} "$name"');
+				else if( a.position < -1 )
+					out.push('  capture "$name" in R${ -a.position - 2 }');
+				else {
+					var op = a.position < f.ops.length ? " " + Std.string(f.ops[a.position]) : " <out of range>";
+					out.push('  "$name" @op ${a.position}$op');
+				}
+			}
+		}
+		return out;
+	}
+
+	public function getRegs() : Array<String> {
+		var out = [];
+		var g = module.getGraph(funIndex);
+		var names = @:privateAccess g.getArgsRaw().concat(g.getLocalsRaw(codePos));
+		if( names.length == 0 ) {
+			out.push("  <no variable in scope>");
+			return out;
+		}
+		for( n in names ) {
+			var loc = g.getLocal(n, codePos);
+			if( loc == null )
+				out.push('  $n = <not resolved>');
+			else
+				out.push('  $n = R${loc.rid} (${typeStr(loc.t)})');
+		}
+		return out;
+	}
+
+	public function getNatRegs() : Array<String> {
+		var out = [];
+		var vars = jit.getFunctionVars(funIndex);
+		if( vars == null || vars.length == 0 ) {
+			out.push("  <empty>");
+			return out;
+		}
+		var count = vars.length >> 4;
+		for( i in 0...count ) {
+			var p = i << 4;
+			var rid = vars.getInt32(p);
+			var start = vars.getInt32(p + 4);
+			var end = vars.getInt32(p + 8);
+			out.push('  R$rid [+0x${StringTools.hex(start)},+0x${StringTools.hex(end)}) = ${nativeLocStr(vars.getInt32(p + 12))}');
+		}
+		return out;
 	}
 
 	function convertVal( p : Pointer, t : HLType ) : Value {

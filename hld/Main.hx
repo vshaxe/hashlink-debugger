@@ -373,6 +373,16 @@ class Main {
 				var v = dbg.getValue(name);
 				Sys.println(" " + name+" = " + (v == null ? "???" : dbg.eval.valueStr(v) + " : " + v.t.toString()));
 			}
+			function printDebugRegs( kind : Debugger.DebugRegsKind ) {
+				var ctx = dbg.getDebugContext();
+				if( ctx == null ) {
+					Sys.println("No stack frame available");
+					return;
+				}
+				Sys.println(ctx);
+				for( l in dbg.getDebugRegs(kind) )
+					Sys.println(l);
+			}
 			switch( args.shift() ) {
 			case "args":
 				for( name in dbg.getCurrentVars(true) )
@@ -403,6 +413,12 @@ class Main {
 					for( f in fields )
 						printVar(cl+"."+f);
 				}
+			case "dbg_hlregs":
+				printDebugRegs(HLRegs);
+			case "dbg_regs":
+				printDebugRegs(Regs);
+			case "dbg_natregs":
+				printDebugRegs(NatRegs);
 			default:
 				Sys.println("Unknown info request");
 			}
