@@ -1078,8 +1078,8 @@ class Eval {
 				c
 			else
 				c + "(" + [for( v in values ) valueStr(v,maxStringRec)].join(", ") + ")";
-		case VInlined(_):
-			"inlined";
+		case VInlined(fields):
+			"{ " + [for( f in fields ) f.name + " : " + valueStr(fetchAddr(f.addr), maxStringRec)].join(", ") + " }";
 		case VGuid(i, name):
 			switch( v.hint ) {
 			case HBin: Value.int64Str(i, 2);
