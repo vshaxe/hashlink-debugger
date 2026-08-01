@@ -381,7 +381,7 @@ class Main {
 				}
 				Sys.println(ctx);
 				for( l in dbg.getDebugRegs(kind) )
-					Sys.println(l);
+					Sys.println("  " + l);
 			}
 			switch( args.shift() ) {
 			case "args":

@@ -1,0 +1,13 @@
+> b Test.hx:4
+Breakpoint set line 4
+> r
+Thread paused Test.hx:4 ($Test::inner)
+> p z
+22 : Int
+> up
+Test.hx:8 ($Test::middle)
+> p a
+10 : Int
+> p b
+1.5 : Float
+> q

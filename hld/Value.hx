@@ -2,6 +2,7 @@ package hld;
 
 enum ValueRepr {
 	VUndef;
+	VOverwritten;
 	VNull;
 	VInt( i : Int );
 	VInt64( i : haxe.Int64 );

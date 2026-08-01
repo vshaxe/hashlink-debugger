@@ -27,6 +27,7 @@ enum abstract NativeReg(Int) from Int {
 enum VarAddress {
 	ANone;
 	AUndef( t : HLType );
+	AOverwritten( t : HLType );
 	AAddr( ptr : Pointer, t : HLType );
 	AMethod( v : Value, ptr : Pointer, t : HLType );
 	AEvaled( v : Value );
@@ -49,6 +50,8 @@ class Eval {
 	var codePos : Int;
 	var nativeCodePos : Int;
 	var ebp : Pointer;
+	var frameChildren : Array<Debugger.StackRawInfo>;
+	var savedRegs : Map<Int, Map<Int,Int>>;
 	var guidNames : Int64Map<String>;
 
 	public var maxArrLength : Int = 10;
@@ -80,11 +83,12 @@ class Eval {
 			}
 	}
 
-	public function setContext( funIndex : Int, codePos : Int, nativeCodePos : Int, ebp : Pointer ) {
+	public function setContext( funIndex : Int, codePos : Int, nativeCodePos : Int, ebp : Pointer, ?children : Array<Debugger.StackRawInfo> ) {
 		this.funIndex = funIndex;
 		this.codePos = codePos;
 		this.nativeCodePos = nativeCodePos;
 		this.ebp = ebp;
+		this.frameChildren = children;
 	}
 
 	public function onBeforeBreak() {
@@ -206,6 +210,37 @@ class Eval {
 
 	function readNatReg( r : NativeReg ) : Pointer {
 		return api.readRegister(currentThread, r.isFpu() ? hld.Api.Register.makeFpu(r.toInt() - 16) : hld.Api.Register.makeCpu(r.toInt()));
+	}
+
+	function getSavedRegs( fidx : Int ) : Map<Int,Int> {
+		if( savedRegs == null ) savedRegs = new Map();
+		var regs = savedRegs.get(fidx);
+		if( regs != null )
+			return regs;
+		regs = new Map();
+		savedRegs.set(fidx, regs);
+		var vars = jit.getFunctionVars(fidx);
+		if( vars == null )
+			return regs;
+		for( i in 0...vars.length >> 4 ) {
+			var p = i << 4;
+			if( vars.getInt32(p) >= 0 )
+				continue;
+			var r = nativeRegIndex(vars.getInt32(p + 12));
+			if( r >= 0 ) regs.set(r, vars.getInt32(p + 4));
+		}
+		return regs;
+	}
+
+	function readNativeRegAddress( r : NativeReg, t : HLType ) : VarAddress {
+		if( frameChildren != null )
+			for( c in frameChildren ) {
+				var offset = getSavedRegs(c.fidx).get(r.toInt());
+				if( offset == null ) continue;
+				if( c.ebp == null ) break;
+				return AAddr(c.ebp.offset(offset), t);
+			}
+		return ANative(r, t);
 	}
 
 	function evalExpr( e : hscript.Expr ) : Value {
@@ -754,6 +789,8 @@ class Eval {
 				switch( v ) {
 				case AUndef(_):
 					return AUndef(loc.t);
+				case AOverwritten(_):
+					return AOverwritten(loc.t);
 				case AAddr(ptr, t):
 					var ptr = readPointer(ptr);
 					return AAddr(ptr.offset(module.getEnumProto(loc.container)[0].params[loc.index].offset), loc.t);
@@ -895,6 +932,7 @@ class Eval {
 		maxStringRec--;
 		var str = switch( v.v ) {
 		case VUndef: "undef"; // null read / outside bounds
+		case VOverwritten: "overwritten";
 		case VNull: "null";
 		case VInt(i):
 			switch( v.hint ) {
@@ -1077,6 +1115,30 @@ class Eval {
 		return ANative(cast r,t);
 	}
 
+	function nativeRegIndex( reg : Int ) : Int {
+		return switch( decodeNativeReg(reg, HDyn) ) {
+		case ANative(r, _): r.toInt();
+		default: -1;
+		}
+	}
+
+	function getRegOverwritePos( vars : haxe.io.Bytes, count : Int, rid : Int, reg : Int, start : Int, until : Int ) : Int {
+		var nreg = nativeRegIndex(reg);
+		if( nreg < 0 )
+			return -1; // stack slots are not shared between variables
+		var pos = -1;
+		for( i in 0...count ) {
+			var p = i << 4;
+			var orid = vars.getInt32(p);
+			if( orid < 0 || orid == rid || nativeRegIndex(vars.getInt32(p + 12)) != nreg )
+				continue;
+			var ostart = vars.getInt32(p + 4);
+			if( ostart > start && ostart <= until && (pos < 0 || ostart < pos) )
+				pos = ostart;
+		}
+		return pos;
+	}
+
 	function readRegAddress( index ) : VarAddress {
 		var r = module.getFunctionRegs(funIndex)[index];
 		if( r == null )
@@ -1097,7 +1159,12 @@ class Eval {
 					//trace('[$start,$end]');
 					if( funPos >= start && funPos < end ) {
 						var reg = vars.getInt32(p + 12);
-						return decodeNativeReg(reg, r.t);
+						if( getRegOverwritePos(vars, count, index, reg, start, funPos) >= 0 )
+							return AOverwritten(r.t);
+						return switch( decodeNativeReg(reg, r.t) ) {
+						case ANative(nreg, t): readNativeRegAddress(nreg, t);
+						case a: a;
+						}
 					}
 				}
 			}
@@ -1147,22 +1214,22 @@ class Eval {
 
 		out.push("-- register types --");
 		for( i in 0...f.regs.length )
-			out.push('  R$i : ${typeStr(f.regs[i])}');
+			out.push('R$i : ${typeStr(f.regs[i])}');
 
 		out.push("-- assigns --");
 		if( f.assigns == null || f.assigns.length == 0 )
-			out.push("  <none> (module compiled without -D hl-debug ?)");
+			out.push("<none> (module compiled without -D hl-debug ?)");
 		else {
 			var argIndex = 0;
 			for( a in f.assigns ) {
 				var name = module.code.strings[a.varName];
 				if( a.position == -1 )
-					out.push('  arg${argIndex++} "$name"');
+					out.push('arg${argIndex++} "$name"');
 				else if( a.position < -1 )
-					out.push('  capture "$name" in R${ -a.position - 2 }');
+					out.push('capture "$name" in R${ -a.position - 2 }');
 				else {
 					var op = a.position < f.ops.length ? " " + Std.string(f.ops[a.position]) : " <out of range>";
-					out.push('  "$name" @op ${a.position}$op');
+					out.push('"$name" @op ${a.position}$op');
 				}
 			}
 		}
@@ -1174,15 +1241,15 @@ class Eval {
 		var g = module.getGraph(funIndex);
 		var names = @:privateAccess g.getArgsRaw().concat(g.getLocalsRaw(codePos));
 		if( names.length == 0 ) {
-			out.push("  <no variable in scope>");
+			out.push("<no variable in scope>");
 			return out;
 		}
 		for( n in names ) {
 			var loc = g.getLocal(n, codePos);
 			if( loc == null )
-				out.push('  $n = <not resolved>');
+				out.push('$n = <not resolved>');
 			else
-				out.push('  $n = R${loc.rid} (${typeStr(loc.t)})');
+				out.push('$n = R${loc.rid} (${typeStr(loc.t)})');
 		}
 		return out;
 	}
@@ -1191,16 +1258,26 @@ class Eval {
 		var out = [];
 		var vars = jit.getFunctionVars(funIndex);
 		if( vars == null || vars.length == 0 ) {
-			out.push("  <empty>");
+			out.push("<empty>");
 			return out;
 		}
 		var count = vars.length >> 4;
 		for( i in 0...count ) {
 			var p = i << 4;
 			var rid = vars.getInt32(p);
+			if( rid < 0 ) continue;
 			var start = vars.getInt32(p + 4);
 			var end = vars.getInt32(p + 8);
-			out.push('  R$rid [+0x${StringTools.hex(start)},+0x${StringTools.hex(end)}) = ${nativeLocStr(vars.getInt32(p + 12))}');
+			var reg = vars.getInt32(p + 12);
+			var over = getRegOverwritePos(vars, count, rid, reg, start, end - 1);
+			var overStr = over < 0 ? "" : ' overwritten @+0x${StringTools.hex(over)}';
+			out.push('R$rid [+0x${StringTools.hex(start)},+0x${StringTools.hex(end)}) = ${nativeLocStr(reg)}$overStr');
+		}
+		var saved = getSavedRegs(funIndex);
+		if( saved.keys().hasNext() ) {
+			out.push("-- saved registers --");
+			for( r => offset in saved )
+				out.push('${nativeRegName(r)} = [${nativeRegName(Ebp)}${hexOffset(offset)}]');
 		}
 		return out;
 	}
@@ -1605,6 +1682,8 @@ class Eval {
 			return null;
 		case AUndef(t):
 			return { v : VUndef, t : t };
+		case AOverwritten(t):
+			return { v : VOverwritten, t : t };
 		case AAddr(ptr,t):
 			return readVal(ptr, t);
 		case ANative(r, t):

@@ -860,7 +860,8 @@ class Debugger {
 		var cur = currentStack[currentStackFrame];
 		if( cur == null ) return false;
 		eval.globalContext = global;
-		eval.setContext(cur.fidx, cur.fpos, jit.getNativeCodePos(cur.codePos), cur.ebp);
+		var children = [for( i in 0...currentStackFrame ) currentStack[currentStackFrame - 1 - i]];
+		eval.setContext(cur.fidx, cur.fpos, jit.getNativeCodePos(cur.codePos), cur.ebp, children);
 		return true;
 	}
 
