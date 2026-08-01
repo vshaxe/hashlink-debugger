@@ -2,6 +2,12 @@
 
 Debugger for the [HashLink](https://hashlink.haxe.org) VM.
 
+## Code style
+
+**Never add comments.** This holds for every file you touch — this repo, the tests, and the HashLink
+and Haxe sources. Leave the existing ones alone, and put whatever a change needs explained in this
+file instead.
+
 ## Architecture
 
 - The debugger gets its data from the HashLink VM by **connecting to a socket**; the other end of

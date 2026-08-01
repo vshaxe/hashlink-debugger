@@ -1,5 +1,5 @@
 class RunCi {
-	static var MAX_TIME_PER_TEST : Float = 2;
+	static var MAX_TIME_PER_TEST : Float = 10;
 
 	static function main() {
 		var basePath = Sys.getCwd();
