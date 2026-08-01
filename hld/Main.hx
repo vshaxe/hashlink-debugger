@@ -378,14 +378,14 @@ class Main {
 				var v = dbg.getValue(name);
 				Sys.println(" " + name+" = " + (v == null ? "???" : dbg.eval.valueStr(v) + " : " + v.t.toString()));
 			}
-			function printDebugRegs( kind : Debugger.DebugRegsKind ) {
-				var ctx = dbg.getDebugContext();
+			function printDebugRegs( kind : Debugger.DebugRegsKind, ?fidx : Int ) {
+				var ctx = fidx == null ? dbg.getDebugContext() : 'fidx=$fidx';
 				if( ctx == null ) {
 					Sys.println("No stack frame available");
 					return;
 				}
 				Sys.println(ctx);
-				for( l in dbg.getDebugRegs(kind) )
+				for( l in dbg.getDebugRegs(kind, fidx) )
 					Sys.println("  " + l);
 			}
 			switch( args.shift() ) {
@@ -422,8 +422,17 @@ class Main {
 				printDebugRegs(HLRegs);
 			case "dbg_regs":
 				printDebugRegs(Regs);
+			case "dbg_oppos":
+				var fidx = Std.parseInt(args.shift());
+				var from = Std.parseInt(args.shift());
+				var to = Std.parseInt(args.shift());
+				if( fidx == null || from == null || to == null )
+					Sys.println("Usage: info dbg_oppos <fidx> <from op> <to op>");
+				else
+					for( l in dbg.getOpPositions(fidx, from, to) )
+						Sys.println("  " + l);
 			case "dbg_natregs":
-				printDebugRegs(NatRegs);
+				printDebugRegs(NatRegs, Std.parseInt(args.shift()));
 			default:
 				Sys.println("Unknown info request");
 			}

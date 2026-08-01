@@ -44,6 +44,14 @@ any other match reads a register holding an unrelated value, which surfaces as a
 wrong object, `null`, or a memory read failure in the VSCode adapter.
 `tests/v2/TestBranchAssignMerge` covers it.
 
+That rule only works if the merged record starts **exactly** where the branches join, because a
+breakpoint on the line that follows the assignment stops on the first op of that merge point. A
+merged record starting even a few bytes later leaves only the branch records covering the
+breakpoint, so the debugger reads the slot of the branch that may not have run — the variable then
+shows a stale value that "fixes itself" after one step, once the position reaches the merged record.
+`tests/v2/TestBranchMergeStart` covers it; the fix for such an off-by-one belongs in the VM, the
+debugger cannot tell a late start from a genuinely later one.
+
 Arguments — including `this` — are identified by **index**, never by an assign entry, because the
 compiler emits no assign for `this`. `tests/unit/TestArgFirstLocal` covers the case that breaks when
 that is confused: a local assigned at op 0 being consumed as an argument and becoming unresolvable.
@@ -175,3 +183,15 @@ Three `info` commands split the responsibility:
 | `info dbg_natregs`   | The VM giving bad **native** register information                    | HashLink VM     |
 | `info dbg_regs`      | The debugger resolving the variable to the wrong **virtual** register | this repo       |
 | `info dbg_hlregs`    | The Haxe compiler giving bad info for a variable                     | Haxe compiler   |
+
+Two of them also work away from the current frame, which is what makes a report on a **big program
+you cannot easily drive to the faulty line** tractable — launch it under the command-line debugger
+and answer both questions while it is still paused at startup, without ever running it:
+
+- `info dbg_natregs <fidx>` lists the records of any function, not just the one being executed.
+- `info dbg_oppos <fidx> <from> <to>` prints where each bytecode op of a function starts in native
+  code, with its source line.
+
+Together they say whether the record that should be live at a given line actually covers the address
+the breakpoint on that line lands at. Get `<fidx>` by loading the `.hl` with `hld.Module` and looking
+up `getBreaks(file, line)`.

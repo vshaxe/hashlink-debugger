@@ -1290,21 +1290,22 @@ class Eval {
 		return out;
 	}
 
-	public function getNatRegs() : Array<String> {
+	public function getNatRegs( ?fidx : Int ) : Array<String> {
 		var out = [];
-		var recs = getVarRecords(funIndex);
+		if( fidx == null ) fidx = funIndex;
+		var recs = getVarRecords(fidx);
 		if( recs.length == 0 ) {
 			out.push("<empty>");
 			return out;
 		}
-		var f = module.code.functions[funIndex];
+		var f = module.code.functions[fidx];
 		for( i in 0...recs.length ) {
 			var rec = recs[i];
 			var over = getRegOverwritePos(recs, i, rec.end - 1);
 			var overStr = over < 0 ? "" : ' overwritten @+0x${StringTools.hex(over)}';
 			out.push('${varIdStr(f, rec.id)} [+0x${StringTools.hex(rec.start)},+0x${StringTools.hex(rec.end)}) = ${nativeLocStr(rec.reg)}$overStr');
 		}
-		var saved = getSavedRegs(funIndex);
+		var saved = getSavedRegs(fidx);
 		if( saved.keys().hasNext() ) {
 			out.push("-- saved registers --");
 			for( r => offset in saved )

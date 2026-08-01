@@ -302,14 +302,28 @@ class Debugger {
 		return eval.getContextStr();
 	}
 
-	public function getDebugRegs( kind : DebugRegsKind ) : Array<String> {
+	public function getDebugRegs( kind : DebugRegsKind, ?fidx : Int ) : Array<String> {
+		if( kind == NatRegs && fidx != null )
+			return eval.getNatRegs(fidx);
 		if( !setContext(false) )
 			return [];
 		return switch( kind ) {
 		case HLRegs: eval.getHLRegs();
 		case Regs: eval.getDebugRegs();
-		case NatRegs: eval.getNatRegs();
+		case NatRegs: eval.getNatRegs(fidx);
 		}
+	}
+
+	public function getOpPositions( fidx : Int, from : Int, to : Int ) : Array<String> {
+		var out = [];
+		var start = jit.getFunctionPos(fidx);
+		var f = module.code.functions[fidx];
+		if( to > f.ops.length ) to = f.ops.length;
+		for( i in from...to ) {
+			var s = module.resolveSymbol(fidx, i);
+			out.push('@$i [${s.line}] +0x${StringTools.hex(jit.getCodePos(fidx,i).sub(start))} ${f.ops[i]}');
+		}
+		return out;
 	}
 
 	public function getCurrentClass() {
