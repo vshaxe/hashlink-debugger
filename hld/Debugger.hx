@@ -307,7 +307,7 @@ class Debugger {
 			return [];
 		return switch( kind ) {
 		case HLRegs: eval.getHLRegs();
-		case Regs: eval.getRegs();
+		case Regs: eval.getDebugRegs();
 		case NatRegs: eval.getNatRegs();
 		}
 	}

@@ -35,6 +35,8 @@ enum VarAddress {
 	ANative( v : NativeReg, t : HLType );
 }
 
+typedef VarRecord = { id : Int, start : Int, end : Int, reg : Int };
+
 class Eval {
 
 	var align : Align;
@@ -52,6 +54,7 @@ class Eval {
 	var ebp : Pointer;
 	var frameChildren : Array<Debugger.StackRawInfo>;
 	var savedRegs : Map<Int, Map<Int,Int>>;
+	var varRecords : Map<Int, Array<VarRecord>>;
 	var guidNames : Int64Map<String>;
 
 	public var maxArrLength : Int = 10;
@@ -230,6 +233,25 @@ class Eval {
 			if( r >= 0 ) regs.set(r, vars.getInt32(p + 4));
 		}
 		return regs;
+	}
+
+	function getVarRecords( fidx : Int ) : Array<VarRecord> {
+		if( varRecords == null ) varRecords = new Map();
+		var recs = varRecords.get(fidx);
+		if( recs != null )
+			return recs;
+		recs = [];
+		varRecords.set(fidx, recs);
+		var vars = jit.getFunctionVars(fidx);
+		if( vars == null )
+			return recs;
+		for( i in 0...vars.length >> 4 ) {
+			var p = i << 4;
+			var id = vars.getInt32(p);
+			if( id < 0 ) continue;
+			recs.push({ id : id, start : vars.getInt32(p + 4), end : vars.getInt32(p + 8), reg : vars.getInt32(p + 12) });
+		}
+		return recs;
 	}
 
 	function readNativeRegAddress( r : NativeReg, t : HLType ) : VarAddress {
@@ -784,7 +806,7 @@ class Eval {
 		// locals
 		var loc = module.getGraph(funIndex).getLocal(name, codePos);
 		if( loc != null && !globalContext ) {
-			var v = readRegAddress(loc.rid);
+			var v = readRegAddress(loc.rid, loc);
 			if( loc.index != null ) {
 				switch( v ) {
 				case AUndef(_):
@@ -793,6 +815,9 @@ class Eval {
 					return AOverwritten(loc.t);
 				case AAddr(ptr, t):
 					var ptr = readPointer(ptr);
+					return AAddr(ptr.offset(module.getEnumProto(loc.container)[0].params[loc.index].offset), loc.t);
+				case ANative(r, t):
+					var ptr = readNatReg(r);
 					return AAddr(ptr.offset(module.getEnumProto(loc.container)[0].params[loc.index].offset), loc.t);
 				default:
 					throw "assert";
@@ -1122,59 +1147,49 @@ class Eval {
 		}
 	}
 
-	function getRegOverwritePos( vars : haxe.io.Bytes, count : Int, rid : Int, reg : Int, start : Int, until : Int ) : Int {
-		var nreg = nativeRegIndex(reg);
+	function getRegOverwritePos( recs : Array<VarRecord>, index : Int, until : Int ) : Int {
+		var rec = recs[index];
+		var nreg = nativeRegIndex(rec.reg);
 		if( nreg < 0 )
 			return -1; // stack slots are not shared between variables
 		var pos = -1;
-		for( i in 0...count ) {
-			var p = i << 4;
-			var orid = vars.getInt32(p);
-			if( orid < 0 || orid == rid || nativeRegIndex(vars.getInt32(p + 12)) != nreg )
+		for( o in recs ) {
+			if( o.id == rec.id || nativeRegIndex(o.reg) != nreg )
 				continue;
-			var ostart = vars.getInt32(p + 4);
-			if( ostart > start && ostart <= until && (pos < 0 || ostart < pos) )
-				pos = ostart;
+			if( o.start > rec.start && o.start <= until && (pos < 0 || o.start < pos) )
+				pos = o.start;
 		}
 		return pos;
 	}
 
-	function readRegAddress( index ) : VarAddress {
+	function readRegAddress( index : Int, ?loc : CodeGraph.LocalAccess ) : VarAddress {
 		var r = module.getFunctionRegs(funIndex)[index];
 		if( r == null )
 			return ANone;
 		if( !module.getGraph(funIndex).isRegisterWritten(index, codePos) )
 			return AUndef(r.t);
 		if( jit.hlVersion >= 2 ) {
-			var vars = jit.getFunctionVars(funIndex);
+			if( loc == null )
+				return AUndef(r.t);
+			var recs = getVarRecords(funIndex);
 			var funPos = nativeCodePos - jit.getNativeCodePos(jit.getFunctionPos(funIndex));
-			//trace("R"+index+"@"+StringTools.hex(module.code.functions[funIndex].findex)+":"+StringTools.hex(codePos)+"("+StringTools.hex(funPos)+")");
-			var count = vars.length >> 4;
-			for( i in 0...count ) {
-				var p = (count - i - 1) << 4;
-				var rid = vars.getInt32(p);
-				if( rid == index ) {
-					var start = vars.getInt32(p + 4);
-					var end = vars.getInt32(p + 8);
-					//trace('[$start,$end]');
-					if( funPos >= start && funPos < end ) {
-						var reg = vars.getInt32(p + 12);
-						if( getRegOverwritePos(vars, count, index, reg, start, funPos) >= 0 )
-							return AOverwritten(r.t);
-						return switch( decodeNativeReg(reg, r.t) ) {
-						case ANative(nreg, t): readNativeRegAddress(nreg, t);
-						case a: a;
-						}
-					}
+			var i = recs.length;
+			while( i-- > 0 ) {
+				var rec = recs[i];
+				if( rec.id != loc.vid )
+					continue;
+				if( funPos < rec.start || funPos >= rec.end )
+					continue;
+				if( getRegOverwritePos(recs, i, funPos) >= 0 )
+					return AOverwritten(r.t);
+				return switch( decodeNativeReg(rec.reg, r.t) ) {
+				case ANative(nreg, t): readNativeRegAddress(nreg, t);
+				case a: a;
 				}
 			}
 			return AUndef(r.t);
 		}
 		return AAddr(ebp.offset(r.offset), r.t);
-	}
-
-	function readReg(index) {
-		return fetchAddr(readRegAddress(index));
 	}
 
 	static var CPU_NAMES = ["rax","rcx","rdx","rbx","rsp","rbp","rsi","rdi","r8","r9","r10","r11","r12","r13","r14","r15"];
@@ -1200,6 +1215,22 @@ class Eval {
 		default:
 			"<undefined>";
 		}
+	}
+
+	function varIdStr( f : format.hl.Data.HLFunction, id : Int ) {
+		var nargs = switch( f.t ) { case HFun(ft): ft.args.length; default: 0; };
+		var names = [];
+		if( f.assigns != null ) {
+			if( id < nargs ) {
+				var args = [for( a in f.assigns ) if( a.position == -1 ) a.varName];
+				var index = id - (nargs - args.length);
+				if( index >= 0 && index < args.length ) names.push(module.code.strings[args[index]]);
+			} else
+				for( a in f.assigns )
+					if( a.position == id - nargs ) names.push(module.code.strings[a.varName]);
+		}
+		var name = names.length == 0 ? "?" : names.join("|");
+		return id < nargs ? 'arg$id "$name"' : '"$name" @op ${id - nargs}';
 	}
 
 	public function getContextStr() {
@@ -1236,7 +1267,7 @@ class Eval {
 		return out;
 	}
 
-	public function getRegs() : Array<String> {
+	public function getDebugRegs() : Array<String> {
 		var out = [];
 		var g = module.getGraph(funIndex);
 		var names = @:privateAccess g.getArgsRaw().concat(g.getLocalsRaw(codePos));
@@ -1256,22 +1287,17 @@ class Eval {
 
 	public function getNatRegs() : Array<String> {
 		var out = [];
-		var vars = jit.getFunctionVars(funIndex);
-		if( vars == null || vars.length == 0 ) {
+		var recs = getVarRecords(funIndex);
+		if( recs.length == 0 ) {
 			out.push("<empty>");
 			return out;
 		}
-		var count = vars.length >> 4;
-		for( i in 0...count ) {
-			var p = i << 4;
-			var rid = vars.getInt32(p);
-			if( rid < 0 ) continue;
-			var start = vars.getInt32(p + 4);
-			var end = vars.getInt32(p + 8);
-			var reg = vars.getInt32(p + 12);
-			var over = getRegOverwritePos(vars, count, rid, reg, start, end - 1);
+		var f = module.code.functions[funIndex];
+		for( i in 0...recs.length ) {
+			var rec = recs[i];
+			var over = getRegOverwritePos(recs, i, rec.end - 1);
 			var overStr = over < 0 ? "" : ' overwritten @+0x${StringTools.hex(over)}';
-			out.push('R$rid [+0x${StringTools.hex(start)},+0x${StringTools.hex(end)}) = ${nativeLocStr(reg)}$overStr');
+			out.push('${varIdStr(f, rec.id)} [+0x${StringTools.hex(rec.start)},+0x${StringTools.hex(rec.end)}) = ${nativeLocStr(rec.reg)}$overStr');
 		}
 		var saved = getSavedRegs(funIndex);
 		if( saved.keys().hasNext() ) {
@@ -1294,6 +1320,9 @@ class Eval {
 			VFloat(haxe.io.FPHelper.i64ToDouble(p.i64.low,p.i64.high));
 		case HBool:
 			VBool(p.toInt() & 0xFF != 0);
+		case HGUID:
+			var i64 = haxe.Int64.make(p.i64.high, p.i64.low);
+			VGuid(i64, getGuidName(i64));
 		default:
 			return valueCast(p, t);
 		};

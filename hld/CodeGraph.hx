@@ -13,7 +13,7 @@ private enum Control {
 	CCall( fidx : Int );
 }
 
-typedef LocalAccess = { rid : Int, ?index : Int, ?container : format.hl.Data.EnumPrototype, t : format.hl.Data.HLType };
+typedef LocalAccess = { rid : Int, vid : Int, ?index : Int, ?container : format.hl.Data.EnumPrototype, t : format.hl.Data.HLType };
 
 class CodeBlock {
 
@@ -221,7 +221,7 @@ class CodeGraph {
 			for( k in 0...a.vars.length )
 				if( a.vars[k] == name ) {
 					if( !a.hasIndex )
-						return { rid : i, t : fun.regs[i] };
+						return { rid : i, vid : i, t : fun.regs[i] };
 					var en = null;
 					var t = switch( fun.regs[i] ) {
 					case HEnum(e):
@@ -230,7 +230,7 @@ class CodeGraph {
 					default:
 						throw "assert";
 					};
-					return { rid : i, index : k, container : en, t : t };
+					return { rid : i, vid : i, index : k, container : en, t : t };
 				}
 		}
 		return null;
@@ -251,7 +251,7 @@ class CodeGraph {
 			if( last >= 0 ) {
 				var rid = -1;
 				opFx(fun.ops[last], function(_) {}, function(w) rid = w);
-				return b.visitResult = { rid : rid, t : fun.regs[rid] };
+				return b.visitResult = { rid : rid, vid : nargs + last, t : fun.regs[rid] };
 			}
 		}
 		var found : LocalAccess = null;

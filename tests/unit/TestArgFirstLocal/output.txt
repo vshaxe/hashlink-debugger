@@ -1,0 +1,12 @@
+> b Test.hx:12
+Breakpoint set line 12
+> r
+Thread paused Test.hx:12 (Test::run)
+> p x
+12 : Int
+> p y
+13 : Int
+> p this
+Test : Test
+  classvar = 5 : Int
+> q
