@@ -1,0 +1,15 @@
+> b Test.hx:13
+Breakpoint set line 13
+> r
+Thread paused Test.hx:13 ($Test::main)
+> p a
+10 : Int
+> p b
+20 : Int
+> p c
+30 : Int
+> p d
+40 : Int
+> p e
+50 : Int
+> q

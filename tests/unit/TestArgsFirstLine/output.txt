@@ -1,0 +1,11 @@
+> b Test.hx:7
+Breakpoint set line 7
+> r
+Thread paused Test.hx:7 ($Test::setField)
+> p o
+"obj" : String
+> p field
+"x" : String
+> p value
+12 : Int
+> q

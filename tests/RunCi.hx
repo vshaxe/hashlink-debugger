@@ -24,12 +24,33 @@ class RunCi {
 			buildDebugger(basePath, debuggerHL, versionFlags);
 		var errorCount = 0;
 
-		var tests = sys.FileSystem.readDirectory(basePath + "unit");
+		for( dir in ["unit", "v2"] ) {
+			var dirFlags = versionFlags;
+			if( dir == "v2" ) {
+				if( hlVer != null && compareVersion(hlVer, "2.0.0") < 0 ) {
+					log('[SKIP] $dir tests (require hl 2)');
+					continue;
+				}
+				dirFlags = ["-D", "hl-ver=2.0.0"];
+			}
+			errorCount += runTests(basePath, dir, dirFlags, hlBin, debuggerHL);
+		}
+
+		changeDirectory(basePath);
+		log('[INFO] all tests end, error count: $errorCount');
+		if( errorCount > 0 ) {
+			Sys.exit(1);
+		}
+	}
+
+	static function runTests( basePath : String, dir : String, dirFlags : Array<String>, hlBin : String, debuggerHL : String ) {
+		var errorCount = 0;
+		var tests = sys.FileSystem.readDirectory(basePath + dir);
 		for( test in tests ) {
-			var fullPath = sys.FileSystem.absolutePath(basePath + "unit/" + test);
+			var fullPath = sys.FileSystem.absolutePath(basePath + dir + "/" + test);
 			log('[INFO] $test begin');
 			changeDirectory(fullPath);
-			var compileargs = ["--main", "Test", "-hl", "test.hl"].concat(versionFlags);
+			var compileargs = ["--main", "Test", "-hl", "test.hl"].concat(dirFlags);
 			try {
 				var flags = sys.io.File.getContent(fullPath + "/compile.txt").split(" ");
 				compileargs = compileargs.concat(flags);
@@ -64,12 +85,7 @@ class RunCi {
 				log('[SUCCESS] $test');
 			}
 		}
-
-		changeDirectory(basePath);
-		log('[INFO] all tests end, error count: $errorCount');
-		if( errorCount > 0 ) {
-			Sys.exit(1);
-		}
+		return errorCount;
 	}
 
 	// reuse debugger.hxml so libs and class paths stay in sync, but retarget the output
@@ -89,6 +105,16 @@ class RunCi {
 			Sys.exit(1);
 		}
 		changeDirectory(basePath);
+	}
+
+	static function compareVersion( v1 : String, v2 : String ) {
+		var p1 = v1.split(".");
+		var p2 = v2.split(".");
+		for( i in 0...3 ) {
+			var d = (Std.parseInt(p1[i]) ?? 0) - (Std.parseInt(p2[i]) ?? 0);
+			if( d != 0 ) return d;
+		}
+		return 0;
 	}
 
 	// the debugger prints CRLF on windows, and output.txt files have mixed line endings

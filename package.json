@@ -62,7 +62,12 @@
 					"type": "integer",
 					"default": 6112
 				},
-				"hldebug.connectionTimeout": {
+				"hldebug.optimizeDebug": {
+				"markdownDescription": "Let the JIT fully optimize the code while debugging. Faster, but variables whose register has been reused show as `<overwritten>`. Applies to sessions started after the change.",
+				"type": "boolean",
+				"default": false
+			},
+			"hldebug.connectionTimeout": {
 					"markdownDescription": "Default connection timeout in second, when connecting the debugger to HL virtual machine.",
 					"type": "number",
 					"default": 2
@@ -131,7 +136,12 @@
 							"allowEval": {
 								"type": "boolean",
 								"description": "Automatically call the getter function for non-physical fields."
-							}
+							},
+						"optimizeDebug": {
+							"type": "boolean",
+							"description": "Let the JIT fully optimize the code while debugging. Faster, but variables whose register has been reused show as <overwritten>. Overrides the hldebug.optimizeDebug setting.",
+							"default": false
+						}
 						}
 					},
 					"attach": {

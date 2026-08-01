@@ -25,6 +25,7 @@ class Main {
 	var dbg : hld.Debugger;
 	var stdin = Sys.stdin();
 	var isCi = false;
+	var optimizeDebug = false;
 
 	#if nodejs
 	var process : js.node.child_process.ChildProcess;
@@ -84,6 +85,8 @@ class Main {
 				}
 			case "--ci":
 				isCi = true;
+			case "--debug-opt":
+				optimizeDebug = true;
 			case "--debug":
 				Debugger.DEBUG = true;
 			default:
@@ -92,7 +95,7 @@ class Main {
 		}
 		file = args.shift();
 		if( file == null ) {
-			Sys.println("hldebug [-port <port>] [--cwd <path>] <file.hl> [<commands>]");
+			Sys.println("hldebug [-port <port>] [--cwd <path>] [--debug-opt] <file.hl> [<commands>]");
 			Sys.exit(1);
 		}
 		if( !sys.FileSystem.exists(file) )
@@ -109,7 +112,9 @@ class Main {
 		}
 
 		if( pid == null ) {
-			var args = ["--debug", "" + debugPort, "--debug-wait", file].concat(hlArgs);
+			var args = ["--debug", "" + debugPort, "--debug-wait"];
+			if( optimizeDebug ) args.push("--debug-opt");
+			args = args.concat([file]).concat(hlArgs);
 			#if nodejs
 			process = js.node.ChildProcess.spawn(cmd, args);
 			process.stdout.on("data", function(data:String) Sys.print(data));

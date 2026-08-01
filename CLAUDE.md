@@ -4,10 +4,15 @@ Debugger for the [HashLink](https://hashlink.haxe.org) VM.
 
 ## Architecture
 
-- The debugger gets its data from the HashLink VM by **connecting to a socket**. The VM side lives in the
-  HashLink sources, in `debugger.c`.
+- The debugger gets its data from the HashLink VM by **connecting to a socket**; the other end of
+  that socket lives in the HashLink sources.
 - Debug info (line numbers, variable names, register mapping) is embedded in the `.hl` file
   **by the Haxe compiler**.
+
+VM and compiler internals are deliberately **not** documented here: they move independently of this
+repo, and a stale description is worse than none. Where the debugger depends on something the VM
+produces, this file names the debugger-side code that decodes it — read the current layout there, and
+check the VM sources when that is not enough.
 
 ## HL V1 / V2 compatibility
 
@@ -15,42 +20,64 @@ Both VM versions must keep working — `jit.hlVersion` tells them apart (`>= 2` 
 
 - **V1 has no native CPU registers**: every variable lives in a stack slot at a fixed EBP offset, so
   `readRegAddress` returns an `AAddr` directly and none of the native-register logic applies.
-- **V2** places variables in CPU registers over code ranges, described by the per-function `vars`
-  blob sent by the VM (`jit.getFunctionVars`, `null` on V1 — always guard for it). Everything that
-  reads that blob (overwrite detection, saved registers, parent-frame resolution) must stay inside
-  the `hlVersion >= 2` branch or degrade to a no-op when `vars` is `null`.
+- **V2** places variables in CPU registers over code ranges, described by a per-function `vars` blob
+  the VM sends (`jit.getFunctionVars`, `null` on V1 — always guard for it). Everything that reads
+  that blob (overwrite detection, saved registers, parent-frame resolution) must stay inside the
+  `hlVersion >= 2` branch or degrade to a no-op when `vars` is `null`.
 
-The `vars` blob is a flat array of 16-byte records `(id, start, end, reg)`, emitted by
-`hl_regs_flush` in HashLink's `jit_regs.c`:
+The blob is a VM-side binary format. `Eval.getVarRecords` is the **only** place that decodes it, into
+`Eval.VarRecord`; read the layout there rather than assuming one, and keep every other caller working
+off `VarRecord` so a format change stays a one-line fix. `CodeGraph.LocalAccess.vid` gives the id to
+look up for a variable at a code position, already encoded, so resolving is a plain
+`rec.id == loc.vid`.
 
-- `0 <= id < nargs` — the **argument** `id` lives in native location `reg` over the code range
-  `[start, end)`. Every argument is tracked, including `this`, for which the Haxe compiler emits no
-  assign entry — so an argument cannot be identified by an assign, only by its index.
-- `id >= nargs` — same, for the value of a *variable* (not of a virtual register), produced by the
-  assign at **op position `id - nargs`**. Op positions are shifted above the arguments because the
-  two namespaces would otherwise overlap.
-- `id < 0` — a persistent register the prolog pushes: `reg` is saved at `start` (an offset relative
-  to that function's EBP). Used to read a parent frame's registers off its callees' stacks. Those
-  records come first in the blob.
+Arguments — including `this` — are identified by **index**, never by an assign entry, because the
+compiler emits no assign for `this`. `tests/unit/TestArgFirstLocal` covers the case that breaks when
+that is confused: a local assigned at op 0 being consumed as an argument and becoming unresolvable.
 
-`Eval.getVarRecords` parses the blob into that form; `CodeGraph.LocalAccess.vid` gives the id to look
-up for a variable at a code position, already encoded, so resolving is a plain `rec.id == loc.vid`.
+### Variable scopes and overwritten registers (bytecode v6)
 
-The JIT tags argument values in `hl_emit_function`'s prolog, where `ctx->in_args` tells
-`emit_store_reg` not to match them against an assign — a local assigned at op 0 would otherwise be
-consumed by the `this` store and become unresolvable (`tests/unit/TestArgFirstLocal` covers it).
+Without help, the JIT frees a variable's register at its **last read**, so a variable that is still
+in scope but no longer used reads as `<overwritten>` — or worse, as whatever value took the register
+over. Bytecode **version 6** fixes this: the compiler records a *scope end* per assign, and the VM
+keeps the register reserved for as long as the variable is in scope.
+
+What that means for this repo:
+
+- v6 is only emitted when compiling with `-D hl-ver=2.0.0` or higher, so tests that rely on it belong
+  under [tests/v2/](tests/v2/), not [tests/unit/](tests/unit/).
+- Scope extension only applies under `--debug <port>` **without** `--debug-opt`. `--debug-opt` gives
+  back full JIT speed while debugging, at the cost of `<overwritten>` variables — so a test asserting
+  a variable stays readable past its last read must not run with it.
+- Older bytecode carries no scope info and degrades to the previous behaviour, which is why
+  `<overwritten>` must stay a supported outcome rather than an error.
+
+Known gap: the VM reports a **single** location per value, so a variable that moved between a
+register and a stack slot during its lifetime is reported at its final location over its whole range,
+and reads wrong before the move.
 
 ### Local VM builds
 
-| Version | Sources                  | `hl.exe`                                   |
-| ------- | ------------------------ | ------------------------------------------ |
-| V2      | `D:\Projects\hashlink`    | `D:\Projects\hashlink\x64\Release\hl.exe` (the one on PATH) |
-| V1 1.16 | `D:\Projects\hashlink_v1` | `D:\Projects\hashlink_v1\x64\Release\hl.exe` |
+Testing both VM versions needs a separate HashLink checkout per version — one on the V2 branch, one
+on a 1.16 tag. Rebuild each from its own checkout root with
 
-Rebuild the VM with
-`MSBuild hl.vcxproj /p:Configuration=Release /p:Platform=x64` — the JIT (`jit_emit.c`, `jit_regs.c`)
-lives in `hl.exe`, not in `libhl.dll`. The optional lib projects in `hl.sln` fail on a missing v142
-toolset; that is unrelated, build `hl.vcxproj` alone.
+```sh
+MSBuild hl.vcxproj    /p:Configuration=Release /p:Platform=x64
+MSBuild libhl.vcxproj /p:Configuration=Release /p:Platform=x64
+```
+
+Both matter, and for different reasons — **`hl.exe` holds the JIT** (register allocation, and the
+`vars` blob), while **`libhl.dll` holds the debug API** the debugger calls to read the debuggee's
+memory and CPU registers. The optional lib projects in `hl.sln` fail on a missing v142 toolset; that
+is unrelated, build the two projects above on their own.
+
+Building `libhl.vcxproj` drops `libhl.dll` into `x64\Release` next to `hl.exe`, where it wins the DLL
+search. Skip it and `hl.exe` silently picks up whatever `libhl.dll` sits on `PATH` — often an
+unrelated runtime copy that no VM build refreshes. A mismatched one breaks V2 variable reads
+wholesale, in a way that looks like a debugger bug: register reads come back 0, so variables in a
+native register read as `0` or garbage while stack-slot variables still read fine. **Suspect this
+first when most V2 tests fail at once with zeroed values** — check it by comparing the two files'
+build times before debugging anything in this repo.
 
 Running the suite against V1 needs `-D hl-ver=1.16.0` on **both** the debugger and the test programs
 — the Haxe 5 std lib otherwise calls natives that VM does not have and thread init crashes at
@@ -58,6 +85,17 @@ startup. `RunCi` takes care of that, see [Building / running](#building--running
 
 When changing anything around variable resolution, run the unit tests against **both** a V1 and a V2
 `hl` build.
+
+### Local Haxe compiler build
+
+Fixing a "bad debug info" bug sometimes means rebuilding the compiler from a Haxe checkout. Two
+traps, on Windows:
+
+- The OCaml toolchain only resolves from the **cygwin shell embedded in the checkout**
+  (`opam/repo/.cygwin/root/bin/bash.exe`), with the opam env sourced for that switch. Running `dune`
+  from Git Bash instead fails in `flexlink` with `cygpath: error converting "/usr/lib/gcc/..."`.
+- The dev profile turns warnings into errors, so build with `dune build --profile release
+  src/haxe.exe`, then copy `_build/default/src/haxe.exe` over the `haxe.exe` on `PATH`.
 
 ## Building / running
 
@@ -67,14 +105,32 @@ When changing anything around variable resolution, run the unit tests against **
   [tests/unit/](tests/unit/) containing `Test.hx`, optional `compile.txt` (extra haxe flags),
   `input.txt` (debugger commands) and `output.txt` (expected output). `haxe RunCi.hxml` uses the
   `hl` on PATH and the prebuilt `debugger/debug.hl`.
+- Tests under [tests/v2/](tests/v2/) have the same layout but need a HL 2 VM: they are compiled with
+  `-D hl-ver=2.0.0` (so, v6 bytecode) and the whole directory is skipped when targeting an older VM.
 - Unit tests against another VM: `hl RunCi.hl --hl-ver <version> --hl <path to that hl>`
   (`haxe RunCi.hxml` first, to rebuild `RunCi.hl`). `--hl-ver` adds `-D hl-ver=` to every test
   compile and rebuilds the debugger as `debugger/debug-<version>.hl` from `debugger.hxml`, so the
-  V2 `debug.hl` is left alone. For the V1 build listed above:
+  V2 `debug.hl` is left alone. Against a V1 build:
 
   ```sh
-  hl RunCi.hl --hl-ver 1.16.0 --hl D:/Projects/hashlink_v1/x64/Release/hl.exe
+  hl RunCi.hl --hl-ver 1.16.0 --hl <v1-checkout>/x64/Release/hl.exe
   ```
+
+### Installing the debugger after a change
+
+Once a debugger change is done and tested, build it and **overwrite the installed extension** so the
+machine actually runs it (`make build` needs `-lib vscode -lib vshaxe -lib vscode-debugadapter`):
+
+```sh
+haxe -cp src -lib vscode -lib vshaxe -lib vscode-debugadapter -D js-es=6 -js extension.js Extension
+haxe build.hxml            # -> adapter.js
+haxe debugger.hxml         # -> debugger/debug.hl, from the debugger/ directory
+cp adapter.js extension.js bindings.js package.json \
+   "<vscode-extensions-dir>/haxefoundation.haxe-hl-<version>/"
+```
+
+Copy `package.json` too whenever launch options or settings changed, otherwise VSCode will not offer
+them. Reload the VSCode window to pick the new files up.
 
 ## Debugging a "variable displays wrong" report
 
@@ -89,6 +145,13 @@ Workflow:
 3. Add a reproducing unit test under [tests/unit/](tests/unit/) and run it.
 4. Once the issue is reproducible, fix it in the debugger, the HashLink VM, or the Haxe compiler —
    depending on which layer is wrong.
+
+**A test must always be standalone.** Never breakpoint into a Haxe std file (`Reflect.hx`,
+`Array.hx`, …): its line numbers move with every compiler version, so the test would break for
+reasons unrelated to the debugger. When a report points at a std function, reproduce the *shape* of
+that function — its arity, argument types, and what the first statements do — in the test's own
+`Test.hx`, and breakpoint there. Prefer argument and variable types whose expected output is
+unambiguous, so `output.txt` states plainly what a correct read must return.
 
 ### Locating the faulty layer
 

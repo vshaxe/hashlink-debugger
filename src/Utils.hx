@@ -9,7 +9,8 @@ typedef Arguments = {
 	?port:Int,
 	?hotReload:Bool,
 	?profileSamples:Int,
-	?allowEval:Bool
+	?allowEval:Bool,
+	?optimizeDebug:Bool
 }
 
 typedef Container = {

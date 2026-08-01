@@ -248,6 +248,9 @@ class HLAdapter extends DebugSession {
 		if( args.hotReload )
 			hlArgs.unshift("--hot-reload");
 
+		if( args.optimizeDebug )
+			hlArgs.unshift("--debug-opt");
+
 		if( args.profileSamples != null ) {
 			hlArgs.unshift(""+args.profileSamples);
 			hlArgs.unshift("--profile");

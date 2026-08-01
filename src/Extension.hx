@@ -19,6 +19,9 @@ class Extension {
 		if (config.type == null) {
 			return null; // show launch.json
 		}
+		if (config.optimizeDebug == null) {
+			config.optimizeDebug = Vscode.workspace.getConfiguration("hldebug").get("optimizeDebug", false);
+		}
 		return new Promise(function(resolve:DebugConfiguration->Void, reject) {
 			var vshaxe:Vshaxe = Vscode.extensions.getExtension("nadako.vshaxe").exports;
 			vshaxe.getActiveConfiguration().then(function(haxeConfig) {
