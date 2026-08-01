@@ -1,0 +1,8 @@
+--ci
+test.hl
+"b Test.hx:31"
+r
+"info variables"
+"p ray"
+"p ray.pos"
+q

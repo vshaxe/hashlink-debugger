@@ -78,7 +78,9 @@ still reaches the current block once the record's block is removed. `Eval.getRec
 record's native start back to that block by comparing it against each block's first op address
 (`jit.getCodePos`), biased by one byte because the VM starts a merged record one byte early.
 `tests/v2/TestBranchAssignMerge` is the guard: its inner join does not dominate the `else if` that
-follows, so the widened inner record must be rejected there.
+follows, so the widened inner record must be rejected there. It has to stay under `tests/v2/` even
+though it passes on older bytecode too — no v6 means no widening, so nothing is ever rejected and the
+test passes just as well with the dominance check deleted.
 
 Both halves are load-bearing and neither works alone. Widening without the dominance test reads the
 wrong branch's register; the dominance test without widening leaves nothing covering the position,
@@ -98,7 +100,11 @@ keeps the register reserved for as long as the variable is in scope.
 What that means for this repo:
 
 - v6 is only emitted when compiling with `-D hl-ver=2.0.0` or higher, so tests that rely on it belong
-  under [tests/v2/](tests/v2/), not [tests/unit/](tests/unit/).
+  under [tests/v2/](tests/v2/), not [tests/unit/](tests/unit/). A test lands there **by accident** far
+  more easily than it should: any breakpoint placed past a value's last read reads `<overwritten>`
+  without v6, so a test about something else entirely — a name, a type, a display — ends up needing
+  v6. Keep every value the test prints live past the stop (read it again on a later line) and the test
+  belongs in `tests/unit/`, where it runs against both VM versions instead of one.
 - Scope extension only applies under `--debug <port>` **without** `--debug-opt`. `--debug-opt` gives
   back full JIT speed while debugging, at the cost of `<overwritten>` variables — so a test asserting
   a variable stays readable past its last read must not run with it.

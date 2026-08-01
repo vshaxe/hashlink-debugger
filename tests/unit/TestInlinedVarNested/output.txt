@@ -1,0 +1,17 @@
+> b Test.hx:31
+Breakpoint set line 31
+> r
+Thread paused Test.hx:31 ($Test::main)
+> info variables
+ ray = { pos : { x : 1, y : 2, z : 3 }, dir : { x : 4, y : 5, z : 6 }, len : 7 } : { pos : { x : Float, y : Float, z : Float }, dir : { x : Float, y : Float, z : Float }, len : Int }
+> p ray
+{ pos : { x : 1, y : 2, z : 3 }, dir : { x : 4, y : 5, z : 6 }, len : 7 } : { pos : { x : Float, y : Float, z : Float }, dir : { x : Float, y : Float, z : Float }, len : Int }
+  pos = { x : 1, y : 2, z : 3 } : { x : Float, y : Float, z : Float }
+  dir = { x : 4, y : 5, z : 6 } : { x : Float, y : Float, z : Float }
+  len = 7 : Int
+> p ray.pos
+{ x : 1, y : 2, z : 3 } : { x : Float, y : Float, z : Float }
+  x = 1 : Float
+  y = 2 : Float
+  z = 3 : Float
+> q

@@ -27,6 +27,7 @@ class Test {
 		var len = potentialMove.length();
 		var scaled = potentialMove.scaled(2.);
 		total += len + scaled.x;
+		total += potentialMove.x + potentialMove.y + potentialMove.z + scaled.y + scaled.z;
 		trace(total);
 	}
 }

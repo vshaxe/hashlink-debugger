@@ -31,6 +31,7 @@ class Test {
 		var viaArg = alias(potentialMove);
 		var viaThis = potentialMove.sum();
 		usef(viaArg + viaThis);
+		usef(potentialMove.x + potentialMove.y + potentialMove.z);
 		trace(total);
 	}
 }
