@@ -4,9 +4,13 @@ Debugger for the [HashLink](https://hashlink.haxe.org) VM.
 
 ## Code style
 
-**Never add comments.** This holds for every file you touch — this repo, the tests, and the HashLink
-and Haxe sources. Leave the existing ones alone, and put whatever a change needs explained in this
-file instead.
+**Do not add comments**, unless one is genuinely necessary. This holds for every file you touch —
+this repo, the tests, and the HashLink and Haxe sources. Put whatever a change needs explained in
+this file instead.
+
+Existing comments are **not** off limits: edit, adapt or delete them as the code around them changes.
+A comment left describing behaviour that no longer exists is worse than no comment, so a change that
+invalidates one must update it rather than work around it.
 
 ## Architecture
 
@@ -57,6 +61,28 @@ breakpoint, so the debugger reads the slot of the branch that may not have run �
 shows a stale value that "fixes itself" after one step, once the position reaches the merged record.
 `tests/v2/TestBranchMergeStart` covers it; the fix for such an off-by-one belongs in the VM, the
 debugger cannot tell a late start from a genuinely later one.
+
+A merged record's **end** must cover the op of its last read, since a breakpoint on the consuming
+line stops *on* that op — an end computed from the reading op's own start leaves the record covering
+everything but the one position that needs it. `tests/v2/TestMergedScopeEnd` covers it.
+
+Past that last read the value is still in scope, so the VM widens a merged record's end to the
+**scope end** rather than stopping at the last read. That alone is wrong, and the reason "starts last" is not the whole rule: a record
+is a flat address range, while a merged value is only valid on the paths that reach its join. Between
+an inner and an outer join sits the **other** predecessor's code, at a higher address, so a widened
+inner record would win there and name a register that path never wrote.
+
+So a record is only a candidate if the block its start falls in **dominates** the current position —
+`CodeGraph.dominates`, answered on the debugger's own bytecode CFG by asking whether the entry block
+still reaches the current block once the record's block is removed. `Eval.getRecordBlock` maps a
+record's native start back to that block by comparing it against each block's first op address
+(`jit.getCodePos`), biased by one byte because the VM starts a merged record one byte early.
+`tests/v2/TestBranchAssignMerge` is the guard: its inner join does not dominate the `else if` that
+follows, so the widened inner record must be rejected there.
+
+Both halves are load-bearing and neither works alone. Widening without the dominance test reads the
+wrong branch's register; the dominance test without widening leaves nothing covering the position,
+and the read falls back to the assign from before the branch — a stale value, not an error.
 
 Arguments — including `this` — are identified by **index**, never by an assign entry, because the
 compiler emits no assign for `this`. `tests/unit/TestArgFirstLocal` covers the case that breaks when

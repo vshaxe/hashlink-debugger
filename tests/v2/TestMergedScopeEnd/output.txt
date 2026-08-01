@@ -1,0 +1,21 @@
+> b Test.hx:7
+Breakpoint set line 7
+> b Test.hx:14
+Breakpoint set line 14
+> b Test.hx:16
+Breakpoint set line 16
+> r
+Thread paused Test.hx:7 ($Test::main)
+> p thenOnly
+10.5 : Float
+> c
+Thread paused Test.hx:14 ($Test::main)
+> p bothArms
+12 : Float
+> c
+Thread paused Test.hx:16 ($Test::main)
+> p thenOnly
+10.5 : Float
+> p bothArms
+12 : Float
+> q

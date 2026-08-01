@@ -1,0 +1,13 @@
+--ci
+test.hl
+"b Test.hx:7"
+"b Test.hx:14"
+"b Test.hx:16"
+r
+"p thenOnly"
+c
+"p bothArms"
+c
+"p thenOnly"
+"p bothArms"
+q

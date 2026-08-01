@@ -49,6 +49,8 @@ class CodeGraph {
 	var blockPos : Map<Int,CodeBlock>;
 	var allBlocks : Map<Int,Bool>;
 	var assigns : Map<Int, Array<String>>;
+	var domCache : Map<Int, Map<Int,Bool>>;
+	var blockStarts : Array<Int>;
 	var args : Array<{ hasIndex : Bool, vars : Array<String> }>;
 	var nargs : Int;
 	var currentTag : Int = 0;
@@ -61,6 +63,7 @@ class CodeGraph {
 		this.fun = f;
 		blockPos = new Map();
 		allBlocks = new Map();
+		domCache = new Map();
 		nargs = switch( fun.t ) {
 		case HFun(f): f.args.length;
 		default: throw "assert";
@@ -149,6 +152,44 @@ class CodeGraph {
 		if( pos == b.end )
 			return b.next.map(bn -> bn.start);
 		return b.trap.concat([pos+1]);
+	}
+
+	public function getBlockStarts() : Array<Int> {
+		if( blockStarts == null ) {
+			blockStarts = [for( p in blockPos.keys() ) p];
+			blockStarts.sort(Reflect.compare);
+		}
+		return blockStarts;
+	}
+
+	function reachableWithout( skip : CodeBlock ) : Map<Int,Bool> {
+		var m = domCache.get(skip.start);
+		if( m != null )
+			return m;
+		m = new Map();
+		domCache.set(skip.start, m);
+		var entry = blockPos.get(0);
+		if( entry == null || entry == skip )
+			return m;
+		var todo = [entry];
+		m.set(entry.start, true);
+		while( todo.length > 0 ) {
+			var b = todo.pop();
+			for( n in b.next ) {
+				if( n == skip || m.exists(n.start) ) continue;
+				m.set(n.start, true);
+				todo.push(n);
+			}
+		}
+		return m;
+	}
+
+	public function dominates( defPos : Int, pos : Int ) : Bool {
+		var bd = getBlock(defPos);
+		var bp = getBlock(pos);
+		if( bd == bp )
+			return defPos <= pos;
+		return !reachableWithout(bd).exists(bp.start);
 	}
 
 	public function isRegisterWritten( rid : Int, pos : Int ) {

@@ -55,6 +55,7 @@ class Eval {
 	var frameChildren : Array<Debugger.StackRawInfo>;
 	var savedRegs : Map<Int, Map<Int,Int>>;
 	var varRecords : Map<Int, Array<VarRecord>>;
+	var opOffsets : Map<Int, Array<Int>>;
 	var guidNames : Int64Map<String>;
 
 	public var maxArrLength : Int = 10;
@@ -1147,6 +1148,28 @@ class Eval {
 		}
 	}
 
+	function getOpOffsets( fidx : Int ) : Array<Int> {
+		if( opOffsets == null ) opOffsets = new Map();
+		var offs = opOffsets.get(fidx);
+		if( offs != null )
+			return offs;
+		var start = jit.getFunctionPos(fidx);
+		offs = [for( i in 0...module.code.functions[fidx].ops.length ) jit.getCodePos(fidx, i).sub(start)];
+		opOffsets.set(fidx, offs);
+		return offs;
+	}
+
+	function getRecordBlock( fidx : Int, start : Int ) : Int {
+		var offs = getOpOffsets(fidx);
+		var starts = module.getGraph(fidx).getBlockStarts();
+		var min = 0, max = starts.length;
+		while( min < max ) {
+			var mid = (min + max) >> 1;
+			if( offs[starts[mid]] <= start + 1 ) min = mid + 1 else max = mid;
+		}
+		return starts[min == 0 ? 0 : min - 1];
+	}
+
 	function getRegOverwritePos( recs : Array<VarRecord>, index : Int, until : Int ) : Int {
 		var rec = recs[index];
 		var nreg = nativeRegIndex(rec.reg);
@@ -1174,13 +1197,17 @@ class Eval {
 			var recs = getVarRecords(funIndex);
 			var funPos = nativeCodePos - jit.getNativeCodePos(jit.getFunctionPos(funIndex));
 			// an id has one record per assign and merge, all valid until the end of the scope :
-			// the live one is the one that starts last before us
+			// the live one is the one that starts last before us, among those whose block
+			// dominates us - a merge only holds the value on the paths reaching its join
+			var graph = module.getGraph(funIndex);
 			var found = -1;
 			for( i in 0...recs.length ) {
 				var rec = recs[i];
 				if( rec.id != loc.vid )
 					continue;
 				if( funPos < rec.start || funPos >= rec.end )
+					continue;
+				if( !graph.dominates(getRecordBlock(funIndex, rec.start), codePos) )
 					continue;
 				if( found < 0 || rec.start > recs[found].start )
 					found = i;
