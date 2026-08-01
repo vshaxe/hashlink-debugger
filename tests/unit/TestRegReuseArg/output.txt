@@ -9,7 +9,7 @@ Thread paused Test.hx:18 (Test::foo)
 > p this
 Test : Test
 > p pt
-{ x : 10, y : 11 } : Dynamic
+{ x : 10, y : 11 } : { x : Int, y : Int }
   x = 10 : Int
   y = 11 : Int
 > r
@@ -17,13 +17,13 @@ Thread paused Test.hx:7
 > p functionvar
 15 : Int
 > p pt
-{ x : 12, y : 13 } : Dynamic
+{ x : 12, y : 13 } : { x : Int, y : Int }
   x = 12 : Int
   y = 13 : Int
 > r
 Thread paused Test.hx:12
 > p pt
-{ x : 14, y : 15 } : Dynamic
+{ x : 14, y : 15 } : { x : Int, y : Int }
   x = 14 : Int
   y = 15 : Int
 > q

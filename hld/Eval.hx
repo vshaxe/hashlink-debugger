@@ -938,8 +938,10 @@ class Eval {
 		return s;
 	}
 
-	public function typeStr( t : HLType ) {
+	public function typeStr( t : HLType, depth = 0 ) {
 		switch( t ) {
+		case HVirtual(fields) if( fields.length > 0 && depth < 3 ):
+			return "{ " + [for( f in fields ) f.name + " : " + typeStr(f.t, depth + 1)].join(", ") + " }";
 		case HDynObj, HVirtual(_):
 			return "{...}";
 		case HAbstract(name):
@@ -1757,8 +1759,21 @@ class Eval {
 		case AEvaled(v):
 			return v;
 		case AInlined(fields):
-			return { v : VInlined(fields), t : HDyn };
+			return { v : VInlined(fields), t : inlinedType(fields) };
 		}
+	}
+
+	function addrType( a : VarAddress ) : HLType {
+		return switch( a ) {
+		case ANone: HDyn;
+		case AUndef(t), AOverwritten(t), AAddr(_,t), AMethod(_,_,t), ANative(_,t): t;
+		case AEvaled(v): v.t;
+		case AInlined(fields): inlinedType(fields);
+		}
+	}
+
+	function inlinedType( fields : Array<InlinedField> ) : HLType {
+		return HVirtual([for( f in fields ) { name : f.name, t : addrType(f.addr) }]);
 	}
 
 	public function readFieldAddress( v : Value, name : String ) : VarAddress {
