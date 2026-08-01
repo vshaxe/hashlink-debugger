@@ -1,0 +1,25 @@
+> b Test.hx:58
+Breakpoint set line 58
+> r
+Thread paused Test.hx:58 ($Test::update)
+> p pos
+Vec : Vec
+  x = 10 : Float
+  y = 20 : Float
+  z = 30 : Float
+> p prevPos
+Vec : Vec
+  x = 10 : Float
+  y = 20 : Float
+  z = 30 : Float
+> p front
+Vec : Vec
+  x = 3 : Float
+  y = 6 : Float
+  z = 9 : Float
+> p up
+Vec : Vec
+  x = 4 : Float
+  y = 8 : Float
+  z = 12 : Float
+> q

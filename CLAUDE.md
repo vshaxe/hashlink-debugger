@@ -31,6 +31,19 @@ off `VarRecord` so a format change stays a one-line fix. `CodeGraph.LocalAccess.
 look up for a variable at a code position, already encoded, so resolving is a plain
 `rec.id == loc.vid`.
 
+An id does **not** map to a single record, and records do **not** partition the code range. Each
+assign of a variable is its own id, and all of them stay valid until the end of the variable's
+scope, so records for branches that never ran still cover the current position. Where branches
+merge, the VM emits one more record for the merged value and names it after the **first** assign it
+can come from — both sides must agree on that, so `lookupLocal` keeps the lowest `vid` when
+predecessors disagree, and the VM does the same when a phi inherits an id.
+
+Consequently `readRegAddress` must pick, among the records matching `loc.vid` and covering the
+position, the one that **starts last** — that is the merged value rather than a stale branch. Taking
+any other match reads a register holding an unrelated value, which surfaces as a variable showing a
+wrong object, `null`, or a memory read failure in the VSCode adapter.
+`tests/v2/TestBranchAssignMerge` covers it.
+
 Arguments — including `this` — are identified by **index**, never by an assign entry, because the
 compiler emits no assign for `this`. `tests/unit/TestArgFirstLocal` covers the case that breaks when
 that is confused: a local assigned at op 0 being consumed as an argument and becoming unresolvable.

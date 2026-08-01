@@ -1173,21 +1173,26 @@ class Eval {
 				return AUndef(r.t);
 			var recs = getVarRecords(funIndex);
 			var funPos = nativeCodePos - jit.getNativeCodePos(jit.getFunctionPos(funIndex));
-			var i = recs.length;
-			while( i-- > 0 ) {
+			// an id has one record per assign and merge, all valid until the end of the scope :
+			// the live one is the one that starts last before us
+			var found = -1;
+			for( i in 0...recs.length ) {
 				var rec = recs[i];
 				if( rec.id != loc.vid )
 					continue;
 				if( funPos < rec.start || funPos >= rec.end )
 					continue;
-				if( getRegOverwritePos(recs, i, funPos) >= 0 )
-					return AOverwritten(r.t);
-				return switch( decodeNativeReg(rec.reg, r.t) ) {
-				case ANative(nreg, t): readNativeRegAddress(nreg, t);
-				case a: a;
-				}
+				if( found < 0 || rec.start > recs[found].start )
+					found = i;
 			}
-			return AUndef(r.t);
+			if( found < 0 )
+				return AUndef(r.t);
+			if( getRegOverwritePos(recs, found, funPos) >= 0 )
+				return AOverwritten(r.t);
+			return switch( decodeNativeReg(recs[found].reg, r.t) ) {
+			case ANative(nreg, t): readNativeRegAddress(nreg, t);
+			case a: a;
+			}
 		}
 		return AAddr(ebp.offset(r.offset), r.t);
 	}

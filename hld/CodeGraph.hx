@@ -262,7 +262,9 @@ class CodeGraph {
 				// if not it's out of scope
 				if( found != null && (l == null || l.rid != found.rid) )
 					return b.visitResult = null;
-				found = l;
+				// the VM names a merged value after the first assign it can come from, do the same
+				if( found == null || l.vid < found.vid )
+					found = l;
 			}
 		return b.visitResult = found;
 	}
