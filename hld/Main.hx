@@ -347,11 +347,13 @@ class Main {
 			case 0:
 				clearBP();
 			case 1:
-				var file = args[1];
-				var line = Std.parseInt(file);
+				var parts = args[0].split(":");
+				var line = Std.parseInt(parts[parts.length - 1]);
+				if( line != null ) parts.pop();
+				var file = parts.join(":");
 				var count = 0;
 				for( b in breaks.copy() )
-					if( b.file == file || (line != null && b.line == line) ) {
+					if( (file == "" || b.file == file) && (line == null || b.line == line) ) {
 						dbg.removeBreakpoint(b.file, b.line);
 						breaks.remove(b);
 						count++;
