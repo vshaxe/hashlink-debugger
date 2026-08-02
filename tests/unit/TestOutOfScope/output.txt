@@ -1,0 +1,19 @@
+> b Test.hx:20
+Breakpoint set line 20
+> b Test.hx:32
+Breakpoint set line 32
+> r
+Thread paused Test.hx:20 ($Test::pick)
+> info variables
+ v = 1 : Int
+ total = 4 : Int
+> p total
+4 : Int
+> c
+Thread paused Test.hx:32 ($Test::shadow)
+> info variables
+ v = 1 : Int
+ id = 11 : Int
+> p id
+11 : Int
+> q

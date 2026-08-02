@@ -1,0 +1,11 @@
+--ci
+test.hl
+"b Test.hx:20"
+"b Test.hx:32"
+r
+"info variables"
+"p total"
+c
+"info variables"
+"p id"
+q

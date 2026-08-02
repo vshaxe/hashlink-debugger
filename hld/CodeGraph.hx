@@ -298,18 +298,34 @@ class CodeGraph {
 				return b.visitResult = { rid : rid, vid : nargs + last, t : fun.regs[rid] };
 			}
 		}
-		var found : LocalAccess = null;
+		var cands = [];
+		var partial = false;
 		for( b2 in b.prev )
 			if( b2.start < b.start ) {
 				var l = lookupLocal(b2, name, pos);
-				// make sure that all branches have written the same register
-				// if not it's out of scope
-				if( found != null && (l == null || l.rid != found.rid) )
-					return b.visitResult = null;
-				// the VM names a merged value after the first assign it can come from, do the same
-				if( found == null || l.vid < found.vid )
-					found = l;
+				if( l == null )
+					partial = true;
+				else
+					cands.push(l);
 			}
+		var found : LocalAccess = null;
+		for( l in cands ) {
+			if( found == null )
+				found = l;
+			else if( l.rid != found.rid )
+				partial = true; // another variable of that name, shadowing ours on that branch
+			// the VM names a merged value after the first assign it can come from, do the same
+			else if( l.vid < found.vid )
+				found = l;
+		}
+		if( partial ) {
+			// a branch that does not write it leaves it out of scope, and a shadowed name has
+			// no merged value : only a definition executed on every path to us is still readable
+			found = null;
+			for( l in cands )
+				if( dominates(l.vid - nargs, pos) && (found == null || l.vid > found.vid) )
+					found = l;
+		}
 		return b.visitResult = found;
 	}
 
