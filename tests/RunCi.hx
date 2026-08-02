@@ -22,13 +22,15 @@ class RunCi {
 		var debuggerHL = sys.FileSystem.absolutePath(basePath + "../debugger/debug" + (hlVer == null ? "" : "-" + hlVer) + ".hl");
 		if( hlVer != null )
 			buildDebugger(basePath, debuggerHL, versionFlags);
+		// the v2 gate follows the VM that will run the tests, which without --hl-ver is whatever is on PATH
+		var vmVer = hlVer != null ? hlVer : getVMVersion(hlBin);
 		var errorCount = 0;
 
 		for( dir in ["unit", "v2"] ) {
 			var dirFlags = versionFlags;
 			if( dir == "v2" ) {
-				if( hlVer != null && compareVersion(hlVer, "2.0.0") < 0 ) {
-					log('[SKIP] $dir tests (require hl 2)');
+				if( vmVer != null && compareVersion(vmVer, "2.0.0") < 0 ) {
+					log('[SKIP] $dir tests (require hl 2, found $vmVer)');
 					continue;
 				}
 				dirFlags = ["-D", "hl-ver=2.0.0"];
@@ -110,6 +112,15 @@ class RunCi {
 			Sys.exit(1);
 		}
 		changeDirectory(basePath);
+	}
+
+	static function getVMVersion( hlBin : String ) : Null<String> {
+		return try {
+			var p = new sys.io.Process(hlBin, ["--version"]);
+			var v = StringTools.trim(p.stdout.readAll().toString());
+			p.close();
+			v == "" ? null : v;
+		} catch( e ) null;
 	}
 
 	static function compareVersion( v1 : String, v2 : String ) {
