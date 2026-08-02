@@ -20,6 +20,9 @@ class JitInfo {
 
 	public var oldThreadInfos : { id : Int, stackTop : Pointer, debugExc : Pointer };
 
+	public var trampoline(default,null) : Null<{ marker : Pointer, regsOffset : Int, rbpOffset : Int, callOffset : Int, regs : Array<Eval.NativeReg> }>;
+	var trampolinePos : Int = -1;
+
 	public var hlVersion : Float;
 	public var globals : Pointer;
 	var codeStart : Pointer;
@@ -88,6 +91,8 @@ class JitInfo {
 				structSizes[i] = input.readInt32();
 			@:privateAccess align.structSizes = structSizes;
 
+			trampolinePos = input.readInt32();
+
 			var nmodules = input.readInt32();
 			if( nmodules != 1 ) {
 				#if hl
@@ -136,7 +141,27 @@ class JitInfo {
 		}
 
 		codeEnd = codeStart.offset(codeSize);
+		if( trampolinePos >= 0 )
+			trampoline = makeTrampoline(codeStart.offset(trampolinePos));
 		return true;
+	}
+
+	static inline var TRAMPOLINE_STACK_ARGS = 32;
+
+	function makeTrampoline( marker : Pointer ) {
+		var regs : Array<Eval.NativeReg> = isWinCall ? [Esi, Edi, Ebx, R12, R13, R14, R15] : [Ebx, R12, R13, R14, R15];
+		if( isWinCall )
+			for( i in 6...16 ) regs.push(Eval.NativeReg.XMM(i));
+		var regsSize = regs.length * align.ptr;
+		if( regsSize & 15 != 0 ) regsSize += 16 - (regsSize & 15);
+		var regsOffset = align.ptr + (isWinCall ? 0x20 : 0) + TRAMPOLINE_STACK_ARGS;
+		return {
+			marker : marker,
+			regsOffset : regsOffset,
+			rbpOffset : regsOffset + regsSize,
+			callOffset : regsOffset + regsSize + align.ptr,
+			regs : regs,
+		};
 	}
 
 	public function getFunctionVars( fidx : Int ) {

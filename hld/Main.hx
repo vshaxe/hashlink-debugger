@@ -154,6 +154,7 @@ class Main {
 
 	function frameStr( f : Debugger.StackInfo, ?debug ) {
 		if( f == null ) return "???";
+		if( f.file == Debugger.NATIVE_FRAME ) return f.file;
 		return f.file+":" + f.line + (f.context == null ? "" : " ("+f.context.obj.name+"::"+f.context.field+")") + (debug ? " @"+f.ebp.toString():"");
 	}
 

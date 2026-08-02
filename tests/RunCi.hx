@@ -48,6 +48,11 @@ class RunCi {
 		var tests = sys.FileSystem.readDirectory(basePath + dir);
 		for( test in tests ) {
 			var fullPath = sys.FileSystem.absolutePath(basePath + dir + "/" + test);
+			var platforms = try [for( p in sys.io.File.getContent(fullPath + "/platform.txt").split("\n") ) StringTools.trim(p)].filter(p -> p != "") catch( e ) null;
+			if( platforms != null && platforms.indexOf(Sys.systemName()) < 0 ) {
+				log('[SKIP] $test (runs on ${platforms.join(", ")})');
+				continue;
+			}
 			log('[INFO] $test begin');
 			changeDirectory(fullPath);
 			var compileargs = ["--main", "Test", "-hl", "test.hl"].concat(dirFlags);

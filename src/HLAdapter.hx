@@ -660,18 +660,22 @@ class HLAdapter extends DebugSession {
 		response.body = {
 			stackFrames : [for( i in 0...count ) {
 				var f = bt[start + i];
-				var file = getFilePath(f.file);
-				{
-					id : start + i,
-					name : stackStr(f),
-					source : {
-						name : f.file.split("/").pop(),
-						path : file == null ? js.Lib.undefined : (isWindows ? file.split("/").join("\\") : file),
-						sourceReference : file == null ? allocValue(VUnkownFile(f.file)) : 0,
-					},
-					line : f.line,
-					column : 1
-				};
+				if( f.file == hld.Debugger.NATIVE_FRAME ) {
+					{ id : start + i, name : f.file, line : 0, column : 0 }
+				} else {
+					var file = getFilePath(f.file);
+					{
+						id : start + i,
+						name : stackStr(f),
+						source : {
+							name : f.file.split("/").pop(),
+							path : file == null ? js.Lib.undefined : (isWindows ? file.split("/").join("\\") : file),
+							sourceReference : file == null ? allocValue(VUnkownFile(f.file)) : 0,
+						},
+						line : f.line,
+						column : 1
+					};
+				}
 			}],
 			totalFrames : bt.length,
 		};

@@ -1,0 +1,19 @@
+--ci
+test.hl
+r
+"p v"
+"p x"
+"p y"
+"p z"
+"p fx"
+"p fy"
+"p fz"
+"f 1"
+"p a"
+"p b"
+"p c"
+"p d"
+"p e"
+"p f"
+"p g"
+q

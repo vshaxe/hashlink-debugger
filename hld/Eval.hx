@@ -58,6 +58,10 @@ class Eval {
 	var opOffsets : Map<Int, Array<Int>>;
 	var guidNames : Int64Map<String>;
 
+	public static inline var TRAMPOLINE_FIDX = -1;
+
+	public var breakRegs : Null<Array<Pointer>>;
+	public var nativeBreak : Bool;
 	public var maxArrLength : Int = 10;
 	public var maxBytesLength : Int = 128;
 	public var globalContext = false;
@@ -213,6 +217,8 @@ class Eval {
 	}
 
 	function readNatReg( r : NativeReg ) : Pointer {
+		if( breakRegs != null )
+			return breakRegs[r.toInt()];
 		return api.readRegister(currentThread, r.isFpu() ? hld.Api.Register.makeFpu(r.toInt() - 16) : hld.Api.Register.makeCpu(r.toInt()));
 	}
 
@@ -223,6 +229,13 @@ class Eval {
 			return regs;
 		regs = new Map();
 		savedRegs.set(fidx, regs);
+		if( fidx == TRAMPOLINE_FIDX ) {
+			var b = jit.trampoline;
+			if( b != null )
+				for( i => r in b.regs )
+					regs.set(r.toInt(), b.regsOffset + i * align.ptr);
+			return regs;
+		}
 		var vars = jit.getFunctionVars(fidx);
 		if( vars == null )
 			return regs;
@@ -259,11 +272,14 @@ class Eval {
 		if( frameChildren != null )
 			for( c in frameChildren ) {
 				var offset = getSavedRegs(c.fidx).get(r.toInt());
-				if( offset == null ) continue;
+				if( offset == null ) {
+					if( c.fidx == TRAMPOLINE_FIDX ) return AOverwritten(t);
+					continue;
+				}
 				if( c.ebp == null ) break;
 				return AAddr(c.ebp.offset(offset), t);
 			}
-		return ANative(r, t);
+		return nativeBreak ? AOverwritten(t) : ANative(r, t);
 	}
 
 	function evalExpr( e : hscript.Expr ) : Value {

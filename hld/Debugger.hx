@@ -34,6 +34,12 @@ class StackRawInfo {
 }
 
 @:publicFields @:structInit
+class BreakContext {
+	var rip : Pointer;
+	var regs : Array<Pointer>;
+}
+
+@:publicFields @:structInit
 class StackInfo {
 	var file : String;
 	var line : Int;
@@ -43,6 +49,7 @@ class StackInfo {
 
 class Debugger {
 
+	public static inline var NATIVE_FRAME = "<native>";
 	static inline var INT3 = 0xCC;
 	static var HW_REGS : Array<Api.Register> = [Dr0, Dr1, Dr2, Dr3];
 	public static var DEBUG = false;
@@ -76,7 +83,7 @@ class Debugger {
 	var nextStep(default,set): Pointer = Pointer.make(0,0);
 	var currentStack : Array<StackRawInfo>;
 	var watches : Array<WatchPoint>;
-	var threads : Map<Int,{ id : Int, stackTop : Pointer, exception : Pointer, ?exceptionStack: Array<StackRawInfo>, ?exceptionTrap: Pointer, name : String }>;
+	var threads : Map<Int,{ id : Int, stackTop : Pointer, exception : Pointer, ?exceptionStack: Array<StackRawInfo>, ?exceptionTrap: Pointer, ?breakContext: BreakContext, name : String }>;
 	var afterStep = false;
 
 	public var is64(get, never) : Bool;
@@ -286,7 +293,7 @@ class Debugger {
 
 	public function getCurrentVars( args : Bool ) {
 		var s = currentStack[currentStackFrame];
-		if( s == null ) return [];
+		if( s == null || s.fidx == Eval.TRAMPOLINE_FIDX ) return [];
 		var g = module.getGraph(s.fidx);
 		if( args )
 			return g.getArgs();
@@ -328,6 +335,8 @@ class Debugger {
 
 	public function getCurrentClass() {
 		var s = currentStack[currentStackFrame];
+		if( s.fidx == Eval.TRAMPOLINE_FIDX )
+			return null;
 		var ctx = module.getMethodContext(s.fidx);
 		if( ctx == null )
 			return null;
@@ -490,6 +499,7 @@ class Debugger {
 		var excStackCountPos = flagsPos + 4;
 		var excStackPos = flagsPos + 8 + 256 + (jit.hlVersion >= 1.13 ? 128 : 0);
 		var namePos = jit.hlVersion >= 1.13 ? flagsPos + 8 : -1;
+		var breakPos = excStackPos + 256 * jit.align.ptr;
 		for( i in 0...count ) {
 			var tinf = eval.readPointer(tinfos.offset(jit.align.ptr * i));
 			var tid = eval.readI32(tinf);
@@ -512,12 +522,25 @@ class Debugger {
 				exception : flags & 4 == 0 ? null : tinf.offset(excPos),
 				exceptionStack : flags & 1 == 0 ? null : readVMExceptionStack(tinf.offset(excStackPos), eval.readI32(tinf.offset(excStackCountPos))),
 				exceptionTrap : trapCtx.isNull() ? null : new Pointer(eval.readPointer(trapCtx.offset(10 * 8))),
+				breakContext : readBreakContext(tinf.offset(breakPos)),
 				name : name,
 			};
 			threads.set(tid, t);
 		}
 		if( !threads.exists(currentThread) )
 			threads.set(currentThread,{ id : currentThread, stackTop: null, exception: null, name : null });
+	}
+
+	function readBreakContext( base : Pointer ) : Null<BreakContext> {
+		if( jit.hlVersion < 2 )
+			return null;
+		var rip = eval.readPointer(base);
+		if( rip.isNull() || !jit.isCodePtr(rip) )
+			return null;
+		return {
+			rip : rip,
+			regs : [for( i in 0...32 ) eval.readPointer(base.offset((i + 1) * jit.align.ptr))],
+		};
 	}
 
 	function readVMExceptionStack(base : Pointer, count : Int) : Array<StackRawInfo> {
@@ -536,6 +559,10 @@ class Debugger {
 	function prepareStack( isWatchbreak=false ) {
 		currentStackFrame = 0;
 		currentStack = makeStack(currentThread, isWatchbreak);
+		var t = threads.get(currentThread);
+		var brk = t == null ? null : t.breakContext;
+		eval.breakRegs = brk == null ? null : brk.regs;
+		eval.nativeBreak = brk == null && stoppedThread != null && jit.resolveAsmPos(getCodePos(currentThread)) == null;
 	}
 
 	function skipFunction( fidx : Int ) {
@@ -556,7 +583,7 @@ class Debugger {
 		var depth = currentStack.length;
 		var onException = getException() != null;
 
-		if( s == null || onException ) {
+		if( s == null || s.fidx == Eval.TRAMPOLINE_FIDX || onException ) {
 			if( DEBUG ) trace("Step not supported, continue.");
 			resume();
 			return wait();
@@ -730,15 +757,17 @@ class Debugger {
 		var tinf = threads.get(tid);
 		if( tinf == null || tinf.stackTop == null )
 			return stack;
-		var esp = getReg(tid, Esp);
-		var ebp = getReg(tid, Ebp);
+		var brk = tinf.breakContext;
+		var esp = brk == null ? getReg(tid, Esp) : brk.regs[(Eval.NativeReg.Esp : Eval.NativeReg).toInt()];
+		var ebp = brk == null ? getReg(tid, Ebp) : brk.regs[(Eval.NativeReg.Ebp : Eval.NativeReg).toInt()];
 		var size = tinf.stackTop.sub(esp) + jit.align.ptr;
 		if( size < 0 ) size = 0;
-		var mem = readMem(esp.offset(-jit.align.ptr), size);
+		var memBase = esp.offset(-jit.align.ptr);
+		var mem = readMem(memBase, size);
 
-		var eip = getReg(tid, Eip);
+		var eip = brk == null ? getReg(tid, Eip) : brk.rip;
 		var asmPos = eip;
-		if( isWatchbreak )
+		if( isWatchbreak || brk != null )
 			asmPos = asmPos.offset(-1);
 		var e = jit.resolveAsmPos(asmPos);
 		var inProlog = false;
@@ -759,7 +788,7 @@ class Debugger {
 			e = null;
 
 		// if we are on ret, our EBP is wrong, so let's ignore this stack part
-		if( e != null ) {
+		if( e != null && brk == null ) {
 			var op = api.readByte(eip, 0);
 			if( op == 0x48 && jit.is64 )
 				op = api.readByte(eip, 1);
@@ -791,12 +820,46 @@ class Debugger {
 		// because we need to step so we don't want false positive
 		if( max == 1 ) return stack;
 
+		inline function readStack( p : Pointer ) : Null<Pointer> {
+			var offset = p.sub(memBase);
+			return offset < 0 || offset + jit.align.ptr > size ? null : mem.getPointer(offset, jit.align);
+		}
+
+		function fromNative( f : StackRawInfo ) {
+			if( f.ebp == null )
+				return true;
+			var ret = readStack(f.ebp.offset(jit.align.ptr));
+			if( ret == null )
+				return true;
+			var e = jit.resolveAsmPos(ret);
+			return e == null || !module.isValid(e.fidx, e.fpos);
+		}
+
 		// similar to module/module_capture_stack
 		if( is64 ) {
 			// on windows x64, we can't guarantee a stack pointer for our native funs...
 			var skipFirstCheck = (e == null && jit.isWinCall);
+			var trampoline = jit.trampoline;
+			var atGap = e == null || fromNative(e);
 			for( i in 0...(size >> 3)-1 ) {
 				var val = mem.getPointer(i << 3, jit.align);
+				if( atGap && trampoline != null && val == trampoline.marker ) {
+					var slot = memBase.offset(i << 3);
+					var frameEbp = readStack(slot.offset(trampoline.rbpOffset));
+					var callSite = readStack(slot.offset(trampoline.callOffset));
+					if( frameEbp != null && callSite != null && frameEbp > esp && frameEbp < tinf.stackTop ) {
+						var e = jit.resolveAsmPos(callSite.offset(-1));
+						if( e != null && e.fpos >= 0 && module.isValid(e.fidx, e.fpos) ) {
+							e.ebp = frameEbp;
+							stack.push({ fidx : Eval.TRAMPOLINE_FIDX, fpos : 0, codePos : val, ebp : slot });
+							stack.push(e);
+							atGap = fromNative(e);
+							skipFirstCheck = false;
+							if( max > 0 && stack.length >= max ) return stack;
+							continue;
+						}
+					}
+				}
 				if( (val > esp && val < tinf.stackTop) || (inProlog && i == 0) || skipFirstCheck ) {
 					var codePtr = skipFirstCheck ? val : mem.getPointer((i + 1) << 3, jit.align);
 					var e = jit.resolveAsmPos(codePtr);
@@ -837,7 +900,10 @@ class Debugger {
 							skipFirstCheck = false;
 						} else
 							e.ebp = val;
+						var prev = stack[stack.length - 1];
+						if( prev != null && prev.ebp == e.ebp ) continue;
 						stack.push(e);
+						atGap = fromNative(e);
 						if( max > 0 && stack.length >= max ) return stack;
 					}
 				}
@@ -859,7 +925,7 @@ class Debugger {
 			}
 		}
 
-		return [for( s in stack ) if( module.isValid(s.fidx,s.fpos) ) s];
+		return [for( s in stack ) if( s.fidx == Eval.TRAMPOLINE_FIDX || module.isValid(s.fidx,s.fpos) ) s];
 	}
 
 	inline function get_stackFrameCount() return currentStack.length;
@@ -888,13 +954,15 @@ class Debugger {
 	}
 
 	function stackInfo( f ) : StackInfo {
+		if( f.fidx == Eval.TRAMPOLINE_FIDX )
+			return { file : "<native>", line : 0, ebp : f.ebp, context : null };
 		var s = module.resolveSymbol(f.fidx, f.fpos);
 		return { file : s.file, line : s.line, ebp : f.ebp, context : module.getMethodContext(f.fidx) };
 	}
 
 	function setContext(global:Bool) {
 		var cur = currentStack[currentStackFrame];
-		if( cur == null ) return false;
+		if( cur == null || cur.fidx == Eval.TRAMPOLINE_FIDX ) return false;
 		eval.globalContext = global;
 		var children = [for( i in 0...currentStackFrame ) currentStack[currentStackFrame - 1 - i]];
 		eval.setContext(cur.fidx, cur.fpos, jit.getNativeCodePos(cur.codePos), cur.ebp, children);

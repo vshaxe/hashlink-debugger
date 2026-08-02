@@ -1,0 +1,34 @@
+> r
+Thread paused Test.hx:25 ($Test::boom)
+Exception: ValueException
+> p v
+1 : Int
+> p x
+101 : Int
+> p y
+201 : Int
+> p z
+301 : Int
+> p fx
+1.5 : Float
+> p fy
+2.5 : Float
+> p fz
+3.5 : Float
+> f 1
+Test.hx:14 ($Test::compute)
+> p a
+11 : Int
+> p b
+22 : Int
+> p c
+33 : Int
+> p d
+44 : Int
+> p e
+55 : Int
+> p f
+66 : Int
+> p g
+77 : Int
+> q

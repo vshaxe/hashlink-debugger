@@ -4,6 +4,14 @@ Debugger for the [HashLink](https://hashlink.haxe.org) VM.
 
 ## Code style
 
+**Never let a tool change a file's line endings.** Files here are a mix of CRLF and LF, per file, in
+this repo and in the HashLink and Haxe sources. `sed -i` under MSYS rewrites a CRLF file as LF, so a
+one-line substitution turns into a whole-file diff that buries the real change — and it does it to
+every file the glob matched, including the ones the substitution did not touch. Use the editing tools,
+which preserve the convention; if a batch edit is genuinely needed, do it in a way that writes bytes
+back unchanged, and check `git diff --stat` afterwards: a file whose insertions plus deletions equal
+its length was rewritten, whatever the visible diff says.
+
 **Do not add comments**, unless one is genuinely necessary. This holds for every file you touch —
 this repo, the tests, and the HashLink and Haxe sources. Put whatever a change needs explained in
 this file instead.
@@ -23,6 +31,73 @@ VM and compiler internals are deliberately **not** documented here: they move in
 repo, and a stale description is worse than none. Where the debugger depends on something the VM
 produces, this file names the debugger-side code that decodes it — read the current layout there, and
 check the VM sources when that is not enough.
+
+### Walking the stack
+
+`Debugger.makeStack` does not unwind, it **scans**: every stack word that looks like a saved ebp
+followed by a word that resolves into JIT code is taken for a frame. Two things keep that from
+inventing frames, and both are needed.
+
+- The VM **erases the return address** of every HL call once the call returns, so the debris of calls
+  that already completed cannot match. Without it the scan reports frames from a chain that is long
+  gone. Erasing is on only under `--debug` without `--debug-opt`; V1 has always done this, V2 lost it
+  and had it restored.
+- `Debugger.isCallerOf` accepts a candidate only if it is **suspended on a call to the frame already
+  found below it**, which anchors the whole chain on the innermost frame — that one is exact, it comes
+  from the instruction pointer. The target is compared where the bytecode names it; for a closure,
+  method or `this` call it cannot, and any callee is then accepted.
+
+The erase decides where a caller frame *resolves*, not only whether it is found: a return address
+lands on the op **after** the call whenever the call is its op's last instruction, and the erase
+instruction is what keeps it inside the call op. So without it every caller frame in `bt` reports the
+following line — `tests/unit/TestCallerLine` pins that. `isCallerOf` tolerates both, since a native
+call is never erased.
+
+### Crossing a C frame
+
+A C frame between the break and a JIT frame defeats the scan on its own: the debugger has no unwind
+information for it, so it knows neither where the caller's frame is nor what the C code did with the
+persist registers. Both are recovered, by two different mechanisms — which one applies depends on
+whether the **VM was running** when the debugger stopped.
+
+- **The break was raised from C** — a throw, `hl.Api.breakpoint`, an assert. The VM is executing, so
+  it unwinds its own C frames first and leaves the innermost HL frame's `rip`, `rsp`, `rbp` and every
+  register in the thread info, next to `exc_stack_trace`. `Debugger.readBreakContext` decodes it;
+  `makeStack` takes its `rip`/`rsp`/`rbp` for the innermost frame, which also puts the whole C region
+  outside the scanned range, and `Eval.readNatReg` reads registers from it instead of from the live
+  CPU. This needs a platform unwinder and only Win64 has one in the VM, so elsewhere no context is
+  captured — `Eval.nativeBreak` then makes register reads report `<overwritten>` rather than whatever
+  the C code left behind, and `tests/v2/TestThrowRegs` is gated to Windows for that reason. Lifting it
+  means unwinding with DWARF CFI: `_Unwind_Backtrace` plus `_Unwind_GetGR` reports the callee-saved
+  registers per frame, and SysV has no callee-saved FPU register to recover.
+- **A plain breakpoint under a native callback.** No VM code runs at an `INT3`, so nothing can be
+  captured after the fact. Instead a native that can re-enter HL is **tagged**, and calls to it go
+  through a trampoline that leaves a frame holding the caller's persist registers, its `ebp` and the
+  call site. `makeStack` recognises such a frame by the address the trampoline returns to — the only
+  part the VM sends — and hops over the C region in one step.
+
+The trampoline frame is a **frame like any other**, reported as `<native>` and standing for the whole
+C region below it, however many C functions that is. It carries `Eval.TRAMPOLINE_FIDX` as its `fidx`,
+which is what every consumer tests to know a frame has no HL code behind it — no variables, no
+stepping, no context. For registers it needs no special case at all: `Eval.getSavedRegs` answers for
+it the way it answers for a JIT prologue, out of the vars blob. It saves *all* the persist registers,
+so the walk never has to look past one — a register missing from it is one the call destroyed, not
+one to keep searching for.
+
+Its layout is **not** in the protocol: `JitInfo.makeTrampoline` derives it from the ABI, the way
+`Eval.evalCall` already picks argument registers per calling convention. Read it there, and keep it in
+step with the VM's own notion of persistent registers.
+
+Tagging a native is `HL_CALLB` after the return type of its `DEFINE_PRIM`, which puts a flag at the end
+of the signature the VM already checks when it resolves the native — so a third-party lib can tag its
+own. Because the trampoline keeps a frame between caller and callee, arguments the caller passed on
+the stack are no longer where the callee expects them: it forwards a fixed 32-byte window, which
+covers four of them, and the JIT skips the trampoline entirely past that. So an over-eager tag loses
+the frame rather than corrupting the call.
+
+All of this is only emitted under `--debug` without `--debug-opt`. With `--debug-opt` a callback still
+hides the frames below it, as before. `tests/v2/TestThrowRegs`, `tests/v2/TestNativeCallbackFrames` and
+`tests/v2/TestCallbackNative` cover the three shapes.
 
 ## HL V1 / V2 compatibility
 
@@ -166,6 +241,9 @@ traps, on Windows:
   `hl` on PATH and the prebuilt `debugger/debug.hl`.
 - Tests under [tests/v2/](tests/v2/) have the same layout but need a HL 2 VM: they are compiled with
   `-D hl-ver=2.0.0` (so, v6 bytecode) and the whole directory is skipped when targeting an older VM.
+- A test whose subject only works on some systems carries a `platform.txt` listing the
+  `Sys.systemName()` values it runs on, one per line, and is skipped elsewhere. Use it only where the
+  *behaviour* is platform-specific, never to paper over a platform-specific bug.
 - Unit tests against another VM: `hl RunCi.hl --hl-ver <version> --hl <path to that hl>`
   (`haxe RunCi.hxml` first, to rebuild `RunCi.hl`). `--hl-ver` adds `-D hl-ver=` to every test
   compile and rebuilds the debugger as `debugger/debug-<version>.hl` from `debugger.hxml`, so the

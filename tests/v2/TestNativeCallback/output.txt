@@ -1,0 +1,30 @@
+> b Test.hx:25
+Breakpoint set line 25
+> b Test.hx:29
+Breakpoint set line 29
+> r
+Thread paused Test.hx:25 ($Test::stop)
+> bt
+Test.hx:25 ($Test::stop)
+Test.hx:21 ($Test::inner)
+<native>
+Test.hx:11 ($Test::main)
+> f 3
+Test.hx:11 ($Test::main)
+> p a
+11 : Int
+> p g
+77 : Int
+> c
+Thread paused Test.hx:29 ($Test::cmp)
+> bt
+Test.hx:29 ($Test::cmp)
+<native>
+Test.hx:16 ($Test::main)
+> f 2
+Test.hx:16 ($Test::main)
+> p a
+11 : Int
+> p g
+77 : Int
+> q
