@@ -1,9 +1,0 @@
-> b Test.hx:33
-Breakpoint set line 33
-> r
-Thread paused Test.hx:33 ($Test::main)
-> info variables
- potentialMove = { x : 1, y : 2, z : 3 } : { x : Float, y : Float, z : Float }
- viaArg = 6 : Float
- viaThis = 6 : Float
-> q
