@@ -703,6 +703,28 @@ class Debugger {
 		return Breakpoint;
 	}
 
+	function isCallerOf( caller : StackRawInfo, callee : StackRawInfo ) {
+		if( callee == null )
+			return true;
+		var f = module.code.functions[caller.fidx];
+		if( f == null )
+			return true;
+		var graph = module.getGraph(caller.fidx);
+		for( pos in [caller.fpos, caller.fpos - 1] ) {
+			if( pos < 0 || pos >= f.ops.length )
+				continue;
+			switch( graph.control(pos) ) {
+			case CCall(-1):
+				return true;
+			case CCall(findex):
+				if( @:privateAccess module.functionsIndexes.get(findex) == callee.fidx )
+					return true;
+			default:
+			}
+		}
+		return false;
+	}
+
 	function makeStack( tid, isWatchbreak : Bool, max = 0 ) {
 		var stack = [];
 		var tinf = threads.get(tid);
@@ -778,7 +800,7 @@ class Debugger {
 				if( (val > esp && val < tinf.stackTop) || (inProlog && i == 0) || skipFirstCheck ) {
 					var codePtr = skipFirstCheck ? val : mem.getPointer((i + 1) << 3, jit.align);
 					var e = jit.resolveAsmPos(codePtr);
-					if( e != null && e.fpos >= 0 ) {
+					if( e != null && e.fpos >= 0 && isCallerOf(e, stack[stack.length - 1]) ) {
 						if( skipFirstCheck ) {
 							e.ebp = ebp;
 							// this ebp might not be good, so let's look for
