@@ -901,7 +901,8 @@ class Debugger {
 						} else
 							e.ebp = val;
 						var prev = stack[stack.length - 1];
-						if( prev != null && prev.ebp == e.ebp ) continue;
+						var ordered = prev == null || prev.ebp == null || e.ebp > prev.ebp;
+						if( !ordered && !(inProlog && i == 0) ) continue;
 						stack.push(e);
 						atGap = fromNative(e);
 						if( max > 0 && stack.length >= max ) return stack;

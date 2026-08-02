@@ -1,0 +1,8 @@
+> b Test.hx:17
+Breakpoint set line 17
+> r
+Thread paused Test.hx:17 ($Test::scanned)
+> bt
+Test.hx:17 ($Test::scanned)
+Test.hx:28 ($Test::main)
+> q
