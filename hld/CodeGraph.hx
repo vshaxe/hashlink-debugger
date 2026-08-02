@@ -229,12 +229,15 @@ class CodeGraph {
 	function getLocalsRaw( pos : Int ) : Array<String> {
 		if( pos == localsRawCachePos )
 			return localsRawCache;
+		var argNames = getArgsRaw();
 		var arr = [];
 		for( a in fun.assigns ) {
 			if( a.position > pos ) break;
 			if( a.position < 0 ) continue; // arg
 			if( arr.indexOf(a.varName) >= 0 ) continue;
-			if( getLocal(module.strings[a.varName],pos) == null ) continue; // not written
+			var name = module.strings[a.varName];
+			if( argNames.indexOf(name) >= 0 ) continue;
+			if( getLocal(name,pos) == null ) continue; // not written
 			arr.push(a.varName);
 		}
 		localsRawCachePos = pos;
