@@ -35,8 +35,8 @@ check the VM sources when that is not enough.
 ### Walking the stack
 
 `Debugger.makeStack` does not unwind, it **scans**: every stack word that looks like a saved ebp
-followed by a word that resolves into JIT code is taken for a frame. Two things keep that from
-inventing frames, and both are needed.
+followed by a word that resolves into JIT code is taken for a frame. Three things keep that from
+inventing frames, and all three are needed.
 
 - The VM **erases the return address** of every HL call once the call returns, so the debris of calls
   that already completed cannot match. Without it the scan reports frames from a chain that is long
@@ -46,12 +46,32 @@ inventing frames, and both are needed.
   found below it**, which anchors the whole chain on the innermost frame — that one is exact, it comes
   from the instruction pointer. The target is compared where the bytecode names it; for a closure,
   method or `this` call it cannot, and any callee is then accepted.
+- A candidate's ebp must be **strictly above** the ebp of the frame already found below it. The stack
+  grows down, so a caller always sits at a higher address, and a candidate that does not is debris —
+  it is rejected rather than pushed, and the scan keeps looking. This is the only guard that survives
+  a candidate `isCallerOf` cannot judge: it costs nothing, because the scan already walks in
+  increasing address order.
 
 The erase decides where a caller frame *resolves*, not only whether it is found: a return address
 lands on the op **after** the call whenever the call is its op's last instruction, and the erase
 instruction is what keeps it inside the call op. So without it every caller frame in `bt` reports the
 following line — `tests/unit/TestCallerLine` pins that. `isCallerOf` tolerates both, since a native
 call is never erased.
+
+The erase also only covers a call that **returned**: an exception unwinds past its frames instead, so
+everything the throw skipped keeps a real saved-ebp/return-address pair. A function entered after the
+catch stands on that debris, and a frame with enough locals holds several of those pairs — each one a
+candidate the ebp order rejects and nothing else would. Where the debris was left by a closure, method
+or `this` call, `isCallerOf` waves it through, and the resulting frame reads as a wrong object of a
+wrong type or throws a memory read failure that ends the session.
+
+`tests/unit/TestStaleFrames` pins it. It reproduces on V2 and not on V1, whose frame layout puts no
+usable pair inside the stopped function — so it guards V2 and merely runs on V1, which is still reason
+to keep it in `tests/unit/`: it needs nothing from v6.
+
+The ebp order is not checked for the synthetic frame the scan pushes at its very first slot while the
+innermost function is still in its prolog: that frame's ebp is `esp`, not a scanned value, and the
+caller's saved ebp is not on the stack yet.
 
 ### Crossing a C frame
 
@@ -161,9 +181,50 @@ Both halves are load-bearing and neither works alone. Widening without the domin
 wrong branch's register; the dominance test without widening leaves nothing covering the position,
 and the read falls back to the assign from before the branch — a stale value, not an error.
 
+The merged record therefore has to exist for **every** variable in scope at a join, including one
+nothing reads afterwards. A merged value used to be emitted only where the program itself needed one,
+so a variable assigned on both sides of a branch and then never read again kept each branch's own
+storage — two records, two different registers, both widened to the scope end and neither valid past
+the join. The dominance test then rejects the one the debugger resolved to, correctly, and the
+variable reads `undef` even though it is plainly live. That is a **VM** defect and was fixed there,
+not worked around here: nothing in the record set says which branch ran, so there is no debugger-side
+answer. `tests/v2/TestDeadBranchMerge` pins it, and reads `undef` on a VM without the fix.
+
+The shape is easy to miss because it needs the variable to be *dead* after the join, which is rare in
+a test written on purpose and common in real code — an unused optional argument's default-value
+prologue is exactly it, and so is a flag computed then handed straight to a call.
+
+A name is only in scope where **every** path to the position writes it, so `CodeGraph.lookupLocal`
+rejects one that a predecessor does not report — and one reported in a different register, which is an
+inner scope shadowing it. Both rejections share an escape: a definition whose block **dominates** the
+position is executed whatever the branches did, so it survives, the latest such one winning.
+
+Neither half works alone, and they fail in opposite directions. Without the rejection a variable stays
+listed past the end of its scope and reads `undef` — there was no merge there, so the VM emits no
+merged record and the dominance test above rejects the branch record, correctly. Without the escape a
+name shadowed in an inner scope is lost wherever a `break` and its loop exit meet, those two paths
+reporting different registers, and it is lost for reading too, not only for listing. This surfaces as
+a *parent frame* defect because a parent frame is stopped at a call, so nearly always past a join and
+near the end of its function, where the most scopes have closed. `tests/unit/TestOutOfScope` pins both
+halves.
+
 Arguments — including `this` — are identified by **index**, never by an assign entry, because the
 compiler emits no assign for `this`. `tests/unit/TestArgFirstLocal` covers the case that breaks when
 that is confused: a local assigned at op 0 being consumed as an argument and becoming unresolvable.
+
+An assign entry is only usable if the op it names **writes a register**: that write is what gives the
+variable its storage, on both sides — the VM records nothing for an op that stores nothing, and
+`CodeGraph.lookupLocal` reads the register out of the op itself with `opFx`. An assign naming an op
+that only *reads* — a structure literal's `OSetField`, from `hlopt`'s assign remap before it was
+fixed — is therefore resolvable nowhere, and `lookupLocal` hands back `rid = -1` with a null type.
+That descriptor is not null, so `getLocalsRaw` lists the variable while every resolver fails on it,
+and `info variables` ends the session on `Unknown identifier`.
+
+This is **deliberately not guarded** here. The crash is the signal that the debug info is wrong, and
+the fix belongs in the compiler, where the variable is genuinely readable afterwards rather than
+merely hidden — skipping the assign silently drops the variable, or worse falls back to an earlier
+one and reads a value that has since been overwritten. Read `rid = -1`, or a `Null access` out of
+`Eval.typeStr` on `info dbg_regs`, as *this* diagnosis.
 
 ### Variable scopes and overwritten registers (bytecode v6)
 

@@ -1,0 +1,13 @@
+> b Test.hx:22
+Breakpoint set line 22
+> r
+Thread paused Test.hx:22 ($Test::update)
+> p fromRef
+false : Bool
+> p n
+70 : Int
+> c
+Thread paused Test.hx:22 ($Test::update)
+> p fromRef
+true : Bool
+> q
