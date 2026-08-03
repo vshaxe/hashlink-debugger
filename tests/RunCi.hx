@@ -65,7 +65,8 @@ class RunCi {
 			}
 			trace("run haxe with " + compileargs);
 			Sys.command("haxe", compileargs);
-			var process = new sys.io.Process(hlBin, [debuggerHL, "--input", "input.txt"]);
+			// --cmd : the debuggee must run on the VM under test, not the `hl` on PATH
+			var process = new sys.io.Process(hlBin, [debuggerHL, "--cmd", hlBin, "--input", "input.txt"]);
 			var expectedOutput = normalize(sys.io.File.getContent(fullPath + "/output.txt"));
 			var startingTime = haxe.Timer.stamp();
 			var exitCode : Null<Int> = 0;

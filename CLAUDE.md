@@ -246,6 +246,15 @@ What that means for this repo:
   a variable stays readable past its last read must not run with it.
 - Older bytecode carries no scope info and degrades to the previous behaviour, which is why
   `<overwritten>` must stay a supported outcome rather than an error.
+- `-D hl-ver=2.0.0` only *asks* for v6; the compiler still has to emit it. An older `haxe.exe` accepts
+  the flag and silently writes v4, so the whole of `tests/v2/` runs on v4 and passes for the wrong
+  reason — every v6-only behaviour untested, and a VM change that breaks the v6 path green. **Check
+  the byte, don't trust the flag**: `xxd -l 8 test.hl` prints `HLB` followed by the version, which must
+  be `06`. Worth doing whenever a v2 test starts passing or failing for no visible reason.
+- Reading v6 also needs the **`format` haxelib to know about it**. The stock one throws
+  `HL Version 6 is not supported` and reads two fields per assign instead of three; the third is the
+  scope end (`-1` below v6). `format/hl/Reader.hx` and `format/hl/Data.hx` carry a local patch for
+  that. It fails loudly rather than silently, but only once a compiler that emits v6 is on PATH.
 
 Known gap: the VM reports a **single** location per value, so a variable that moved between a
 register and a stack slot during its lifetime is reported at its final location over its whole range,
@@ -305,6 +314,10 @@ traps, on Windows:
 - A test whose subject only works on some systems carries a `platform.txt` listing the
   `Sys.systemName()` values it runs on, one per line, and is skipped elsewhere. Use it only where the
   *behaviour* is platform-specific, never to paper over a platform-specific bug.
+- `--hl` sets the VM for **both** roles, and both matter. It runs the debugger, and `RunCi` forwards it
+  to the debugger's `--cmd` so it runs the debuggee too. Without that forwarding the debuggee launches
+  under the `hl` on PATH: the JIT under test is then never exercised, only its debug API, and the whole
+  suite passes against a VM whose code generation was never run.
 - Unit tests against another VM: `hl RunCi.hl --hl-ver <version> --hl <path to that hl>`
   (`haxe RunCi.hxml` first, to rebuild `RunCi.hl`). `--hl-ver` adds `-D hl-ver=` to every test
   compile and rebuilds the debugger as `debugger/debug-<version>.hl` from `debugger.hxml`, so the
