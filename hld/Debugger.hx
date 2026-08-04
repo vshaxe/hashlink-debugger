@@ -617,9 +617,11 @@ class Debugger {
 			}
 		}
 
-		function visitRec( pos : Int ) {
+		var todo = [s.fpos];
+		while( todo.length > 0 ) {
+			var pos = todo.pop();
 			if( marked.exists(pos) )
-				return;
+				continue;
 			var l = module.resolveSymbol(s.fidx, pos);
 			var c = graph.control(pos);
 			var lineChange = mode != Out && (l.file != orig.file || l.line != orig.line) && !c.match(CCatch | CJAlways(_));
@@ -644,16 +646,14 @@ class Debugger {
 					setAsm(codePos, INT3);
 				// if we are on same op but after the call (after returning from a finish)
 				if( c.match(CCall(_)) && codePos < currentCodePos )
-					visitRec(pos+1);
-				return;
+					todo.push(pos+1);
+				continue;
 			}
 			if( !c.match(CNo | CCall(_)) )
 				marked.set(pos, null);
-			for( p in graph.getNextPos(pos) ) {
-				visitRec(p);
-			}
+			for( p in graph.getNextPos(pos) )
+				todo.push(p);
 		}
-		visitRec(s.fpos);
 		function cleanup() {
 			for( bp in marked )
 				if( bp != null ) {
