@@ -64,6 +64,7 @@ class Eval {
 	public var nativeBreak : Bool;
 	public var maxArrLength : Int = 10;
 	public var maxBytesLength : Int = 128;
+	public var maxUnknownBytesLength : Int = 16;
 	public var globalContext = false;
 	public var currentThread : Int;
 	public var allowEvalGetters = true;
@@ -306,10 +307,7 @@ class Eval {
 				return i < 0 || i >= len ? { v : VUndef, t : t } : read(i);
 			case VBytes(len, read, _):
 				var i = toInt(i);
-				return i < 0 || i >= len ? { v : VUndef, t : HUi8 } : { v : VInt(read(i)), t : HUi8 };
-			case VString(_, p) if( v.t.match(HBytes) ):
-				var i = toInt(i);
-				return i < 0 ? { v : VUndef, t : HUi8 } : { v : VInt(readByte(p.offset(i))), t : HUi8 };
+				return i < 0 || (len >= 0 && i >= len) ? { v : VUndef, t : HUi8 } : { v : VInt(read(i)), t : HUi8 };
 			default:
 			}
 			throw "Can't access " + valueStr(v) + "[" + valueStr(i) + "]";
@@ -1033,12 +1031,9 @@ class Eval {
 			case HObj(p), HStruct(p): p.name.split(".").pop(); // short form (no package)
 			default: typeStr(v.t);
 			}
-		case VString(s,p):
-			switch( [v.t, v.hint] ) {
-			case [HBytes, HReadBytes(t, pos)]:
-				var pos = toInt(eval(pos));
-				valueStr(readBytesAt(-1, i -> readByte(p.offset(i)), t, pos));
-			case [_, HNoEscape]:
+		case VString(s,_):
+			switch( v.hint ) {
+			case HNoEscape:
 				"\"" + s + "\"";
 			default:
 				"\"" + escape(s) + "\"";
@@ -1069,14 +1064,20 @@ class Eval {
 				var pos = toInt(eval(pos));
 				valueStr(readBytesAt(length, read, t, pos));
 			default:
-				var blen = length < maxBytesLength ? length : maxBytesLength;
+				var blen = length < 0 ? maxUnknownBytesLength : (length < maxBytesLength ? length : maxBytesLength);
 				var bytes = haxe.io.Bytes.alloc(blen);
-				for( i in 0...blen )
-					bytes.set(i, read(i));
-				var str = length+":0x" + bytes.toHex().toUpperCase();
-				if( length > maxBytesLength )
-					str += "...";
-				str;
+				var count = 0;
+				while( count < blen ) {
+					var b : Null<Int> = if( length < 0 && count > 0 ) try read(count) catch( e : Dynamic ) null else read(count);
+					if( b == null ) break;
+					bytes.set(count, b);
+					count++;
+				}
+				var hex = bytes.sub(0,count).toHex().toUpperCase();
+				if( length < 0 )
+					"0x" + hex + "...";
+				else
+					length + ":0x" + hex + (length > maxBytesLength ? "..." : "");
 			}
 		case VMap(_, 0, _):
 			"{}";
@@ -1510,19 +1511,7 @@ class Eval {
 		case HType:
 			v = VType(readType(p,true));
 		case HBytes:
-			var len = 0;
-			var buf = new StringBuf();
-			while( true ) {
-				var c = try readI32(p.offset(len<<1)) & 0xFFFF catch( e : Dynamic ) 0;
-				if( c == 0 ) break;
-				buf.addChar(c);
-				len++;
-				if( len > 50 ) {
-					buf.add("...");
-					break;
-				}
-			}
-			v = VString(buf.toString(), p);
+			v = VBytes(-1, function(i) return readByte(p.offset(i)), p);
 		case HEnum(e):
 			var index = readI32(p.offset(align.ptr));
 			var c = module.getEnumProto(e)[index];
@@ -1653,30 +1642,22 @@ class Eval {
 			} else {
 				throw "Missing CArray size or pos";
 			}
-		case [VBytes(length, read, _), _, HArray(t, _, pos)]:
-			// haxe.io.Bytes
+		case [VBytes(length, read, _), _, HArray(t, size, pos)]:
+			// haxe.io.Bytes and hl.Bytes, the latter with length < 0
 			var tsize = align.typeSize(t);
 			if( pos != null ) {
 				var pos = toInt(eval(pos));
 				return readBytesAt(length, read, t, pos*tsize);
-			} else {
-				var alen = Std.int(length / tsize);
-				var varr = VArray(t, alen, function(i) return readBytesAt(length, read, t, i*tsize), null);
-				return { v : varr, t : v.t };
 			}
-		case [VString(_, p), HBytes, HArray(t, size, pos)]:
-			// hl.Bytes
-			var tsize = align.typeSize(t);
-			if( pos != null ) {
-				var pos = toInt(eval(pos));
-				return readBytesAt(-1, i -> readByte(p.offset(i)), t, pos*tsize);
-			} else if( size != null ) {
-				var length = toInt(eval(size));
-				var varr = VArray(t, length, function(i) return readBytesAt(-1, i -> readByte(p.offset(i)), t, i*tsize), null);
-				return { v : varr, t : v.t };
-			} else {
+			var alen;
+			if( size != null )
+				alen = toInt(eval(size));
+			else if( length >= 0 )
+				alen = Std.int(length / tsize);
+			else
 				throw "Missing Array size or pos";
-			}
+			var varr = VArray(t, alen, function(i) return readBytesAt(length, read, t, i*tsize), null);
+			return { v : varr, t : v.t };
 		default:
 		}
 		return v;
@@ -1744,7 +1725,7 @@ class Eval {
 			return key;
 		case VMapPair(_, value) if( name == "$value" ):
 			return value;
-		case VBytes(length, _, _) if( name == "length"):
+		case VBytes(length, _, _) if( name == "length" && length >= 0 ):
 			return { v : VInt(length), t : HI32 };
 		default:
 		}
@@ -2053,8 +2034,8 @@ class Eval {
 							var k = readKey(n);
 							var v = readValue(n);
 							switch( [k.v, v.v] ) {
-							case [VInt64(ki64), VString(vname, _)]:
-								guidNames.set(ki64, vname);
+							case [VInt64(ki64), VBytes(_, _, vp)] if( v.t.match(HBytes) ):
+								guidNames.set(ki64, readUCSBytes(vp));
 							default:
 							}
 						}

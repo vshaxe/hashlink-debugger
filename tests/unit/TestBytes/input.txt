@@ -1,0 +1,19 @@
+--ci
+test.hl
+"b Test.hx:13"
+r
+"p raw"
+"p raw[0]"
+"p raw[1]"
+"p raw[5]"
+"p raw:UI8(1)"
+"p raw:I32(4)"
+"p raw:Array<I32,3>"
+"p raw:Array<I32,count>"
+"p raw:Array<UI8,count*2>"
+"p raw:Array<I32>[1]"
+"p text"
+"p buf"
+"p buf.length"
+"p buf[1]"
+q

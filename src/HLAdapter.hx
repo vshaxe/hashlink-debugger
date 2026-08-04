@@ -797,6 +797,10 @@ class HLAdapter extends DebugSession {
 				return { name : name, type : dbg.eval.typeStr(t), value : str, evaluateName : evalName ?? "#" + str, variablesReference : 0 };
 			default:
 			}
+			if( len < 0 ) {
+				var str = dbg.eval.valueStr(value);
+				return { name : name, type : tstr, value : str + pstr, evaluateName : evalName ?? "#" + str, variablesReference : 0 };
+			}
 			var str = tstr+":"+len;
 			return { name : name, type : tstr, value : str + pstr, evaluateName : evalName ?? "#" + str, variablesReference : allocValue(VValue(value, evalName)), indexedVariables : (len+15)>>4 };
 		case VClosure(f,context,_):

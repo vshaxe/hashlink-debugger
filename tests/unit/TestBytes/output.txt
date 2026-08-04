@@ -1,0 +1,33 @@
+> b Test.hx:13
+Breakpoint set line 13
+> r
+Thread paused Test.hx:13 ($Test::main)
+> p raw
+0x4DDB00000405060708090A0B0C0D0E0F... : hl.Bytes
+> p raw[0]
+77 : hl.UI8
+> p raw[1]
+219 : hl.UI8
+> p raw[5]
+5 : hl.UI8
+> p raw:UI8(1)
+219 : hl.Bytes
+> p raw:I32(4)
+117835012 : hl.Bytes
+> p raw:Array<I32,3>
+[56141, 117835012, 185207048] : hl.Bytes
+> p raw:Array<I32,count>
+[56141, 117835012, 185207048] : hl.Bytes
+> p raw:Array<UI8,count*2>
+[77, 219, 0, 0, 4, 5] : hl.Bytes
+> p raw:Array<I32>[1]
+117835012 : Int
+> p text
+"hello" : String
+> p buf
+2:0x6869 : haxe.io.Bytes
+> p buf.length
+2 : Int
+> p buf[1]
+105 : hl.UI8
+> q
