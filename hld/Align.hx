@@ -52,9 +52,7 @@ class Align {
 	}
 
 	function structSize( t : HLType ) : Int {
-		if( t.isPtr() )
-			return structSizes[structSizes.length - 1];
-		return structSizes[t.getIndex()];
+		return structSizes[(t.isPtr() ? HBytes : t).getIndex()];
 	}
 
 }

@@ -48,6 +48,16 @@ class JitInfo {
 		return Pointer.make(input.readInt32(),0);
 	}
 
+	function readStructSizes() {
+		var structSizes = [0];
+		for( i in 1...9 )
+			structSizes[i] = input.readInt32();
+		for( i in 9...HGUID.getIndex() + 1 )
+			structSizes[i] = structSizes[HBytes.getIndex()];
+		structSizes[HGUID.getIndex()] = structSizes[HI64.getIndex()];
+		@:privateAccess align.structSizes = structSizes;
+	}
+
 	public function read( input : haxe.io.Input, module : Module ) {
 		this.input = input;
 		this.module = module;
@@ -77,19 +87,13 @@ class JitInfo {
 			codeSize = input.readInt32();
 			allTypes = readPointer();
 
-			var structSizes = [0];
-			for( i in 1...9 )
-				structSizes[i] = input.readInt32();
-			@:privateAccess align.structSizes = structSizes;
+			readStructSizes();
 
 			if( !readModule(true) )
 				return false;
 
 		} else {
-			var structSizes = [0];
-			for( i in 1...9 )
-				structSizes[i] = input.readInt32();
-			@:privateAccess align.structSizes = structSizes;
+			readStructSizes();
 
 			trampolinePos = input.readInt32();
 
