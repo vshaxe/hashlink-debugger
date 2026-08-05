@@ -267,14 +267,34 @@ class Debugger {
 		setReg(tid, EFlags, hld.Pointer.make(r,0));
 	}
 
-	public function getException() {
+	public function getException() : Null<Value> {
 		var t = threads.get(currentThread);
 		if( t == null )
 			return null;
 		var exc = t.exception;
 		if( exc.isNull() )
 			return null;
-		return eval.readVal(exc, HDyn);
+		var v = eval.readVal(exc, HDyn);
+		switch( v.t ) {
+		case HObj({ name : "haxe.ValueException" }):
+			try v = eval.readField(v, "value") catch( e : Dynamic ) {}
+		case HObj({ name : "SysError" }):
+			try {
+				switch( eval.readField(v, "msg").v ) {
+				case VString(msg, p):
+					v = { v : VString("SysError: " + msg, p), t : v.t };
+				default:
+				}
+			} catch( e : Dynamic ) {}
+		default:
+		}
+		switch( v.v ) {
+		case VBytes(_, _, p) if( v.t.match(HBytes) ):
+			var str = try eval.readUCSBytes(p) catch( e : Dynamic ) "";
+			v = { v : VString(str, p), t : v.t };
+		default:
+		}
+		return v;
 	}
 
 	public function getVMExceptionStack() {

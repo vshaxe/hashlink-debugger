@@ -1931,7 +1931,7 @@ class Eval {
 		return mem.readStringUCS2(0,length);
 	}
 
-	function readUCSBytes( ptr : Pointer ) {
+	public function readUCSBytes( ptr : Pointer ) {
 		var len = 0;
 		while( true ) {
 			var v = readI32(ptr.offset(len << 1));

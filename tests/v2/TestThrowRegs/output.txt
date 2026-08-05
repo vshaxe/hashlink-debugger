@@ -1,6 +1,6 @@
 > r
 Thread paused Test.hx:25 ($Test::boom)
-Exception: ValueException
+Exception: "boom"
 > p v
 1 : Int
 > p x

@@ -8,3 +8,4 @@ package-lock.json
 /debugger/debug.hl
 /hldebug-wrapper/build
 *.hl
+spacecraft

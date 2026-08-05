@@ -1,0 +1,6 @@
+--ci
+test.hl
+"catch throw"
+r
+c
+q

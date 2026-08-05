@@ -172,6 +172,16 @@ that asked for a timeout, so `Main` clears it when that command ends — otherwi
 `next`/`step`/`finish`, or a call evaluated inside `p`, silently inherits it and aborts on the first
 unrelated thread event.
 
+### The exception value
+
+What the VM hands over on a break is rarely what the user threw, so `Debugger.getException` is the
+**one** place that normalises it — a `haxe.ValueException` is unwrapped to the value inside, a
+`SysError` to its message, and a VM-raised error, which is a bare bytes dynamic rather than a
+`String`, is decoded as UCS-2. Both frontends and `makeStack`'s own `Can't cast ` test read the
+result, so anything doing this per-caller instead goes stale the moment one of the shapes changes —
+that is how a bytes error message ended up reported as a hex preview.
+`tests/unit/TestExceptionValue` pins the two ends of it.
+
 ## HL V1 / V2 compatibility
 
 Both VM versions must keep working — `jit.hlVersion` tells them apart (`>= 2` is V2).

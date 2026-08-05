@@ -1,0 +1,8 @@
+> catch throw
+> r
+Thread paused Test.hx:9 ($Test::main)
+Exception: Failed(42)
+> c
+Thread paused Test.hx:12 ($Test::main)
+Exception: "Null access .x"
+> q
