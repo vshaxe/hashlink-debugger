@@ -763,7 +763,16 @@ class Debugger {
 		var size = tinf.stackTop.sub(esp) + jit.align.ptr;
 		if( size < 0 ) size = 0;
 		var memBase = esp.offset(-jit.align.ptr);
-		var mem = readMem(memBase, size);
+		var mem = tryReadMem(memBase, size);
+		if( mem == null ) {
+			var skip = findReadableBase(memBase, size);
+			if( skip >= size )
+				throw "Failed to read stack @" + memBase.toString() + "[" + size + "]";
+			memBase = memBase.offset(skip);
+			size -= skip;
+			mem = readMem(memBase, size);
+		}
+		var prologPos = esp.sub(memBase) - jit.align.ptr;
 
 		var eip = brk == null ? getReg(tid, Eip) : brk.rip;
 		var asmPos = eip;
@@ -860,7 +869,7 @@ class Debugger {
 						}
 					}
 				}
-				if( (val > esp && val < tinf.stackTop) || (inProlog && i == 0) || skipFirstCheck ) {
+				if( (val > esp && val < tinf.stackTop) || (inProlog && (i << 3) == prologPos) || skipFirstCheck ) {
 					var codePtr = skipFirstCheck ? val : mem.getPointer((i + 1) << 3, jit.align);
 					var e = jit.resolveAsmPos(codePtr);
 					if( e != null && e.fpos >= 0 && isCallerOf(e, stack[stack.length - 1]) ) {
@@ -902,7 +911,7 @@ class Debugger {
 							e.ebp = val;
 						var prev = stack[stack.length - 1];
 						var ordered = prev == null || prev.ebp == null || e.ebp > prev.ebp;
-						if( !ordered && !(inProlog && i == 0) ) continue;
+						if( !ordered && !(inProlog && (i << 3) == prologPos) ) continue;
 						stack.push(e);
 						atGap = fromNative(e);
 						if( max > 0 && stack.length >= max ) return stack;
@@ -914,7 +923,7 @@ class Debugger {
 			var stackTop = tinf.stackTop.toInt();
 			for( i in 0...size >> 2 ) {
 				var val = mem.getI32(i << 2);
-				if( val > stackBottom && val < stackTop || (inProlog && i == 0) ) {
+				if( val > stackBottom && val < stackTop || (inProlog && (i << 2) == prologPos) ) {
 					var codePtr = mem.getPointer((i + 1) << 2, jit.align);
 					var e = jit.resolveAsmPos(codePtr);
 					if( e != null && e.fpos >= 0 ) {
@@ -1080,11 +1089,26 @@ class Debugger {
 		}
 	}
 
-	function readMem( addr : Pointer, size : Int ) {
+	function tryReadMem( addr : Pointer, size : Int ) : Null<Buffer> {
 		var mem = new Buffer(size);
-		if( !api.read(addr, mem, size) )
+		return api.read(addr, mem, size) ? mem : null;
+	}
+
+	function readMem( addr : Pointer, size : Int ) {
+		var mem = tryReadMem(addr, size);
+		if( mem == null )
 			throw "Failed to read memory @" + addr.toString() + "[" + size+"]";
 		return mem;
+	}
+
+	function findReadableBase( addr : Pointer, size : Int ) {
+		var ptr = jit.align.ptr;
+		var min = 0, max = Std.int(size / ptr);
+		while( min < max ) {
+			var mid = (min + max) >> 1;
+			if( tryReadMem(addr.offset(mid * ptr), size - mid * ptr) != null ) max = mid else min = mid + 1;
+		}
+		return min * ptr;
 	}
 
 	function getAsm( ptr : Pointer ) {

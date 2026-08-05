@@ -206,6 +206,15 @@ class Main {
 		}
 	}
 
+	function stepCommand( mode : Debugger.StepMode ) {
+		while( true ) {
+			var r = dbg.step(mode);
+			if( r == Handled ) continue;
+			handleResult(r);
+			break;
+		}
+	}
+
 	function command() {
 		#if !nodejs
 		if( process != null ) {
@@ -244,6 +253,7 @@ class Main {
 				handleResult(r);
 				break;
 			}
+			dbg.customTimeout = null;
 		case "bt", "backtrace":
 			for( f in dbg.getBackTrace() )
 				Sys.println(frameStr(f));
@@ -363,11 +373,11 @@ class Main {
 		case "delete", "d":
 			clearBP();
 		case "next", "n":
-			handleResult(dbg.step(Next));
+			stepCommand(Next);
 		case "step", "s":
-			handleResult(dbg.step(Into));
+			stepCommand(Into);
 		case "finish":
-			handleResult(dbg.step(Out));
+			stepCommand(Out);
 		case "thread":
 			var arg = args.shift();
 			if( arg != null ) {

@@ -69,9 +69,19 @@ wrong type or throws a memory read failure that ends the session.
 usable pair inside the stopped function — so it guards V2 and merely runs on V1, which is still reason
 to keep it in `tests/unit/`: it needs nothing from v6.
 
-The ebp order is not checked for the synthetic frame the scan pushes at its very first slot while the
-innermost function is still in its prolog: that frame's ebp is `esp`, not a scanned value, and the
-caller's saved ebp is not on the stack yet.
+The ebp order is not checked for the synthetic frame the scan pushes at the bottom slot of the
+scanned range while the innermost function is still in its prolog: that frame's ebp is `esp`, not a
+scanned value, and the caller's saved ebp is not on the stack yet.
+
+The scanned range does not always start at `esp`. A JIT frame of tens of kilobytes is subtracted from
+`esp` in one go, and a function that never touches its lowest slots leaves those pages **uncommitted**
+— one `api.read` over `esp → stackTop` then fails on the whole live stack, at the first stop, before a
+single command. So `makeStack` falls back to `findReadableBase`, which binary searches the lowest
+address the rest of the range reads from. That is sound because committed stack pages are contiguous
+from the low-water mark up to the top, so readability is monotonic in the offset — and it loses
+nothing, since the innermost frame comes from the registers and every frame the scan looks for sits
+above the untouched region. A range that is unreadable *everywhere* still throws.
+`tests/unit/TestBigFrame` pins it with an 8000-element array literal, stopped on the line before it.
 
 ### Crossing a C frame
 
@@ -118,6 +128,23 @@ the frame rather than corrupting the call.
 All of this is only emitted under `--debug` without `--debug-opt`. With `--debug-opt` a callback still
 hides the frames below it, as before. `tests/v2/TestThrowRegs`, `tests/v2/TestNativeCallbackFrames` and
 `tests/v2/TestCallbackNative` cover the three shapes.
+
+### Stepping
+
+`Debugger.step` places its breakpoints by walking the current function's CFG from the stop, and the
+walk **must stay iterative** — it visits one position per bytecode op, so a recursion overflows the
+*debugger's own* stack in a large function. `finish` is the one that reaches every op: it has no line
+change to stop at, only a `CRet`, so it explores the whole function whatever its size.
+
+There is deliberately no test for it: the overflow is a function of the *host* stack, so a function
+big enough to trip it on Windows (1 MB) does nothing on Linux (8 MB), and one big enough for Linux
+costs more time than the suite's per-test budget allows.
+
+A `c <timeout>` sets `Debugger.customTimeout`, and while it is set `wait` hands `Timeout` and
+`Handled` back to its caller instead of looping on them. That is only meaningful for the command
+that asked for a timeout, so `Main` clears it when that command ends — otherwise the next
+`next`/`step`/`finish`, or a call evaluated inside `p`, silently inherits it and aborts on the first
+unrelated thread event.
 
 ## HL V1 / V2 compatibility
 
