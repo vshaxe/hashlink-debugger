@@ -269,17 +269,37 @@ class Eval {
 		return recs;
 	}
 
+	function isDirectCallee( c : Debugger.StackRawInfo, callerEbp : Null<Pointer> ) : Bool {
+		if( c.ebp == null || callerEbp == null )
+			return false;
+		var base = c.ebp;
+		if( c.fidx == TRAMPOLINE_FIDX ) {
+			var b = jit.trampoline;
+			if( b == null )
+				return false;
+			base = base.offset(b.rbpOffset);
+		}
+		var buf = new Buffer(align.ptr);
+		if( !api.read(base, buf, align.ptr) )
+			return false;
+		return buf.getPointer(0, align) == callerEbp;
+	}
+
 	function readNativeRegAddress( r : NativeReg, t : HLType ) : VarAddress {
-		if( frameChildren != null )
+		if( frameChildren != null && frameChildren.length > 0 ) {
+			var callerEbp = ebp;
 			for( c in frameChildren ) {
+				if( !isDirectCallee(c, callerEbp) )
+					return AOverwritten(t);
 				var offset = getSavedRegs(c.fidx).get(r.toInt());
 				if( offset == null ) {
 					if( c.fidx == TRAMPOLINE_FIDX ) return AOverwritten(t);
+					callerEbp = c.ebp;
 					continue;
 				}
-				if( c.ebp == null ) break;
 				return AAddr(c.ebp.offset(offset), t);
 			}
+		}
 		return nativeBreak ? AOverwritten(t) : ANative(r, t);
 	}
 

@@ -1,0 +1,8 @@
+--ci
+test.hl
+"b Test.hx:4"
+r
+bt
+"f 3"
+"info variables"
+q

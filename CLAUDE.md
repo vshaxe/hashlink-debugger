@@ -81,7 +81,6 @@ address the rest of the range reads from. That is sound because committed stack 
 from the low-water mark up to the top, so readability is monotonic in the offset — and it loses
 nothing, since the innermost frame comes from the registers and every frame the scan looks for sits
 above the untouched region. A range that is unreadable *everywhere* still throws.
-`tests/unit/TestBigFrame` pins it with an 8000-element array literal, stopped on the line before it.
 
 ### Crossing a C frame
 
@@ -128,6 +127,33 @@ the frame rather than corrupting the call.
 All of this is only emitted under `--debug` without `--debug-opt`. With `--debug-opt` a callback still
 hides the frames below it, as before. `tests/v2/TestThrowRegs`, `tests/v2/TestNativeCallbackFrames` and
 `tests/v2/TestCallbackNative` cover the three shapes.
+
+#### A C region with no trampoline
+
+A native the VM did **not** tag leaves no trampoline frame, and the scan still finds the HL frames
+above it: a caller reached through a closure or method call is accepted by `isCallerOf` whatever the
+callee turns out to be. So `bt` reports that caller directly above a frame that is *not* its callee,
+with nothing in between — and the two frames are then **not adjacent**. A callee's saved-register area
+holds the persist registers of the C code that called it, not the caller's, so reading a parent frame's
+register variable out of it returns a wrong object, or an address that ends the session on a memory
+read failure.
+
+`Eval.isDirectCallee` is what keeps the walk out of that: a frame only answers for its caller's
+registers if the **saved ebp at its frame base is that caller's ebp**, which is exactly the relation a
+JIT prologue establishes and exactly what a hidden region breaks. The walk stops at the first frame
+that fails the test and reports `<overwritten>` — the same outcome as a register the callee destroyed,
+and the only honest one, since nothing on the stack says where the C code put the value. A trampoline
+frame is compared at the caller ebp it carries itself (`rbpOffset`), so it passes by construction.
+
+The check costs one pointer read per step and it also covers the flavours that involve no C code at
+all: a frame the scan could not report — rejected by `isCallerOf`, or by the ebp ordering — leaves the
+same gap, and a frame whose ebp was guessed rather than scanned fails it too.
+
+`tests/v2/TestNativeGapRegs` pins it with `hl.Api.makeVarArgs`: calling the varargs closure it returns
+crosses an untagged C wrapper, so the caller's `bt` entry sits right above a frame that is not its
+callee. It has to be a V2 test — V1 keeps every variable in an EBP slot, so the gap costs it nothing.
+What `bt` prints is still misleading there, the C region being invisible; only the register reads are
+answered honestly.
 
 ### Stepping
 
