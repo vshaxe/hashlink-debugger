@@ -129,7 +129,7 @@ class Debugger {
 		module.load(content);
 	}
 
-	public function connectTries( host : String, port : Int, timeout : Float, onResult : Bool -> Void ) {
+	public function connectTries( host : String, port : Int, timeout : Float, onResult : Bool -> Void, ?retry : Void -> Bool ) {
 		if( timeout <= 0 ) {
 			onResult(false);
 			return;
@@ -140,8 +140,12 @@ class Debugger {
 				onResult(true);
 				return;
 			}
+			if( retry != null && !retry() ) {
+				onResult(false);
+				return;
+			}
 			haxe.Timer.delay(function() {
-				connectTries(host, port, timeout - (Sys.time()-ts), onResult);
+				connectTries(host, port, timeout - (Sys.time()-ts), onResult, retry);
 			},20);
 		});
 	}

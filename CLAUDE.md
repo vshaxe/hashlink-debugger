@@ -155,6 +155,31 @@ callee. It has to be a V2 test — V1 keeps every variable in an EBP slot, so th
 What `bt` prints is still misleading there, the C region being invisible; only the register reads are
 answered honestly.
 
+### Connecting to the debuggee
+
+`Debugger.connectTries` retries a plain socket connect every 20ms until a deadline, and until the VM
+opens the port every attempt fails at once with `ECONNREFUSED` — so the deadline is really a bound on
+**how long the VM may take to start**, not on any network operation. The VM only opens the port once
+the whole module is loaded and JIT-compiled, after the process itself has started, which on a big game
+and a slow (or antivirus-supervised) machine takes seconds. That is the whole of the intermittent,
+machine-dependent *Failed to connect on debug port*: the VM was starting normally and the debugger
+stopped waiting. The deadline used to be two seconds, which is why it was a common report.
+
+`HLAdapter.CONNECTION_TIMEOUT` — the `hldebug.connectionTimeout` setting — is that budget and the only
+one: raising it is the answer to a VM too slow to start, so nothing else may bound the wait or the
+setting stops meaning what it says. In particular the launch case must not be given a deadline of its
+own, however sensible a second number would look.
+
+What it may do is stop **early**, and it does: the `retry` callback of `connectTries` ends the wait as
+soon as `procExited` says the process the adapter launched is gone, which is a better failure signal
+than any deadline. A VM that died before listening — a port already in use, exit code 4 — is therefore
+reported at once rather than after the timeout, and the timeout is only ever reached by a VM that is
+still alive and not answering. The error says which of the two happened, so a report of it carries its
+own diagnosis. Half the budget in, a *Waiting for HL to open debug port* notice is sent: a wait long
+enough to notice has to say something rather than look like a hang.
+
+`attach` has no process to watch, so there the budget is all there is.
+
 ### Stepping
 
 `Debugger.step` places its breakpoints by walking the current function's CFG from the stop, and the

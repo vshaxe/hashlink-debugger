@@ -21,12 +21,13 @@ class HLAdapter extends DebugSession {
 	public static var inst : HLAdapter;
 	public static var DEBUG = false;
 	public static var DEFAULT_PORT : Int = 6112;
-	public static var CONNECTION_TIMEOUT : Float = 2;
+	public static var CONNECTION_TIMEOUT : Float = 10;
 
 	var isSessionActive(default, set) : Bool;
 	var breakOnlyActive(default, set) : Bool;
 
 	var proc : ChildProcessObject;
+	var procExited : Bool;
 	var workspaceDirectory : String;
 	var classPath : Array<String>;
 
@@ -62,6 +63,7 @@ class HLAdapter extends DebugSession {
 		watchedPtrs = [];
 		inst = this;
 		shouldRun = false;
+		procExited = false;
 	}
 
 	function set_isSessionActive( b : Bool ) {
@@ -317,6 +319,7 @@ class HLAdapter extends DebugSession {
 			sendEvent(new OutputEvent(buf.toString(), OutputEventCategory.Stderr));
 		} );
 		proc.on('close', function(code) {
+			procExited = true;
 			var exitedEvent:ExitedEvent = {type:MessageType.Event, event:"exited", seq:0, body : { exitCode:code}};
 			debug("Exit code " + code);
 			sendEvent(exitedEvent);
@@ -331,6 +334,7 @@ class HLAdapter extends DebugSession {
 			}
 		});
 		proc.on('error', function(err) {
+			procExited = true;
 			if( err.message == "spawn hl ENOENT" )
 				errorMessageAndResponse(cast response, "Could not start 'hl' process, executable was not found in PATH.\nRestart VSCode or computer.");
 			else
@@ -349,11 +353,14 @@ class HLAdapter extends DebugSession {
 		dbg.loadModule(sys.io.File.getBytes(program));
 
 		debug("Connecting to 127.0.0.1:" + port);
+		var connectStart = haxe.Timer.stamp();
+		var notified = false;
 		dbg.connectTries("127.0.0.1", port, CONNECTION_TIMEOUT, function(b) {
 			if( !b ) {
+				var reason = procExited ? "process has exited" : "no answer after " + Std.int(haxe.Timer.stamp() - connectStart) + "s";
 				// wait a bit (keep eventual HL error message)
 				haxe.Timer.delay(function() {
-					onError("Failed to connect on debug port");
+					onError("Failed to connect on debug port " + port + " (" + reason + ")");
 				},2000);
 				return;
 			}
@@ -379,6 +386,14 @@ class HLAdapter extends DebugSession {
 			syncThreads();
 			debug("Connected");
 			onError(null);
+		}, function() {
+			if( procExited )
+				return false;
+			if( !notified && haxe.Timer.stamp() - connectStart > CONNECTION_TIMEOUT * 0.5 ) {
+				notified = true;
+				sendEvent(new OutputEvent("Waiting for HL to open debug port " + port + "...\n"));
+			}
+			return true;
 		});
 	}
 

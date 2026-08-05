@@ -68,9 +68,9 @@
 				"default": false
 			},
 			"hldebug.connectionTimeout": {
-					"markdownDescription": "Default connection timeout in second, when connecting the debugger to HL virtual machine.",
+					"markdownDescription": "How long to wait, in seconds, for the HL virtual machine to open its debug port. Raise it if a large program takes longer than this to start on your machine.",
 					"type": "number",
-					"default": 2
+					"default": 10
 				}
 			}
 		},
