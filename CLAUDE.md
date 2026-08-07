@@ -96,9 +96,14 @@ whether the **VM was running** when the debugger stopped.
   outside the scanned range, and `Eval.readNatReg` reads registers from it instead of from the live
   CPU. This needs a platform unwinder and only Win64 has one in the VM, so elsewhere no context is
   captured — `Eval.nativeBreak` then makes register reads report `<overwritten>` rather than whatever
-  the C code left behind, and `tests/v2/TestThrowRegs` is gated to Windows for that reason. Lifting it
+  the C code left behind, and `tests/unit/TestThrowRegs` is gated to Windows for that reason. Lifting it
   means unwinding with DWARF CFI: `_Unwind_Backtrace` plus `_Unwind_GetGR` reports the callee-saved
   registers per frame, and SysV has no callee-saved FPU register to recover.
+
+  That test lives in `tests/unit/` although V1 has no native register to recover: it prints the same
+  values there, out of the EBP slots V1 keeps everything in, so it passes rather than failing and
+  needs nothing from v6. It guards V2 and merely runs on V1, the same trade `tests/unit/TestStaleFrames`
+  makes.
 - **A plain breakpoint under a native callback.** No VM code runs at an `INT3`, so nothing can be
   captured after the fact. Instead a native that can re-enter HL is **tagged**, and calls to it go
   through a trampoline that leaves a frame holding the caller's persist registers, its `ebp` and the
@@ -125,7 +130,7 @@ covers four of them, and the JIT skips the trampoline entirely past that. So an 
 the frame rather than corrupting the call.
 
 All of this is only emitted under `--debug` without `--debug-opt`. With `--debug-opt` a callback still
-hides the frames below it, as before. `tests/v2/TestThrowRegs`, `tests/v2/TestNativeCallbackFrames` and
+hides the frames below it, as before. `tests/unit/TestThrowRegs`, `tests/v2/TestNativeCallbackFrames` and
 `tests/v2/TestCallbackNative` cover the three shapes.
 
 #### A C region with no trampoline
@@ -235,7 +240,7 @@ Consequently `readRegAddress` must pick, among the records matching `loc.vid` an
 position, the one that **starts last** — that is the merged value rather than a stale branch. Taking
 any other match reads a register holding an unrelated value, which surfaces as a variable showing a
 wrong object, `null`, or a memory read failure in the VSCode adapter.
-`tests/v2/TestBranchAssignMerge` covers it.
+`tests/unit/TestBranchAssignMerge` covers it.
 
 That rule only works if the merged record starts **exactly** where the branches join, because a
 breakpoint on the line that follows the assignment stops on the first op of that merge point. A
@@ -247,7 +252,7 @@ debugger cannot tell a late start from a genuinely later one.
 
 A merged record's **end** must cover the op of its last read, since a breakpoint on the consuming
 line stops *on* that op — an end computed from the reading op's own start leaves the record covering
-everything but the one position that needs it. `tests/v2/TestMergedScopeEnd` covers it.
+everything but the one position that needs it. `tests/unit/TestMergedScopeEnd` covers it.
 
 Past that last read the value is still in scope, so the VM widens a merged record's end to the
 **scope end** rather than stopping at the last read. That alone is wrong, and the reason "starts last" is not the whole rule: a record
@@ -260,10 +265,11 @@ So a record is only a candidate if the block its start falls in **dominates** th
 still reaches the current block once the record's block is removed. `Eval.getRecordBlock` maps a
 record's native start back to that block by comparing it against each block's first op address
 (`jit.getCodePos`), biased by one byte because the VM starts a merged record one byte early.
-`tests/v2/TestBranchAssignMerge` is the guard: its inner join does not dominate the `else if` that
-follows, so the widened inner record must be rejected there. It has to stay under `tests/v2/` even
-though it passes on older bytecode too — no v6 means no widening, so nothing is ever rejected and the
-test passes just as well with the dominance check deleted.
+`tests/unit/TestBranchAssignMerge` is the guard: its inner join does not dominate the `else if` that
+follows, so the widened inner record must be rejected there. It only guards on the **v6** run — no v6
+means no widening, so nothing is ever rejected and the test passes just as well with the dominance
+check deleted. That makes the third configuration the one that matters for it, not a reason to file it
+under `tests/v2/`.
 
 Both halves are load-bearing and neither works alone. Widening without the dominance test reads the
 wrong branch's register; the dominance test without widening leaves nothing covering the position,
@@ -313,6 +319,16 @@ the fix belongs in the compiler, where the variable is genuinely readable afterw
 merely hidden — skipping the assign silently drops the variable, or worse falls back to an earlier
 one and reads a value that has since been overwritten. Read `rid = -1`, or a `Null access` out of
 `Eval.typeStr` on `info dbg_regs`, as *this* diagnosis.
+
+Only a variable the *user* wrote gets an assign entry — genhl's `not_debug_var` emits one for `VUser`
+and inlined-constructor variables and for nothing else. A compiler temp that is mistakenly allocated
+`VUser` therefore turns up in `info locals` as a variable of its own, and, if it shares the user
+variable's name, `renameVars` renames the **user's** one out of the way. `Texpr.for_remap` did exactly
+that for the iterator temp of a `for` over an `Iterator`, copying the loop variable's kind and name:
+`for( key in map.keys() )` listed `key` as the iterator and the real loop variable as `key1`, and the
+iterator then stayed listed after the loop, its assign dominating everything below. Fixed in the
+compiler — the temp is a `VGenerated` `gen_local_prefix ^ v.v_name`, like every other iterator temp in
+`forLoop.ml` — so `tests/v2/TestLoopVarScope` needs a Haxe past that fix and reads `key1` without it.
 
 ### Variable scopes and overwritten registers (bytecode v6)
 
@@ -414,6 +430,43 @@ traps, on Windows:
   ```sh
   hl RunCi.hl --hl-ver 1.16.0 --hl <v1-checkout>/x64/Release/hl.exe
   ```
+
+#### The three configurations
+
+The suite has to be run three ways, and a change is only tested once all three are green:
+
+| command | VM (both roles) | debugger | `tests/unit/` compiled | `tests/v2/` compiled |
+| --- | --- | --- | --- | --- |
+| `hl RunCi.hl --hl-ver 1.16.0 --hl <v1>/x64/Release/hl.exe` | V1 1.16.0 | `debug-1.16.0.hl`, rebuilt `-D hl-ver=1.16.0` | `-D hl-ver=1.16.0` → **v4** | *skipped* |
+| `haxe RunCi.hxml` | V2, the `hl` on PATH | `debug.hl`, as `debugger.hxml` builds it | *no flag* → **v4** | `-D hl-ver=2.0.0` → **v6** |
+| `hl RunCi.hl --hl-ver 2.0.0` | V2, the `hl` on PATH | `debug-2.0.0.hl`, rebuilt `-D hl-ver=2.0.0` | `-D hl-ver=2.0.0` → **v6** | `-D hl-ver=2.0.0` → **v6** |
+
+`--hl-ver` sets the flag for `tests/unit/` and for the debugger build; `tests/v2/` ignores it and
+always forces `-D hl-ver=2.0.0`, which is why its column never changes. A per-test `compile.txt` is
+appended *after* the directory flag, so it wins — that is how `tests/unit/TestGuid` pins itself to
+`-D hl-ver=1.16.0` in every configuration.
+
+The middle row is the trap: without `--hl-ver` nothing asks the compiler for a version, so it emits
+its own default — **v4**, whatever VM is about to run it. So `haxe RunCi.hxml` on a V2 VM exercises
+the V2 JIT and debug API against *old* bytecode, and every v6-only path in `tests/unit/` stays
+untested unless the third line is run too. Check the byte rather than assume: `xxd -l 8 test.hl`
+after a run says which one it was.
+
+That is what the two directories mean, and the rule between them is one-way:
+
+> **A test that passes in all three goes in `tests/unit/`, always — never in `tests/v2/`.**
+> `tests/v2/` is only for a test that cannot pass elsewhere: it needs a V2 VM, or its expected output
+> differs between v4 and v6.
+
+The tempting exception is a test whose *subject* is v6 — `tests/v2/` forces `-D hl-ver=2.0.0` on
+itself, so a test there is compiled at v6 whichever line above was run, while in `tests/unit/` only
+the third line gives it v6. Filing it under `tests/v2/` for that reason is still wrong: it buys one
+extra guarding run and costs the two V1/v4 runs entirely, and those are what catch a fix that breaks
+older bytecode. Put it in `tests/unit/` and run all three.
+
+So a test passing on v4 *for the wrong reason* — vacuously, in a way that would survive deleting the
+code it guards — is not a reason to move it out of `tests/unit/`. It is a reason to say so where the
+test is described, and to run the v6 line.
 
 ### Installing the debugger after a change
 
