@@ -1,0 +1,10 @@
+> b Test.hx:11
+Breakpoint set line 11
+> r
+Thread paused Test.hx:11
+> info locals
+ total = 0 : Int
+ key = "a" : String
+> p key
+"a" : String
+> q

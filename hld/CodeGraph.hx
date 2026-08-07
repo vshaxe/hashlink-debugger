@@ -15,6 +15,8 @@ private enum Control {
 
 typedef LocalAccess = { rid : Int, vid : Int, ?index : Int, ?container : format.hl.Data.EnumPrototype, t : format.hl.Data.HLType };
 
+typedef VarWrite = { name : String, pos : Int, scopeEnd : Int };
+
 class CodeBlock {
 
 	public var start : Int;
@@ -26,7 +28,7 @@ class CodeBlock {
 	public var trap : Array<Int>;
 
 	public var writtenRegs : Map<Int,Int>;
-	public var writtenVars : Map<String, Array<Int>>;
+	public var writtenVars : Map<String, Array<VarWrite>>;
 
 	public var visitTag : Int = 0;
 	public var visitResult : LocalAccess;
@@ -48,7 +50,7 @@ class CodeGraph {
 	var fun : format.hl.Data.HLFunction;
 	var blockPos : Map<Int,CodeBlock>;
 	var allBlocks : Map<Int,Bool>;
-	var assigns : Map<Int, Array<String>>;
+	var assigns : Map<Int, Array<VarWrite>>;
 	var domCache : Map<Int, Map<Int,Bool>>;
 	var blockStarts : Array<Int>;
 	var args : Array<{ hasIndex : Bool, vars : Array<String> }>;
@@ -116,7 +118,7 @@ class CodeGraph {
 				vl = [];
 				assigns.set(a.position, vl);
 			}
-			vl.push(vname);
+			vl.push({ name : vname, pos : a.position, scopeEnd : a.scopeEnd });
 		}
 
 		// calculate written registers
@@ -287,11 +289,11 @@ class CodeGraph {
 		var v = b.writtenVars.get(name);
 		if( v != null ) {
 			var last = -1;
-			for( p in v )
-				if( p < pos )
-					last = p;
-				else if( last < 0 )
-					break;
+			for( p in v ) {
+				if( p.pos >= pos ) break;
+				if( p.scopeEnd >= 0 && pos >= p.scopeEnd ) continue;
+				last = p.pos;
+			}
 			if( last >= 0 ) {
 				var rid = -1;
 				opFx(fun.ops[last], function(_) {}, function(w) rid = w);
@@ -335,12 +337,12 @@ class CodeGraph {
 			var vl = assigns.get(i);
 			if( vl == null ) continue;
 			for( v in vl ) {
-				var wl = b.writtenVars.get(v);
+				var wl = b.writtenVars.get(v.name);
 				if( wl == null ) {
 					wl = [];
-					b.writtenVars.set(v, wl);
+					b.writtenVars.set(v.name, wl);
 				}
-				wl.push(i);
+				wl.push(v);
 			}
 		}
 	}

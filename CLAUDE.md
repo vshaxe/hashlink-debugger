@@ -360,6 +360,23 @@ What that means for this repo:
   scope end (`-1` below v6). `format/hl/Reader.hx` and `format/hl/Data.hx` carry a local patch for
   that. It fails loudly rather than silently, but only once a compiler that emits v6 is on PATH.
 
+The scope end is also what tells the **debugger** a variable is gone, and `CodeGraph.lookupLocal`
+reads it: an assign is only a candidate while `pos < scopeEnd`. It is exclusive — the compiler records
+the position *after* the scope — and `-1` on older bytecode, where the CFG rules above are all there
+is, as before.
+
+The CFG rules alone cannot retire a variable whose definition **dominates** the position, because
+dominating is exactly what makes a definition survive the predecessor-disagreement rejection above.
+So an inner scope that runs unconditionally — a bare block, a `while` body's local — keeps its
+variable listed for the rest of the function, on a register that is free again and holds someone
+else's value. It reads `<overwritten>`, or a wrong value of the right type, or fails outright, and a
+failure inside `info variables` ends the session. `tests/v2/TestLoopVarScope` pins it on a bare block.
+
+Cost, since `lookupLocal` is on the path of every variable read: the scope end travels in
+`CodeGraph.VarWrite`, one object per assign shared between `assigns` and `writtenVars`, so graph
+construction is unchanged (measured on the 200 largest functions of a 6 MB `.hl`: 1860ms vs 1867ms)
+and the query path pays one comparison per candidate.
+
 Known gap: the VM reports a **single** location per value, so a variable that moved between a
 register and a stack slot during its lifetime is reported at its final location over its whole range,
 and reads wrong before the move.

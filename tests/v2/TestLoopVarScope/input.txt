@@ -1,0 +1,9 @@
+--ci
+test.hl
+"b Test.hx:11"
+"b Test.hx:17"
+r
+"info locals"
+c
+"info locals"
+q
