@@ -1,0 +1,37 @@
+--ci
+test.hl
+"b Test.hx:32"
+"b Test.hx:41"
+"b Test.hx:50"
+"b Test.hx:62"
+"b Test.hx:72"
+"b Test.hx:75"
+"b Test.hx:85"
+r
+"p a"
+"p b"
+"p sum"
+"p diff"
+r
+"p x"
+"p y"
+"p mul"
+"p add"
+r
+"p i"
+"p f"
+"p s"
+"p len"
+"p scaled"
+r
+"p v0"
+"p v9"
+"p v15"
+"p v19"
+r
+"p early"
+r
+"p late"
+r
+"p outer"
+q
