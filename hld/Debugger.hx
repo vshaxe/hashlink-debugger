@@ -389,6 +389,17 @@ class Debugger {
 			cmd = api.wait(customTimeout == null ? 1000 : Math.ceil(customTimeout * 1000));
 
 			if( cmd.r == Breakpoint && !onEvalCall && (jit.isCodePtr(nextStep) || onSingleStep) ) {
+				if( onSingleStep ) {
+					var codePos = getCodePos(cmd.tid).offset(-1);
+					for( b in breakPoints )
+						if( b.codePos == codePos && b.oldByte >= 0 && getAsm(codePos) == INT3 ) {
+							setAsm(codePos, b.oldByte);
+							setReg(cmd.tid, Eip, codePos);
+							nextStep = codePos;
+							stoppedThread = cmd.tid;
+							return SingleStep;
+						}
+				}
 				// On Linux, singlestep is not reset
 				cmd.r = SingleStep;
 				singleStep(cmd.tid,false);
