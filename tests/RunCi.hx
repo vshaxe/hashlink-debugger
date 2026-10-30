@@ -67,7 +67,10 @@ class RunCi {
 			Sys.command("haxe", compileargs);
 			// --cmd : the debuggee must run on the VM under test, not the `hl` on PATH
 			var process = new sys.io.Process(hlBin, [debuggerHL, "--cmd", hlBin, "--input", "input.txt"]);
-			var expectedOutput = normalize(sys.io.File.getContent(fullPath + "/output.txt"));
+			var outputFile = "output-" + Sys.systemName() + ".txt";
+			if( !sys.FileSystem.exists(fullPath + "/" + outputFile) )
+				outputFile = "output.txt";
+			var expectedOutput = normalize(sys.io.File.getContent(fullPath + "/" + outputFile));
 			var startingTime = haxe.Timer.stamp();
 			var exitCode : Null<Int> = 0;
 			while( true ) {
@@ -88,7 +91,7 @@ class RunCi {
 				log('[STDOUT] $output');
 			} else if( output != expectedOutput ) {
 				errorCount ++;
-				log('[ERROR] $test: output:\n$output');
+				log('[ERROR] $test: output (expected $outputFile):\n$output');
 			} else {
 				log('[SUCCESS] $test');
 			}
