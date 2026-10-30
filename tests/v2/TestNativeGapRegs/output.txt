@@ -12,10 +12,10 @@ Test.hx:17 ($Test::main)
 Test.hx:13 ($Test::outer)
 > info variables
  s = "hello" : String
- n = overwritten : Int
+ n = 10 : Int
  v = overwritten : String
  w = "hello!?" : String
- x = overwritten : String
+ x = "hello!?." : String
  y = "hello!?.," : String
  f = overwritten : Int -> Dynamic
 > q
