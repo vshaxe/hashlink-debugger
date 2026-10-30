@@ -160,6 +160,9 @@ callee. It has to be a V2 test — V1 keeps every variable in an EBP slot, so th
 What `bt` prints is still misleading there, the C region being invisible; only the register reads are
 answered honestly.
 
+Win64 has two more persist registers than SysV (`rsi`, `rdi`), so two more variables are lost behind
+the gap there, hence `output-Windows.txt`.
+
 ### Connecting to the debuggee
 
 `Debugger.connectTries` retries a plain socket connect every 20ms until a deadline, and until the VM
@@ -444,6 +447,10 @@ traps, on Windows:
 - A test whose subject only works on some systems carries a `platform.txt` listing the
   `Sys.systemName()` values it runs on, one per line, and is skipped elsewhere. Use it only where the
   *behaviour* is platform-specific, never to paper over a platform-specific bug.
+- A test whose subject works everywhere but whose correct output differs per system carries an
+  `output-<Sys.systemName()>.txt`, which replaces `output.txt` on that system — typically the ABI
+  deciding which variables get a register. Keep `output.txt` for SysV, which `Mac` falls back to. Each
+  file must hold the *correct* output for its system.
 - `--hl` sets the VM for **both** roles, and both matter. It runs the debugger, and `RunCi` forwards it
   to the debugger's `--cmd` so it runs the debuggee too. Without that forwarding the debuggee launches
   under the `hl` on PATH: the JIT under test is then never exercised, only its debug API, and the whole

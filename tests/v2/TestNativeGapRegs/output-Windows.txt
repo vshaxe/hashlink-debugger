@@ -1,0 +1,21 @@
+> b Test.hx:4
+Breakpoint set line 4
+> r
+Thread paused Test.hx:4 ($Test::inner)
+> bt
+Test.hx:4 ($Test::inner)
+Test.hx:12
+Test.hx:12
+Test.hx:13 ($Test::outer)
+Test.hx:17 ($Test::main)
+> f 3
+Test.hx:13 ($Test::outer)
+> info variables
+ s = "hello" : String
+ n = overwritten : Int
+ v = overwritten : String
+ w = "hello!?" : String
+ x = overwritten : String
+ y = "hello!?.," : String
+ f = overwritten : Int -> Dynamic
+> q
