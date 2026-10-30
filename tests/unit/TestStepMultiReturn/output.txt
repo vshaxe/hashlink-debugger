@@ -1,0 +1,11 @@
+> b Test.hx:8
+Breakpoint set line 8
+> r
+Thread paused Test.hx:8 ($Test::make)
+> n
+Thread paused Test.hx:12 ($Test::main)
+> c
+Thread paused Test.hx:8 ($Test::make)
+> n
+Thread paused Test.hx:13 ($Test::main)
+> q

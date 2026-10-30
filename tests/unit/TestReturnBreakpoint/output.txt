@@ -1,0 +1,12 @@
+> b Test.hx:7
+Breakpoint set line 7
+> b Test.hx:15
+Breakpoint set line 15
+> r
+Thread paused Test.hx:15 ($Test::main)
+> c
+Thread paused Test.hx:7 ($Test::log)
+> bt
+Test.hx:7 ($Test::log)
+Test.hx:16 ($Test::main)
+> q
