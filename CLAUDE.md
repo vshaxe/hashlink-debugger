@@ -198,10 +198,12 @@ costs more time than the suite's per-test budget allows.
 
 Once a step stops on its `CRet` or `CCall` breakpoint, it single-steps to the end of that op with
 every other breakpoint **still armed**. The V2 JIT shares an epilogue of 6+ instructions between
-`ORet`s, so that can `jmp` onto another `ORet`'s INT3, which `wait` must put back rather than take
-for the Linux single-step trap — resuming mid-instruction corrupts `rsp`.
-`tests/unit/TestStepMultiReturn` pins it on V2; its unused `k` is a third saved register, which
-makes the epilogue long enough to be shared — without it the test passes even with the fix deleted.
+`ORet`s, and the others used to `jmp` onto the first one's op start, so onto its INT3: `wait` must
+put it back rather than take it for the Linux single-step trap — resuming mid-instruction corrupts
+`rsp`. The same `jmp` made a breakpoint on the first `return` fire on every exit, so under `--debug`
+the JIT now puts a `NOP` at that op start and jumps past it. `tests/unit/TestReturnBreakpoint` pins
+the JIT side, `tests/unit/TestStepMultiReturn` the debugger side — only on a VM without that `NOP`.
+Both need three saved registers to get a shared epilogue, which is what `k` is for.
 
 A `c <timeout>` sets `Debugger.customTimeout`, and while it is set `wait` hands `Timeout` and
 `Handled` back to its caller instead of looping on them. That is only meaningful for the command
