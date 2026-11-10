@@ -166,7 +166,7 @@ class Debugger {
 		var inputData = new haxe.io.BytesBuffer();
 		sock = new js.node.net.Socket();
 		sock.on("data", function(buf:js.node.Buffer) {
-			inputData.add(haxe.io.Bytes.ofData(buf.buffer));
+			inputData.add(buf.hxToBytes());
 			try {
 				done(new haxe.io.BytesInput(inputData.getBytes()));
 			} catch( e : haxe.io.Eof ) {
