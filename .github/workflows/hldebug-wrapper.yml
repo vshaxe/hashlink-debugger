@@ -5,10 +5,12 @@ on:
   push:
     branches:
       - "**"
-    paths:
+    paths: &wrapper-paths
       - "hldebug-wrapper/src/**"
       - "hldebug-wrapper/binding.gyp"
       - ".github/workflows/hldebug-wrapper.yml"
+  pull_request:
+    paths: *wrapper-paths
 
 jobs:
   build:
