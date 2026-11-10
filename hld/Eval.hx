@@ -57,6 +57,7 @@ class Eval {
 	var varRecords : Map<Int, Array<VarRecord>>;
 	var opOffsets : Map<Int, Array<Int>>;
 	var guidNames : Int64Map<String>;
+	var typesByAddr : Int64Map<HLType>;
 
 	public static inline var TRAMPOLINE_FIDX = -1;
 
@@ -2037,6 +2038,16 @@ class Eval {
 	}
 
 	function typeFromAddr( p : Pointer ) : HLType {
+		if( jit.hasTypesArray() ) {
+			if( typesByAddr == null ) {
+				var types = module.code.types;
+				var mem = readMem(@:privateAccess jit.allTypes, types.length * align.ptr);
+				typesByAddr = new Int64Map();
+				for( i in 0...types.length )
+					typesByAddr.set(mem.getPointer(i * align.ptr, align).i64, types[i]);
+			}
+			return typesByAddr.get(p.i64);
+		}
 		var tid = Std.int( p.sub(@:privateAccess jit.allTypes) / typeStructSize() );
 		return module.code.types[tid];
 	}

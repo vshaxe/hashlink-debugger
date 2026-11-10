@@ -5,6 +5,7 @@ private enum DebugFlag {
 	Bool4; // bool = 4 bytes (instead of 1)
 	Threads; // was compiled with threads support
 	IsWinCall;
+	TypesArray;
 }
 
 class JitInfo {
@@ -36,6 +37,10 @@ class JitInfo {
 	var module : Module;
 
 	public function new() {
+	}
+
+	public function hasTypesArray() {
+		return flags.has(TypesArray);
 	}
 
 	function get_hasThreads() {
