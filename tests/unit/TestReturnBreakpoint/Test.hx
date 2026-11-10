@@ -7,7 +7,7 @@ class Test {
 			return;
 		var msg = game + version + Std.string(e);
 		if( last == msg ) return;
-		last = msg;
+		last = msg + game;
 	}
 
 	static function main() {
