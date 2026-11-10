@@ -35,7 +35,7 @@ jobs:
         cd debugger
         haxe debugger.hxml
         cd ..
-    - uses: actions/setup-node@v4
+    - uses: actions/setup-node@v7
       with:
         node-version: '22.x'
     - name: Print npm and node version
@@ -60,7 +60,7 @@ jobs:
         make package
         cp haxe-hl-${PKG_VER}-dev-${SHORT_HASH}.vsix haxe-hl-dev.vsix
     - name: Upload extension artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: vscode_extension
         path: haxe-hl-dev.vsix
