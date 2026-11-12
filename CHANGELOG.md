@@ -1,5 +1,11 @@
+## 2.0.1 (November 12, 2026)
+* fixed missing breakpoints during startup
+* added support for new types array format (hl 2.0)
+* fixed next/step crash on multi return (hl 2.0)
+* fixed variables in native registers showing wrong values (hl 2.0)
+
 ## 2.0.0 (September 1, 2026)
-* added support to hashlink 2, bytecode v6
+* added support for hashlink 2, bytecode v6
 
 ## 1.4.34 (December 12, 2025)
 
