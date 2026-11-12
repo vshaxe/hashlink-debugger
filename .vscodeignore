@@ -1,6 +1,8 @@
 *
 */**
-!node_modules/**/*
+!node_modules/!(hldebug)/**/*
+!node_modules/hldebug/!(build)/**/*
+!node_modules/hldebug/*
 !adapter.js
 !bindings.js
 !CHANGELOG.md
