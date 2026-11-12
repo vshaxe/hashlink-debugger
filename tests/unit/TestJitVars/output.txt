@@ -1,0 +1,69 @@
+> b Test.hx:32
+Breakpoint set line 32
+> b Test.hx:41
+Breakpoint set line 41
+> b Test.hx:50
+Breakpoint set line 50
+> b Test.hx:62
+Breakpoint set line 62
+> b Test.hx:72
+Breakpoint set line 72
+> b Test.hx:75
+Breakpoint set line 75
+> b Test.hx:85
+Breakpoint set line 85
+> r
+Thread paused Test.hx:32 ($Test::cpuRegs)
+> p a
+10 : Int
+> p b
+3 : Int
+> p sum
+13 : Int
+> p diff
+7 : Int
+> r
+Thread paused Test.hx:41 ($Test::fpuRegs)
+> p x
+1.5 : Float
+> p y
+4 : Float
+> p mul
+6 : Float
+> p add
+5.5 : Float
+> r
+Thread paused Test.hx:50 ($Test::mixed)
+> p i
+5 : Int
+> p f
+2.5 : Float
+> p s
+"hello" : String
+> p len
+5 : Int
+> p scaled
+5 : Float
+> r
+Thread paused Test.hx:62 ($Test::spilled)
+> p v0
+100 : Int
+> p v9
+109 : Int
+> p v15
+115 : Int
+> p v19
+119 : Int
+> r
+Thread paused Test.hx:72 ($Test::liveRange)
+> p early
+30 : Int
+> r
+Thread paused Test.hx:75 ($Test::liveRange)
+> p late
+60 : Int
+> r
+Thread paused Test.hx:85
+> p outer
+42 : Int
+> q
