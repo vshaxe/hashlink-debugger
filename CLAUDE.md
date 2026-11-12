@@ -204,7 +204,7 @@ missing v142 toolset; ignore them.
 haxe -cp src -lib vscode -lib vshaxe -lib vscode-debugadapter -D js-es=6 -js extension.js Extension
 haxe build.hxml            # -> adapter.js
 haxe debugger.hxml         # -> debugger/debug.hl, from the debugger/ directory
-cp adapter.js extension.js bindings.js package.json \
+cp adapter.js extension.js package.json \
    "<vscode-extensions-dir>/haxefoundation.haxe-hl-<version>/"
 ```
 
