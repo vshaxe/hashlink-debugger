@@ -4,8 +4,5 @@
   "description": "C++ wrapper to the hashlink debugging API",
   "main": "./index.js",
   "author": "Maurice Doison",
-  "license": "MIT",
-  "dependencies": {
-    "node-addon-api": "1.7.2"
-  }
+  "license": "MIT"
 }
