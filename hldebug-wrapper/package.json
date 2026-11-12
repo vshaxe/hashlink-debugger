@@ -6,7 +6,6 @@
   "author": "Maurice Doison",
   "license": "MIT",
   "dependencies": {
-    "node-addon-api": "1.7.2",
-    "node-gyp": "^8.4.1"
+    "node-addon-api": "1.7.2"
   }
 }

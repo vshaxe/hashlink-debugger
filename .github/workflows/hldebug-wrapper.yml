@@ -1,0 +1,50 @@
+name: hldebug-wrapper
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "**"
+    paths: &wrapper-paths
+      - "hldebug-wrapper/src/**"
+      - "hldebug-wrapper/binding.gyp"
+      - ".github/workflows/hldebug-wrapper.yml"
+  pull_request:
+    paths: *wrapper-paths
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            dir: win
+          - os: ubuntu-latest
+            dir: linux
+          - os: macos-15-intel
+            dir: mac
+    runs-on: ${{ matrix.os }}
+    steps:
+    - uses: actions/checkout@v7
+    - uses: actions/setup-node@v7
+      with:
+        node-version: '22.x'
+    - name: Fetch mdbg from HashLink
+      if: runner.os == 'macOS'
+      run: |
+        git clone --depth 1 https://github.com/HaxeFoundation/hashlink.git hashlink
+        cp -r hashlink/include/mdbg hldebug-wrapper/src/mdbg
+    - name: Build hldebug.node
+      shell: bash
+      run: |
+        npm install --ignore-scripts
+        cd hldebug-wrapper
+        rm -f lib/${{ matrix.dir }}/hldebug.node
+        npm install --ignore-scripts
+        ../node_modules/.bin/node-gyp rebuild
+    - uses: actions/upload-artifact@v7
+      with:
+        name: hldebug-${{ matrix.dir }}
+        path: hldebug-wrapper/lib/${{ matrix.dir }}/hldebug.node
+        if-no-files-found: error
