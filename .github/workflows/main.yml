@@ -28,8 +28,6 @@ jobs:
         haxelib install vscode-debugadapter
     - name: Build extension
       run: make build
-    - name: Build standalone adapter.js
-      run: haxe build.hxml
     - name: Build CLI hl
       run: |
         cd debugger
@@ -51,14 +49,16 @@ jobs:
         export PKG_VER=$(npm pkg get version | xargs)
         export SHORT_HASH=$(git rev-parse --short HEAD)
         npm pkg set 'version'=${PKG_VER}-dev-${SHORT_HASH}
-        # Prevent build node-gyp
-        rm -f hldebug-wrapper/binding.gyp
-        npm install
-        # Double install workaround for node-addon-api invalid error (instead of deduped), see https://github.com/npm/cli/issues/4859
-        npm install
-        npm list node-addon-api
+        npm install --ignore-scripts
         make package
         cp haxe-hl-${PKG_VER}-dev-${SHORT_HASH}.vsix haxe-hl-dev.vsix
+    - name: Check packaged adapter starts
+      run: |
+        rm -rf vsix && unzip -q haxe-hl-dev.vsix -d vsix
+        body='{"seq":1,"type":"request","command":"initialize","arguments":{"adapterID":"hl","linesStartAt1":true,"columnsStartAt1":true,"pathFormat":"path"}}'
+        out=$( (printf 'Content-Length: %d\r\n\r\n%s' ${#body} "$body"; sleep 3) | timeout 10 node vsix/extension/adapter.js || true )
+        echo "$out"
+        echo "$out" | grep -q '"command":"initialize","success":true'
     - name: Upload extension artifact
       uses: actions/upload-artifact@v7
       with:
@@ -83,8 +83,6 @@ jobs:
         haxelib install vscode-debugadapter
     - name: Build extension
       run: make build
-    - name: Build standalone adapter.js
-      run: haxe build.hxml
     - name: Build CLI hl
       run: |
         cd debugger
