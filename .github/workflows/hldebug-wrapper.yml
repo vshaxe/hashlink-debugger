@@ -18,9 +18,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: windows-latest
+          - os: windows-2025
             dir: win
-          - os: ubuntu-latest
+          - os: ubuntu-26.04
             dir: linux
           - os: macos-15-intel
             dir: mac
