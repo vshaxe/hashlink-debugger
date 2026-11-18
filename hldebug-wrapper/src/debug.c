@@ -258,7 +258,7 @@ HL_API int hl_debug_wait( int pid, int *thread, int timeout ) {
 		case EXCEPTION_STACK_OVERFLOW:
 			return 5;
 		default:
-			// first chance, severity not error (e.g. 0x6BA in File Dialog): let the program handle it
+			// first chance, severity not error: let the program handle it
 			if( e.u.Exception.dwFirstChance && (e.u.Exception.ExceptionRecord.ExceptionCode >> 30) != 3 ) {
 				ContinueDebugEvent(e.dwProcessId, e.dwThreadId, DBG_EXCEPTION_NOT_HANDLED);
 				break;
