@@ -155,8 +155,8 @@ v6 records a scope end per assign, and the VM keeps the register reserved until 
   platform-specific, never to hide a bug. `output-<Sys.systemName()>.txt` replaces `output.txt` where
   the correct output differs (usually the ABI); `output.txt` is SysV, and `Mac` falls back to it.
 - `--hl` sets the VM for **both** the debugger and the debuggee. `--hl-ver` adds `-D hl-ver=` to
-  `tests/unit/` and rebuilds the debugger as `debugger/debug-<version>.hl`. Rebuild `RunCi.hl` with
-  `haxe RunCi.hxml` first.
+  `tests/unit/` and rebuilds the debugger as `debugger/debug-<version>.hl`. `--port` replaces the
+  default port. Rebuild `RunCi.hl` with `haxe RunCi.hxml` first.
 
 ### The three configurations
 

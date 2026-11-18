@@ -5,15 +5,17 @@ class RunCi {
 		var basePath = Sys.getCwd();
 		var hlBin = "hl";
 		var hlVer : String = null;
+		var debuggerArgs = [];
 		var args = Sys.args();
 		while( args.length > 0 ) {
 			var a = args.shift();
 			switch( a ) {
 			case "--hl": hlBin = args.shift();
 			case "--hl-ver": hlVer = args.shift();
+			case "--port": debuggerArgs = ["-port", args.shift()];
 			default:
 				log('[ERROR] unknown argument $a');
-				log("usage: hl RunCi.hl [--hl-ver <version>] [--hl <path to hl>]");
+				log("usage: hl RunCi.hl [--hl-ver <version>] [--hl <path to hl>] [--port <debug port>]");
 				Sys.exit(1);
 			}
 		}
@@ -35,7 +37,7 @@ class RunCi {
 				}
 				dirFlags = ["-D", "hl-ver=2.0.0"];
 			}
-			errorCount += runTests(basePath, dir, dirFlags, hlBin, debuggerHL);
+			errorCount += runTests(basePath, dir, dirFlags, hlBin, debuggerHL, debuggerArgs);
 		}
 
 		changeDirectory(basePath);
@@ -45,7 +47,7 @@ class RunCi {
 		}
 	}
 
-	static function runTests( basePath : String, dir : String, dirFlags : Array<String>, hlBin : String, debuggerHL : String ) {
+	static function runTests( basePath : String, dir : String, dirFlags : Array<String>, hlBin : String, debuggerHL : String, debuggerArgs : Array<String> ) {
 		var errorCount = 0;
 		var tests = sys.FileSystem.readDirectory(basePath + dir);
 		for( test in tests ) {
@@ -66,7 +68,7 @@ class RunCi {
 			trace("run haxe with " + compileargs);
 			Sys.command("haxe", compileargs);
 			// --cmd : the debuggee must run on the VM under test, not the `hl` on PATH
-			var process = new sys.io.Process(hlBin, [debuggerHL, "--cmd", hlBin, "--input", "input.txt"]);
+			var process = new sys.io.Process(hlBin, [debuggerHL].concat(debuggerArgs).concat(["--cmd", hlBin, "--input", "input.txt"]));
 			var outputFile = "output-" + Sys.systemName() + ".txt";
 			if( !sys.FileSystem.exists(fullPath + "/" + outputFile) )
 				outputFile = "output.txt";
@@ -79,8 +81,9 @@ class RunCi {
 				if( exitCode != null || currentTime - startingTime > MAX_TIME_PER_TEST )
 					break;
 			}
+			if( exitCode == null )
+				killDebuggerAndDebuggee(process);
 			var output = normalize(process.stdout.readAll().toString());
-			process.kill();
 			process.close();
 			if( exitCode == null ) {
 				errorCount ++;
@@ -97,6 +100,16 @@ class RunCi {
 			}
 		}
 		return errorCount;
+	}
+
+	static function killDebuggerAndDebuggee( process : sys.io.Process ) {
+		var pid = "" + process.getPid();
+		var killer = Sys.systemName() == "Windows"
+			? new sys.io.Process("taskkill", ["/F", "/T", "/PID", pid])
+			: new sys.io.Process("pkill", ["-KILL", "-P", pid]);
+		killer.exitCode();
+		killer.close();
+		process.kill();
 	}
 
 	// reuse debugger.hxml so libs and class paths stay in sync, but retarget the output
