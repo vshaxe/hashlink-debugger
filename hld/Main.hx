@@ -206,15 +206,6 @@ class Main {
 		}
 	}
 
-	function stepCommand( mode : Debugger.StepMode ) {
-		while( true ) {
-			var r = dbg.step(mode);
-			if( r == Handled ) continue;
-			handleResult(r);
-			break;
-		}
-	}
-
 	function command() {
 		#if !nodejs
 		if( process != null ) {
@@ -373,11 +364,11 @@ class Main {
 		case "delete", "d":
 			clearBP();
 		case "next", "n":
-			stepCommand(Next);
+			handleResult(dbg.step(Next));
 		case "step", "s":
-			stepCommand(Into);
+			handleResult(dbg.step(Into));
 		case "finish":
-			stepCommand(Out);
+			handleResult(dbg.step(Out));
 		case "thread":
 			var arg = args.shift();
 			if( arg != null ) {
