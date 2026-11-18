@@ -704,6 +704,8 @@ class Debugger {
 				var r = wait();
 				if( r != Exit && currentStack.length == 0 )
 					r = wait();
+				if( r == Handled && (currentThread != tid || currentStack.length > depth) )
+					continue;
 				if( (r != Breakpoint && r != SingleStep) || currentThread != tid || currentStack.length == 0 || currentStack[0].fidx != s.fidx ) {
 					cleanup();
 					return r;

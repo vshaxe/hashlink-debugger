@@ -1,0 +1,29 @@
+--ci
+test.hl
+"b Test.hx:3 x==2"
+"b Test.hx:11 x==2"
+"b Test.hx:22 x==1"
+"b Test.hx:23 x==0"
+r
+"p x"
+n
+n
+n
+"p x"
+finish
+finish
+n
+n
+n
+"p x"
+finish
+finish
+n
+s
+finish
+n
+n
+"p x"
+n
+"p x"
+q
