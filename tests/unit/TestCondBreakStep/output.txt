@@ -1,0 +1,65 @@
+> b Test.hx:3 x==2
+Breakpoint set line 3, cond: x==2
+> b Test.hx:11
+Breakpoint set line 11
+> b Test.hx:13 sum==99
+Breakpoint set line 13, cond: sum==99
+> b Test.hx:16
+Breakpoint set line 16
+> b Test.hx:17 i==99
+Breakpoint set line 17, cond: i==99
+> b Test.hx:23 x==99
+Breakpoint set line 23, cond: x==99
+> b Test.hx:27 i==0
+Breakpoint set line 27, cond: i==0
+> b Test.hx:32 j==99
+Breakpoint set line 32, cond: j==99
+> r
+Thread paused Test.hx:3 ($Test::rec)
+> p x
+2 : Int
+> s
+Thread paused Test.hx:4 ($Test::rec)
+> n
+Thread paused Test.hx:5 ($Test::rec)
+> s
+Thread paused Test.hx:3 ($Test::rec)
+> p x
+1 : Int
+> n
+Thread paused Test.hx:4 ($Test::rec)
+> p x
+1 : Int
+> r
+Thread paused Test.hx:11 ($Test::sameFrame)
+> n
+Thread paused Test.hx:13 ($Test::sameFrame)
+> n
+Thread paused Test.hx:14 ($Test::sameFrame)
+> p sum
+0 : Int
+> r
+Thread paused Test.hx:16 ($Test::sameFrame)
+> n
+Thread paused Test.hx:17 ($Test::sameFrame)
+> n
+Thread paused Test.hx:18 ($Test::sameFrame)
+> p i
+3 : Int
+> r
+Thread paused Test.hx:27 ($Test::inc)
+> p i
+0 : Int
+> finish
+Thread paused Test.hx:32 ($Test::loopExit)
+> n
+Thread paused Test.hx:33 ($Test::loopExit)
+> p j
+3 : Int
+> s
+Thread paused Test.hx:22 ($Test::twice)
+> finish
+Thread paused Test.hx:23 ($Test::twice)
+> finish
+Thread paused Test.hx:33 ($Test::loopExit)
+> q

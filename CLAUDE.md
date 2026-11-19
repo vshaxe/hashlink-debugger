@@ -44,6 +44,8 @@ including the program a report came from, is described by its shape, the way a t
   sources.
 - Debug info (lines, variable names, register mapping) is written into the `.hl` by the **Haxe
   compiler**.
+- Two frontends drive the debugger: the CLI (`Main`) and the VSCode adapter (`HLAdapter`). Keep them
+  behaving the same.
 
 Where the debugger depends on something the VM produces, read the layout in the debugger-side code
 that decodes it, then in the VM sources.

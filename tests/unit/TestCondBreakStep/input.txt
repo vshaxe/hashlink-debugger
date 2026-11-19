@@ -1,0 +1,35 @@
+--ci
+test.hl
+"b Test.hx:3 x==2"
+"b Test.hx:11"
+"b Test.hx:13 sum==99"
+"b Test.hx:16"
+"b Test.hx:17 i==99"
+"b Test.hx:23 x==99"
+"b Test.hx:27 i==0"
+"b Test.hx:32 j==99"
+r
+"p x"
+s
+n
+s
+"p x"
+n
+"p x"
+r
+n
+n
+"p sum"
+r
+n
+n
+"p i"
+r
+"p i"
+finish
+n
+"p j"
+s
+finish
+finish
+q

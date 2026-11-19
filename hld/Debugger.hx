@@ -618,10 +618,15 @@ class Debugger {
 		var depth = currentStack.length;
 		var onException = getException() != null;
 
+		function runToStop() {
+			var r;
+			do r = run() while( r == Handled );
+			return r;
+		}
+
 		if( s == null || s.fidx == Eval.TRAMPOLINE_FIDX || onException ) {
 			if( DEBUG ) trace("Step not supported, continue.");
-			resume();
-			return wait();
+			return runToStop();
 		}
 
 		var orig = module.resolveSymbol(s.fidx, s.fpos);
@@ -630,13 +635,14 @@ class Debugger {
 		var currentCodePos = getCodePos(tid);
 		var onBreakPoint = false;
 		var immediateProcess = false;
+		var userBreaks = new Map();
 
 		for( b in breakPoints )
 			if( b.fid == s.fidx ) {
 				if( b.pos == s.fpos ) {
 					onBreakPoint = true;
 				} else
-					marked.set(b.pos, null);
+					userBreaks.set(b.pos, true);
 			}
 
 		// Add trap breakpoint if current trap is not in current function
@@ -677,6 +683,8 @@ class Debugger {
 				if( codePos == currentCodePos && onBreakPoint ) {
 					immediateProcess = true;
 					bp.oldByte = -1;
+				} else if( userBreaks.exists(pos) ) {
+					bp.oldByte = -1;
 				} else
 					setAsm(codePos, INT3);
 				// if we are on same op but after the call (after returning from a finish)
@@ -698,18 +706,33 @@ class Debugger {
 						removeBP(bp);
 				}
 		}
+		var userHit = false;
 		if( !immediateProcess ) {
 			while( true ) {
 				resume();
 				var r = wait();
 				if( r != Exit && currentStack.length == 0 )
 					r = wait();
+				var onUser = false, onStep = false;
+				for( b in breakPoints )
+					if( b.codePos == nextStep ) {
+						if( b.fid >= 0 )
+							onUser = true;
+						else
+							onStep = true;
+					}
+				userHit = r == Breakpoint && onUser;
+				if( r == Handled ) {
+					if( currentThread != tid || !onStep )
+						continue;
+					r = Breakpoint;
+				}
 				if( (r != Breakpoint && r != SingleStep) || currentThread != tid || currentStack.length == 0 || currentStack[0].fidx != s.fidx ) {
 					cleanup();
 					return r;
 				}
 				// fix recursive methods that are breaking on the inner function
-				if( (mode == Out || mode == Next) && currentStack.length > depth ) {
+				if( (mode == Out || mode == Next) && currentStack.length > depth && !userHit ) {
 					var isRecursive = false;
 					for( b in breakPoints )
 						if( (b.fid == -2 || b.fid == -1) && nextStep == b.codePos ) {
@@ -726,7 +749,7 @@ class Debugger {
 		}
 		// execute until the end of Call/Ret if we stopped on it !
 		for( b in breakPoints ) {
-			if( nextStep != b.codePos || b.fid >= -1 ) continue;
+			if( userHit || nextStep != b.codePos || b.fid >= -1 ) continue;
 			var isRet = b.fid == -2;
 			while( true ) {
 				var eip = getReg(tid, Eip);
@@ -745,8 +768,7 @@ class Debugger {
 							// ret on final main() ? - run till exit
 							prepareStack();
 							if( currentStack.length == 0 ) {
-								resume();
-								return wait();
+								return runToStop();
 							}
 						}
 						break;

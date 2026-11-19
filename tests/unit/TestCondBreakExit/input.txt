@@ -1,0 +1,27 @@
+--ci
+test.hl
+"catch throw"
+"b Test.hx:26"
+"b Test.hx:4 x==99"
+"b Test.hx:8 i==0"
+"b Test.hx:32 i==2"
+"b Test.hx:20 x==99"
+"b Test.hx:22"
+r
+s
+n
+n
+s
+finish
+r
+n
+"p i"
+finish
+n
+"p i"
+n
+"p i"
+r
+n
+"p x"
+q
