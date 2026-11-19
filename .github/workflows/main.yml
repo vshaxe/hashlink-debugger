@@ -12,7 +12,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 5
     steps:
     - uses: actions/checkout@v7
     - uses: krdlab/setup-haxe@v2
@@ -68,12 +68,12 @@ jobs:
 
   build_and_test_nightly:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 5
     steps:
     - uses: actions/checkout@v7
     - uses: krdlab/setup-haxe@v2
       with:
-        haxe-version: latest
+        haxe-version: 2026-11-12_development_3cfeac4
     - name: Print haxe version
       run: haxe -version
     - name: Install haxelib dependencies
