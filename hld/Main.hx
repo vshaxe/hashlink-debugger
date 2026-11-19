@@ -111,6 +111,9 @@ class Main {
 			}
 		}
 
+		dbg = new hld.Debugger();
+		dbg.loadModule(sys.io.File.getBytes(file));
+
 		if( pid == null ) {
 			var args = ["--debug", "" + debugPort, "--debug-wait"];
 			if( optimizeDebug ) args.push("--debug-opt");
@@ -125,9 +128,6 @@ class Main {
 			pid = process.getPid();
 			#end
 		}
-
-		dbg = new hld.Debugger();
-		dbg.loadModule(sys.io.File.getBytes(file));
 
 		function getAPI() : hld.Api {
 			#if hl
