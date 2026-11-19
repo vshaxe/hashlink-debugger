@@ -1,21 +1,9 @@
 --ci
 test.hl
-"catch throw"
 "b Test.hx:3 x==2"
 "b Test.hx:11 x==2"
 "b Test.hx:22 x==1"
 "b Test.hx:23 x==0"
-"b Test.hx:27"
-"b Test.hx:29 sum==99"
-"b Test.hx:32"
-"b Test.hx:33 i==99"
-"b Test.hx:68"
-"b Test.hx:39 x==99"
-"b Test.hx:43 i==0"
-"b Test.hx:74 i==2"
-"b Test.hx:55 x==99"
-"b Test.hx:57"
-"b Test.hx:82 j==99"
 r
 "p x"
 n
@@ -38,45 +26,4 @@ n
 "p x"
 n
 "p x"
-r
-"p x"
-s
-n
-s
-"p x"
-n
-"p x"
-r
-n
-n
-"p sum"
-r
-n
-n
-"p i"
-r
-s
-n
-n
-s
-finish
-r
-n
-"p i"
-finish
-n
-"p i"
-n
-"p i"
-r
-n
-"p x"
-r
-"p i"
-finish
-n
-"p j"
-s
-finish
-finish
 q

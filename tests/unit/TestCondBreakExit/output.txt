@@ -1,0 +1,50 @@
+> catch throw
+> b Test.hx:26
+Breakpoint set line 26
+> b Test.hx:4 x==99
+Breakpoint set line 4, cond: x==99
+> b Test.hx:8 i==0
+Breakpoint set line 8, cond: i==0
+> b Test.hx:32 i==2
+Breakpoint set line 32, cond: i==2
+> b Test.hx:20 x==99
+Breakpoint set line 20, cond: x==99
+> b Test.hx:22
+Breakpoint set line 22
+> r
+Thread paused Test.hx:26 ($Test::main)
+> s
+Thread paused Test.hx:3 ($Test::twice)
+> n
+Thread paused Test.hx:4 ($Test::twice)
+> n
+Thread paused Test.hx:26 ($Test::main)
+> s
+Thread paused Test.hx:3 ($Test::twice)
+> finish
+Thread paused Test.hx:26 ($Test::main)
+> r
+Thread paused Test.hx:12 ($Test::fail)
+Exception: "err"
+> n
+Thread paused Test.hx:8 ($Test::inc)
+> p i
+0 : Int
+> finish
+Thread paused Test.hx:32 ($Test::main)
+> n
+Thread paused Test.hx:32 ($Test::main)
+> p i
+2 : Int
+> n
+Thread paused Test.hx:33 ($Test::main)
+> p i
+3 : Int
+> r
+Thread paused Test.hx:18 ($Test::catchHere)
+Exception: "err2"
+> n
+Thread paused Test.hx:22 ($Test::catchHere)
+> p x
+2 : Int
+> q
