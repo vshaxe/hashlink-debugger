@@ -1,3 +1,4 @@
+> catch throw
 > b Test.hx:3 x==2
 Breakpoint set line 3, cond: x==2
 > b Test.hx:11 x==2
@@ -6,6 +7,28 @@ Breakpoint set line 11, cond: x==2
 Breakpoint set line 22, cond: x==1
 > b Test.hx:23 x==0
 Breakpoint set line 23, cond: x==0
+> b Test.hx:27
+Breakpoint set line 27
+> b Test.hx:29 sum==99
+Breakpoint set line 29, cond: sum==99
+> b Test.hx:32
+Breakpoint set line 32
+> b Test.hx:33 i==99
+Breakpoint set line 33, cond: i==99
+> b Test.hx:68
+Breakpoint set line 68
+> b Test.hx:39 x==99
+Breakpoint set line 39, cond: x==99
+> b Test.hx:43 i==0
+Breakpoint set line 43, cond: i==0
+> b Test.hx:74 i==2
+Breakpoint set line 74, cond: i==2
+> b Test.hx:55 x==99
+Breakpoint set line 55, cond: x==99
+> b Test.hx:57
+Breakpoint set line 57
+> b Test.hx:82 j==99
+Breakpoint set line 82, cond: j==99
 > r
 Thread paused Test.hx:3 ($Test::rec)
 > p x
@@ -21,11 +44,11 @@ Thread paused Test.hx:6 ($Test::rec)
 > finish
 Thread paused Test.hx:5 ($Test::rec)
 > finish
-Thread paused Test.hx:27 ($Test::main)
+Thread paused Test.hx:61 ($Test::main)
 > n
-Thread paused Test.hx:28 ($Test::main)
+Thread paused Test.hx:62 ($Test::main)
 > n
-Thread paused Test.hx:29 ($Test::main)
+Thread paused Test.hx:63 ($Test::main)
 > n
 Thread paused Test.hx:11 ($Test::baz)
 > p x
@@ -33,15 +56,15 @@ Thread paused Test.hx:11 ($Test::baz)
 > finish
 Thread paused Test.hx:15 ($Test::bar)
 > finish
-Thread paused Test.hx:29 ($Test::main)
+Thread paused Test.hx:63 ($Test::main)
 > n
-Thread paused Test.hx:30 ($Test::main)
+Thread paused Test.hx:64 ($Test::main)
 > s
 Thread paused Test.hx:15 ($Test::bar)
 > finish
-Thread paused Test.hx:30 ($Test::main)
+Thread paused Test.hx:64 ($Test::main)
 > n
-Thread paused Test.hx:31 ($Test::main)
+Thread paused Test.hx:65 ($Test::main)
 > n
 Thread paused Test.hx:22 ($Test::down)
 > p x
@@ -50,4 +73,88 @@ Thread paused Test.hx:22 ($Test::down)
 Thread paused Test.hx:23 ($Test::down)
 > p x
 0 : Int
+> r
+Thread paused Test.hx:3 ($Test::rec)
+> p x
+2 : Int
+> s
+Thread paused Test.hx:4 ($Test::rec)
+> n
+Thread paused Test.hx:5 ($Test::rec)
+> s
+Thread paused Test.hx:3 ($Test::rec)
+> p x
+1 : Int
+> n
+Thread paused Test.hx:4 ($Test::rec)
+> p x
+1 : Int
+> r
+Thread paused Test.hx:27 ($Test::sameFrame)
+> n
+Thread paused Test.hx:29 ($Test::sameFrame)
+> n
+Thread paused Test.hx:30 ($Test::sameFrame)
+> p sum
+0 : Int
+> r
+Thread paused Test.hx:32 ($Test::sameFrame)
+> n
+Thread paused Test.hx:33 ($Test::sameFrame)
+> n
+Thread paused Test.hx:34 ($Test::sameFrame)
+> p i
+3 : Int
+> r
+Thread paused Test.hx:68 ($Test::main)
+> s
+Thread paused Test.hx:38 ($Test::twice)
+> n
+Thread paused Test.hx:39 ($Test::twice)
+> n
+Thread paused Test.hx:68 ($Test::main)
+> s
+Thread paused Test.hx:38 ($Test::twice)
+> finish
+Thread paused Test.hx:68 ($Test::main)
+> r
+Thread paused Test.hx:47 ($Test::fail)
+Exception: "err"
+> n
+Thread paused Test.hx:43 ($Test::inc)
+> p i
+0 : Int
+> finish
+Thread paused Test.hx:74 ($Test::main)
+> n
+Thread paused Test.hx:74 ($Test::main)
+> p i
+2 : Int
+> n
+Thread paused Test.hx:75 ($Test::main)
+> p i
+3 : Int
+> r
+Thread paused Test.hx:53 ($Test::catchHere)
+Exception: "err2"
+> n
+Thread paused Test.hx:57 ($Test::catchHere)
+> p x
+2 : Int
+> r
+Thread paused Test.hx:43 ($Test::inc)
+> p i
+0 : Int
+> finish
+Thread paused Test.hx:82 ($Test::loopExit)
+> n
+Thread paused Test.hx:83 ($Test::loopExit)
+> p j
+3 : Int
+> s
+Thread paused Test.hx:38 ($Test::twice)
+> finish
+Thread paused Test.hx:39 ($Test::twice)
+> finish
+Thread paused Test.hx:83 ($Test::loopExit)
 > q
