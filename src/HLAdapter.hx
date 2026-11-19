@@ -357,6 +357,7 @@ class HLAdapter extends DebugSession {
 		// TODO : load & validate after run() -- save some precious time
 		debug("Load module " + program);
 		dbg.loadModule(sys.io.File.getBytes(program));
+		dbg.watchFile(program);
 
 		debug("Connecting to 127.0.0.1:" + port);
 		var connectStart = haxe.Timer.stamp();
@@ -443,7 +444,7 @@ class HLAdapter extends DebugSession {
 				field = "new";
 			return clName.join(".") + "." + field;
 		}
-		return "<local function>";
+		return f.localName != null ? f.localName : "<local function>";
 	}
 
 	function run() {

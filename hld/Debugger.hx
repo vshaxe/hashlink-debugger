@@ -45,12 +45,18 @@ class StackInfo {
 	var line : Int;
 	var ebp : Pointer;
 	var context : Null<{ obj : format.hl.Data.ObjPrototype, field : String }>;
+	var localName : Null<String> = null;
 }
 
 class Debugger {
 
 	public static inline var NATIVE_FRAME = "<native>";
 	static inline var INT3 = 0xCC;
+	static inline var PATCH_SIZE = 12;
+	static inline var CMD_RUN = 1;
+	static inline var CMD_MODULE_DEBUG = 3;
+	static inline var CMD_MODULE_BYTES = 4;
+	static inline var MSG_MODULE_ADDED = 0x100;
 	static var HW_REGS : Array<Api.Register> = [Dr0, Dr1, Dr2, Dr3];
 	public static var DEBUG = false;
 	public static var IGNORED_ROOTS = [
@@ -75,6 +81,13 @@ class Debugger {
 
 	var api : Api;
 	var module : Module;
+	var modulesCache : Map<String, Module> = new Map();
+	var watchedFile : { path : String, time : Float, size : Int, lastCheck : Float };
+	var userBreaks : Array<{ file : String, line : Int, condition : String }> = [];
+	var requests : Array<Null<haxe.io.Bytes> -> Void> = [];
+	var prefetched : Map<Int, { debug : haxe.io.Bytes, module : Module }> = new Map();
+	var sockData : haxe.io.Bytes;
+	var runSent = false;
 	var jit : JitInfo;
 	var processExit : Bool;
 	var ignoredRoots : Map<String,Bool>;
@@ -125,8 +138,68 @@ class Debugger {
 	}
 
 	public function loadModule( content : haxe.io.Bytes ) {
-		module = new Module();
-		module.load(content);
+		module = decodeModule(content);
+	}
+
+	function decodeModule( content : haxe.io.Bytes ) {
+		var m = new Module();
+		m.load(content);
+		var id = buildIdKey(m.code.buildId);
+		if( id != null )
+			modulesCache.set(id, m);
+		return m;
+	}
+
+	static function buildIdKey( id : haxe.io.Bytes ) {
+		if( id == null )
+			return null;
+		var key = id.toHex();
+		return ~/^0+$/.match(key) ? null : key;
+	}
+
+	public function watchFile( path : String ) {
+		watchedFile = { path : path, time : 0., size : 0, lastCheck : 0. };
+		try {
+			var st = sys.FileSystem.stat(path);
+			watchedFile.time = st.mtime.getTime();
+			watchedFile.size = st.size;
+		} catch( e : Dynamic ) {
+		}
+	}
+
+	function checkWatchedFile() {
+		var w = watchedFile;
+		if( w == null || Sys.time() - w.lastCheck < 0.5 )
+			return;
+		w.lastCheck = Sys.time();
+		var st = try sys.FileSystem.stat(w.path) catch( e : Dynamic ) null;
+		if( st == null || (st.mtime.getTime() == w.time && st.size == w.size) )
+			return;
+		try {
+			var content = sys.io.File.getBytes(w.path);
+			if( content.length >= 8 && content.get(3) >= 7 && content.getInt32(4) != content.length )
+				return;
+			decodeModule(content);
+			w.time = st.mtime.getTime();
+			w.size = st.size;
+		} catch( e : Dynamic ) {
+		}
+	}
+
+	function findModule( buildId : haxe.io.Bytes ) {
+		var key = buildIdKey(buildId);
+		if( key == null )
+			return null;
+		var m = modulesCache.get(key);
+		if( m == null ) {
+			checkWatchedFile();
+			m = modulesCache.get(key);
+		}
+		return m;
+	}
+
+	inline function mod( fidx : Int ) {
+		return jit.getModule(fidx);
 	}
 
 	public function connectTries( host : String, port : Int, timeout : Float, onResult : Bool -> Void, ?retry : Void -> Bool ) {
@@ -151,27 +224,43 @@ class Debugger {
 	}
 
 	public function connect( host : String, port : Int, onResult : Bool -> Void ) {
-		function done(input) {
-			jit = new JitInfo();
-			if( !jit.read(input, module) ) {
+		function done(mods) {
+			if( mods == null ) {
 				close();
 				onResult(false);
 				return;
 			}
-			module.init(jit.align);
-			onResult(true);
+			bindModules(mods, function(b) {
+				if( !b ) close();
+				onResult(b);
+			});
 		}
 
 		#if hxnodejs
-		var inputData = new haxe.io.BytesBuffer();
+		var inputData = haxe.io.Bytes.alloc(0);
+		var dumpRead = false;
 		sock = new js.node.net.Socket();
 		sock.on("data", function(buf:js.node.Buffer) {
-			inputData.add(buf.hxToBytes());
-			try {
-				done(new haxe.io.BytesInput(inputData.getBytes()));
-			} catch( e : haxe.io.Eof ) {
-				// wait for more data
+			if( dumpRead ) {
+				onSocketData(buf.hxToBytes());
+				return;
 			}
+			var data = buf.hxToBytes();
+			var all = haxe.io.Bytes.alloc(inputData.length + data.length);
+			all.blit(0, inputData, 0, inputData.length);
+			all.blit(inputData.length, data, 0, data.length);
+			inputData = all;
+			var input = new haxe.io.BytesInput(inputData);
+			var mods = try {
+				jit = new JitInfo();
+				jit.read(input);
+			} catch( e : haxe.io.Eof ) {
+				return;
+			}
+			dumpRead = true;
+			if( input.position < inputData.length )
+				onSocketData(inputData.sub(input.position, inputData.length - input.position));
+			done(mods);
 		});
 		js.node.Dns.lookup(host, {family: 4}, function(err, address:String, family) {
 			if( err != null ) {
@@ -199,13 +288,139 @@ class Debugger {
 			onResult(false);
 			return;
 		}
-		done(sock.input);
+		jit = new JitInfo();
+		done(try jit.read(sock.input) catch( e : Dynamic ) null);
 		#end
+	}
+
+	function bindModules( mods : Array<JitInfo.JitModule>, onResult : Bool -> Void ) {
+		if( mods.length == 0 ) {
+			onResult(true);
+			return;
+		}
+		var m = mods.shift();
+		function bind( md : Module ) {
+			if( md == null || !jit.addModule(m, md) ) {
+				onResult(false);
+				return;
+			}
+			md.init(jit.align);
+			bindModules(mods, onResult);
+		}
+		var md = findModule(m.buildId);
+		if( md == null && m.index == 0 && (m.rawSize == 0 || buildIdKey(m.buildId) == null) )
+			md = module;
+		if( md != null || m.rawSize == 0 ) {
+			bind(md);
+			return;
+		}
+		sendCommand(CMD_MODULE_BYTES, m.index, function(bytes) bind(bytes == null ? null : decodeModule(bytes)));
+	}
+
+	function sendCommand( cmd : Int, ?arg : Int, ?onAnswer : Null<haxe.io.Bytes> -> Void ) {
+		if( sock == null ) {
+			if( onAnswer != null ) onAnswer(null);
+			return;
+		}
+		var out = new haxe.io.BytesOutput();
+		out.writeByte(cmd);
+		if( arg != null ) out.writeInt32(arg);
+		if( onAnswer != null ) requests.push(onAnswer);
+		#if hxnodejs
+		sock.write(js.node.Buffer.hxFromBytes(out.getBytes()));
+		#else
+		sock.output.write(out.getBytes());
+		while( requests.length > 0 ) {
+			var code = sock.input.readInt32();
+			var size = sock.input.readInt32();
+			onMessage(code, sock.input.read(size));
+		}
+		#end
+	}
+
+	function onSocketData( data : haxe.io.Bytes ) {
+		if( sockData != null && sockData.length > 0 ) {
+			var all = haxe.io.Bytes.alloc(sockData.length + data.length);
+			all.blit(0, sockData, 0, sockData.length);
+			all.blit(sockData.length, data, 0, data.length);
+			data = all;
+		}
+		var pos = 0;
+		while( data.length - pos >= 8 ) {
+			var size = data.getInt32(pos + 4);
+			if( data.length - pos - 8 < size ) break;
+			var code = data.getInt32(pos);
+			var payload = data.sub(pos + 8, size);
+			pos += 8 + size;
+			onMessage(code, payload);
+		}
+		sockData = data.sub(pos, data.length - pos);
+	}
+
+	function onMessage( code : Int, data : haxe.io.Bytes ) {
+		if( code == MSG_MODULE_ADDED ) {
+			var index = data.getInt32(0);
+			var p = { debug : null, module : findModule(data.sub(4, 16)) };
+			prefetched.set(index, p);
+			#if hxnodejs
+			sendCommand(CMD_MODULE_DEBUG, index, function(b) p.debug = b);
+			if( p.module == null )
+				sendCommand(CMD_MODULE_BYTES, index, function(b) if( b != null ) p.module = decodeModule(b));
+			#end
+			return;
+		}
+		var cb = requests.shift();
+		if( cb != null ) cb(code < 0 ? null : data);
+	}
+
+	function isModuleBreak( codePos : Pointer ) {
+		return jit.registry != null && !jit.isCodePtr(codePos) && eval.readI32(jit.registry.offset(4)) == 1;
+	}
+
+	function syncModules() {
+		if( jit.registry == null )
+			return;
+		var count = eval.readI32(jit.registry);
+		if( count <= jit.modules.length )
+			return;
+		var ptr = jit.align.ptr;
+		var entries = eval.readPointer(jit.registry.offset(8));
+		var entrySize = ptr * 2 + 8 + 16;
+		var added = false;
+		for( i in jit.modules.length...count ) {
+			var e = entries.offset(i * entrySize);
+			var p = prefetched.get(i);
+			var data = p != null && p.debug != null ? p.debug : readBytes(eval.readPointer(e), eval.readI32(e.offset(ptr * 2)));
+			var m = jit.readModuleData(data, i);
+			var md = p != null && p.module != null ? p.module : findModule(m.buildId);
+			if( md == null ) {
+				var raw = eval.readPointer(e.offset(ptr));
+				if( raw.isNull() )
+					break;
+				md = decodeModule(readBytes(raw, eval.readI32(e.offset(ptr * 2 + 4))));
+			}
+			if( !jit.addModule(m, md) )
+				break;
+			md.init(jit.align);
+			prefetched.remove(i);
+			added = true;
+		}
+		if( !added )
+			return;
+		for( b in breakPoints.copy() )
+			if( b.fid >= 0 && isPatched(b.fid) )
+				removeBP(b);
+		for( b in userBreaks )
+			setBreakpoint(b.file, b.line, b.condition);
+	}
+
+	function readBytes( ptr : Pointer, size : Int ) {
+		return readMem(ptr, size).toBytes(size);
 	}
 
 	public function init( api : Api ) {
 		this.api = api;
-		eval = new Eval(module, api, jit);
+		eval = new Eval(api, jit);
 		eval.resumeDebug = evalResumeDebug;
 		eval.setSingleStep = singleStep;
 		if( !api.start() )
@@ -220,6 +435,7 @@ class Debugger {
 	}
 
 	function close() {
+		requests = [];
 		if( sock != null ) {
 			#if hxnodejs sock.destroy() #else sock.close() #end;
 			sock = null;
@@ -228,8 +444,14 @@ class Debugger {
 
 	public function run() {
 		afterStep = false;
-		// closing the socket will unlock waiting thread
-		close();
+		// closing the socket or sending RUN will unlock waiting thread
+		if( jit.hasModulesInfos() ) {
+			if( !runSent ) {
+				runSent = true;
+				sendCommand(CMD_RUN);
+			}
+		} else
+			close();
 		if( stoppedThread != null )
 			resume();
 		return wait();
@@ -318,7 +540,7 @@ class Debugger {
 	public function getCurrentVars( args : Bool ) {
 		var s = currentStack[currentStackFrame];
 		if( s == null || s.fidx == Eval.TRAMPOLINE_FIDX ) return [];
-		var g = module.getGraph(s.fidx);
+		var g = mod(s.fidx).getGraph(s.fidx);
 		if( args )
 			return g.getArgs();
 		var locals = g.getLocals(s.fpos);
@@ -348,10 +570,10 @@ class Debugger {
 	public function getOpPositions( fidx : Int, from : Int, to : Int ) : Array<String> {
 		var out = [];
 		var start = jit.getFunctionPos(fidx);
-		var f = module.code.functions[fidx];
+		var f = mod(fidx).getFunction(fidx);
 		if( to > f.ops.length ) to = f.ops.length;
 		for( i in from...to ) {
-			var s = module.resolveSymbol(fidx, i);
+			var s = mod(fidx).resolveSymbol(fidx, i);
 			out.push('@$i [${s.line}] +0x${StringTools.hex(jit.getCodePos(fidx,i).sub(start))} ${f.ops[i]}');
 		}
 		return out;
@@ -361,7 +583,7 @@ class Debugger {
 		var s = currentStack[currentStackFrame];
 		if( s.fidx == Eval.TRAMPOLINE_FIDX )
 			return null;
-		var ctx = module.getMethodContext(s.fidx);
+		var ctx = mod(s.fidx).getMethodContext(s.fidx);
 		if( ctx == null )
 			return null;
 		var name = ctx.obj.name;
@@ -422,12 +644,21 @@ class Debugger {
 			var tid = cmd.tid;
 			switch( cmd.r ) {
 			case Timeout, Handled:
+				checkWatchedFile();
 
 				if( customTimeout != null )
 					return cmd.r;
 
 			case Breakpoint:
 				var codePos = getCodePos(tid).offset(-1);
+				if( isModuleBreak(codePos) ) {
+					stoppedThread = tid;
+					syncModules();
+					resume();
+					if( customTimeout != null )
+						return Handled;
+					continue;
+				}
 				for( b in breakPoints ) {
 					if( b.codePos == codePos ) {
 						condition = b.condition;
@@ -478,6 +709,8 @@ class Debugger {
 			}
 		}
 		stoppedThread = cmd.tid;
+		if( cmd.r != Exit )
+			syncModules();
 
 		// Do not overwrite stack on evalCall
 		if( onEvalCall )
@@ -588,7 +821,7 @@ class Debugger {
 			if( e != null )
 				stack.push(e);
 		}
-		return [for( s in stack ) if( module.isValid(s.fidx, s.fpos) ) s];
+		return [for( s in stack ) if( mod(s.fidx).isValid(s.fidx, s.fpos) ) s];
 	}
 
 	function prepareStack( isWatchbreak=false ) {
@@ -601,8 +834,8 @@ class Debugger {
 	}
 
 	function skipFunction( fidx : Int ) {
-		var ctx = module.getMethodContext(fidx);
-		var name = ctx == null ? new haxe.io.Path(module.resolveSymbol(fidx, 0).file).file : ctx.obj.name.split(".")[0];
+		var ctx = mod(fidx).getMethodContext(fidx);
+		var name = ctx == null ? new haxe.io.Path(mod(fidx).resolveSymbol(fidx, 0).file).file : ctx.obj.name.split(".")[0];
 		if( name.charCodeAt(0) == "$".code ) name = name.substr(1);
 		if( ignoredRoots == null ) {
 			ignoredRoots = new Map();
@@ -629,8 +862,8 @@ class Debugger {
 			return runToStop();
 		}
 
-		var orig = module.resolveSymbol(s.fidx, s.fpos);
-		var graph = module.getGraph(s.fidx);
+		var orig = mod(s.fidx).resolveSymbol(s.fidx, s.fpos);
+		var graph = mod(s.fidx).getGraph(s.fidx);
 		var marked = new Map();
 		var currentCodePos = getCodePos(tid);
 		var onBreakPoint = false;
@@ -663,14 +896,14 @@ class Debugger {
 			var pos = todo.pop();
 			if( marked.exists(pos) )
 				continue;
-			var l = module.resolveSymbol(s.fidx, pos);
+			var l = mod(s.fidx).resolveSymbol(s.fidx, pos);
 			var c = graph.control(pos);
 			var lineChange = mode != Out && (l.file != orig.file || l.line != orig.line) && !c.match(CCatch | CJAlways(_));
 			switch( c ) {
 			case CCall(f) if( f >= 0 && mode == Into ):
 				// skip calls to std library
-				var fid = @:privateAccess module.functionsIndexes.get(f);
-				if( fid == null || fid >= module.code.functions.length /* native */ || skipFunction(fid) )
+				var fid = mod(s.fidx).getFunctionIndex(f);
+				if( fid == null || skipFunction(fid) )
 					c = CNo;
 			default:
 			}
@@ -790,10 +1023,10 @@ class Debugger {
 	function isCallerOf( caller : StackRawInfo, callee : StackRawInfo ) {
 		if( callee == null )
 			return true;
-		var f = module.code.functions[caller.fidx];
+		var f = mod(caller.fidx).getFunction(caller.fidx);
 		if( f == null )
 			return true;
-		var graph = module.getGraph(caller.fidx);
+		var graph = mod(caller.fidx).getGraph(caller.fidx);
 		for( pos in [caller.fpos, caller.fpos - 1] ) {
 			if( pos < 0 || pos >= f.ops.length )
 				continue;
@@ -801,7 +1034,9 @@ class Debugger {
 			case CCall(-1):
 				return true;
 			case CCall(findex):
-				if( @:privateAccess module.functionsIndexes.get(findex) == callee.fidx )
+				if( callee.fidx == Eval.TRAMPOLINE_FIDX || jit.getModule(callee.fidx) != mod(caller.fidx) )
+					return true;
+				if( mod(caller.fidx).getFunctionIndex(findex) == callee.fidx )
 					return true;
 			default:
 			}
@@ -850,7 +1085,7 @@ class Debugger {
 
 		//trace(eip,"0x"+api.readByte(eip, 0), e);
 
-		if( e != null && !module.isValid(e.fidx,e.fpos) )
+		if( e != null && !mod(e.fidx).isValid(e.fidx,e.fpos) )
 			e = null;
 
 		// if we are on ret, our EBP is wrong, so let's ignore this stack part
@@ -898,7 +1133,7 @@ class Debugger {
 			if( ret == null )
 				return true;
 			var e = jit.resolveAsmPos(ret);
-			return e == null || !module.isValid(e.fidx, e.fpos);
+			return e == null || !mod(e.fidx).isValid(e.fidx, e.fpos);
 		}
 
 		// similar to module/module_capture_stack
@@ -915,7 +1150,7 @@ class Debugger {
 					var callSite = readStack(slot.offset(trampoline.callOffset));
 					if( frameEbp != null && callSite != null && frameEbp > esp && frameEbp < tinf.stackTop ) {
 						var e = jit.resolveAsmPos(callSite.offset(-1));
-						if( e != null && e.fpos >= 0 && module.isValid(e.fidx, e.fpos) ) {
+						if( e != null && e.fpos >= 0 && mod(e.fidx).isValid(e.fidx, e.fpos) ) {
 							e.ebp = frameEbp;
 							stack.push({ fidx : Eval.TRAMPOLINE_FIDX, fpos : 0, codePos : val, ebp : slot });
 							stack.push(e);
@@ -992,7 +1227,7 @@ class Debugger {
 			}
 		}
 
-		return [for( s in stack ) if( s.fidx == Eval.TRAMPOLINE_FIDX || module.isValid(s.fidx,s.fpos) ) s];
+		return [for( s in stack ) if( s.fidx == Eval.TRAMPOLINE_FIDX || mod(s.fidx).isValid(s.fidx,s.fpos) ) s];
 	}
 
 	inline function get_stackFrameCount() return currentStack.length;
@@ -1014,7 +1249,7 @@ class Debugger {
 		var out = [];
 		for( ptr in stack ) {
 			var e = jit.resolveAsmPos(ptr);
-			if( e == null || !module.isValid(e.fidx,e.fpos) || e.fpos < 0 ) continue;
+			if( e == null || !mod(e.fidx).isValid(e.fidx,e.fpos) || e.fpos < 0 ) continue;
 			out.push(stackInfo({ fidx : e.fidx, fpos : e.fpos, ebp: null }));
 		}
 		return out;
@@ -1023,8 +1258,8 @@ class Debugger {
 	function stackInfo( f ) : StackInfo {
 		if( f.fidx == Eval.TRAMPOLINE_FIDX )
 			return { file : "<native>", line : 0, ebp : f.ebp, context : null };
-		var s = module.resolveSymbol(f.fidx, f.fpos);
-		return { file : s.file, line : s.line, ebp : f.ebp, context : module.getMethodContext(f.fidx) };
+		var s = mod(f.fidx).resolveSymbol(f.fidx, f.fpos);
+		return { file : s.file, line : s.line, ebp : f.ebp, context : mod(f.fidx).getMethodContext(f.fidx), localName : mod(f.fidx).getFunction(f.fidx).localName };
 	}
 
 	function setContext(global:Bool) {
@@ -1139,6 +1374,7 @@ class Debugger {
 	}
 
 	public function end() {
+		close();
 		if( stoppedThread != null ) resume();
 		if( api != null ) {
 			api.stop();
@@ -1191,13 +1427,55 @@ class Debugger {
 			throw "Failed to set register " + reg;
 	}
 
+	function getBreaks( file : String, line : Int ) {
+		var all = null;
+		for( m in jit.modules ) {
+			var b = m.module.getBreaks(file, line);
+			if( b == null ) continue;
+			var list = [for( x in b.breaks ) if( jit.hasCode(x.ifun) && !isPatched(x.ifun) ) x];
+			if( all == null )
+				all = { breaks : list, line : b.line };
+			else {
+				for( x in list ) all.breaks.push(x);
+				if( list.length > 0 ) all.line = b.line;
+			}
+		}
+		return all;
+	}
+
+	function isPatched( fidx : Int ) {
+		if( jit.modules.length < 2 )
+			return false;
+		var mem = tryReadMem(jit.getFunctionPos(fidx), PATCH_SIZE);
+		return mem != null && mem.getUI8(0) == 0x48 && mem.getUI8(1) == 0xB8 && mem.getUI8(10) == 0xFF && mem.getUI8(11) == 0x20;
+	}
+
+	function isPatchedAt( codePos : Pointer ) {
+		if( jit.modules.length < 2 )
+			return false;
+		var e = jit.resolveAsmPos(codePos);
+		return e != null && codePos.sub(jit.getFunctionPos(e.fidx)) < PATCH_SIZE && isPatched(e.fidx);
+	}
+
 	public function checkBreakpointLine(file : String, line : Int) {
-		var breaks = module.getBreaks(file, line);
+		var breaks = getBreaks(file, line);
 		return breaks == null ? -1 : breaks.line;
 	}
 
 	public function addBreakpoint( file : String, line : Int, condition : Null<String> ) {
-		var breaks = module.getBreaks(file, line);
+		var found = false;
+		for( b in userBreaks )
+			if( b.file == file && b.line == line ) {
+				b.condition = condition;
+				found = true;
+			}
+		if( !found )
+			userBreaks.push({ file : file, line : line, condition : condition });
+		return setBreakpoint(file, line, condition);
+	}
+
+	function setBreakpoint( file : String, line : Int, condition : Null<String> ) {
+		var breaks = getBreaks(file, line);
 		if( breaks == null )
 			return -1;
 		// check already defined
@@ -1222,20 +1500,26 @@ class Debugger {
 	}
 
 	public function clearBreakpoints( file : String ) {
-		var ffuns = module.getFileFunctions(file);
-		if( ffuns == null )
-			return;
-		for( b in breakPoints.copy() )
-			for( f in ffuns.functions )
-				if( b.fid == f.ifun ) {
-					removeBP(b);
-					break;
-				}
+		for( b in userBreaks.copy() )
+			if( b.file == file )
+				userBreaks.remove(b);
+		for( m in jit.modules ) {
+			var ffuns = m.module.getFileFunctions(file);
+			if( ffuns == null )
+				continue;
+			for( b in breakPoints.copy() )
+				for( f in ffuns.functions )
+					if( b.fid == f.ifun ) {
+						removeBP(b);
+						break;
+					}
+		}
 	}
 
 	function removeBP( bp ) {
 		breakPoints.remove(bp);
-		setAsm(bp.codePos, bp.oldByte);
+		if( !isPatchedAt(bp.codePos) )
+			setAsm(bp.codePos, bp.oldByte);
 		if( nextStep == bp.codePos ) {
 			singleStep(currentThread, false);
 			nextStep = Pointer.make(0, 0);
@@ -1243,7 +1527,10 @@ class Debugger {
 	}
 
 	public function removeBreakpoint( file : String, line : Int ) {
-		var breaks = module.getBreaks(file, line);
+		for( b in userBreaks.copy() )
+			if( b.file == file && b.line == line )
+				userBreaks.remove(b);
+		var breaks = getBreaks(file, line);
 		if( breaks == null )
 			return false;
 		var rem = false;

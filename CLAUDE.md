@@ -91,6 +91,20 @@ that decodes it, then in the VM sources.
 - **Clear `Debugger.customTimeout` when the command that set it ends.** Code: `Main` (`c <timeout>`),
   `HLAdapter`. Why: otherwise the next step, or a call inside `p`, aborts on an unrelated thread event.
 
+### Hot reload
+
+- **A function index is global across modules: get its module with `JitInfo.getModule`, never index
+  a `Module`'s functions with it.** Code: `JitInfo`, `Module.base`. Why: each reload adds a module
+  with its own bytecode. Test: `v2/TestHotReload`.
+- **Integrate new modules at a stop from the VM memory, never by asking the VM.** Code:
+  `Debugger.syncModules`. Why: a stop freezes the VM's debug thread; socket requests only prefetch
+  while it runs, at connection or in the adapter.
+- **Resume silently from the break the VM raises after adding a module.** Code:
+  `Debugger.isModuleBreak`. Why: it is what sets breakpoints in the new code before it runs. Test:
+  `v2/TestHotReload`.
+- **Never write a breakpoint's old byte back into the first 12 bytes of a function a reload
+  patched.** Code: `Debugger.isPatchedAt`. Why: the patch jump overwrote them.
+
 ### Exception value
 
 - **Normalise the thrown value only in `Debugger.getException`.** Why: decoding it per caller goes
@@ -139,6 +153,8 @@ v6 records a scope end per assign, and the VM keeps the register reserved until 
 - The flag only asks: an older `haxe.exe` silently writes v4. **Check the byte**: `xxd -l 8 test.hl`
   must print `HLB` then `06`.
 - The `format` haxelib carries a local patch (`format/hl/Reader.hx`, `Data.hx`) to read v6.
+- The same flag writes v7 with a newer compiler: its build id is what matches a hot reloaded module
+  to a `.hl`, and `format` must read v7 too.
 
 ## Building / running
 
@@ -150,7 +166,8 @@ v6 records a scope end per assign, and the VM keeps the register reserved until 
   when the old one was wrong.** Why: tests are what lets a fix go without an entry here, so a failing
   one is a regression until shown otherwise.
 - A test is a folder with `Test.hx`, optional `compile.txt` (extra haxe flags, appended after the
-  directory's, so it wins), `input.txt` and `output.txt`.
+  directory's, so it wins), `input.txt` and `output.txt`. Each line of an optional
+  `compile-reload.txt` adds flags to build `test-reload<N>.hl`, a next version to hot reload.
 - [tests/v2/](tests/v2/) has the same layout, is always compiled with `-D hl-ver=2.0.0`, and is
   skipped on an older VM.
 - `platform.txt` lists the `Sys.systemName()` values a test runs on — only when the *behaviour* is

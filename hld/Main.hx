@@ -26,6 +26,7 @@ class Main {
 	var stdin = Sys.stdin();
 	var isCi = false;
 	var optimizeDebug = false;
+	var hotReload = false;
 
 	#if nodejs
 	var process : js.node.child_process.ChildProcess;
@@ -87,6 +88,8 @@ class Main {
 				isCi = true;
 			case "--debug-opt":
 				optimizeDebug = true;
+			case "--hot-reload":
+				hotReload = true;
 			case "--debug":
 				Debugger.DEBUG = true;
 			default:
@@ -95,7 +98,7 @@ class Main {
 		}
 		file = args.shift();
 		if( file == null ) {
-			Sys.println("hldebug [-port <port>] [--cwd <path>] [--debug-opt] <file.hl> [<commands>]");
+			Sys.println("hldebug [-port <port>] [--cwd <path>] [--debug-opt] [--hot-reload] <file.hl> [<commands>]");
 			Sys.exit(1);
 		}
 		if( !sys.FileSystem.exists(file) )
@@ -113,10 +116,12 @@ class Main {
 
 		dbg = new hld.Debugger();
 		dbg.loadModule(sys.io.File.getBytes(file));
+		dbg.watchFile(file);
 
 		if( pid == null ) {
 			var args = ["--debug", "" + debugPort, "--debug-wait"];
 			if( optimizeDebug ) args.push("--debug-opt");
+			if( hotReload ) args.push("--hot-reload");
 			args = args.concat([file]).concat(hlArgs);
 			#if nodejs
 			process = js.node.ChildProcess.spawn(cmd, args);

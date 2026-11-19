@@ -17,6 +17,10 @@ abstract Buffer(hl.Bytes) {
 		return @:privateAccess String.fromUTF8(this);
 	}
 
+	public function toBytes( size : Int ) {
+		return this.toBytes(size);
+	}
+
 	public function getPointer( pos : Int, align : Align ) {
 		if( align.is64 )
 			return Pointer.make(this.getI32(pos), this.getI32(pos + 4));
@@ -120,6 +124,10 @@ class Buffer {
 
 	public function toNodeBuffer() : js.node.Buffer {
 		return buf;
+	}
+
+	public function toBytes( size : Int ) : haxe.io.Bytes {
+		return buf.hxToBytes().sub(0, size);
 	}
 
 	public static function fromBinaryString(str : String) : Buffer {

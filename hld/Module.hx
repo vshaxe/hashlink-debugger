@@ -26,6 +26,7 @@ typedef ModuleEProto = Array<{ name : String, size : Int, params : Array<{ offse
 class Module {
 
 	public var code : format.hl.Data;
+	public var base : Int = 0;
 	var fileIndexes : Map<String, Int>;
 	var functionsByFile : Map<Int, Array<{ f : HLFunction, ifun : Int, lmin : Int, lmax : Int }>>;
 	var globalsOffsets : Array<Int>;
@@ -52,14 +53,27 @@ class Module {
 		isWindows = Sys.systemName() == "Windows";
 	}
 
+	public function getFunction( fidx : Int ) {
+		return code.functions[fidx - base];
+	}
+
+	public function getFunctionIndex( findex : Int ) : Null<Int> {
+		var idx = functionsIndexes.get(findex);
+		return idx == null || idx >= code.functions.length ? null : idx + base;
+	}
+
 	public function getMethodContext( fidx : Int ) {
-		var f = code.functions[fidx];
+		var f = code.functions[fidx - base];
 		if( f == null ) return null;
 		return methods[f.findex];
 	}
 
 	public function load( data : haxe.io.Bytes ) {
-		code = new format.hl.Reader().read(new haxe.io.BytesInput(data));
+		loadCode(new format.hl.Reader().read(new haxe.io.BytesInput(data)));
+	}
+
+	public function loadCode( code : format.hl.Data ) {
+		this.code = code;
 
 		if( code.debugFiles == null )
 			throw "Debug info not available in the bytecode";
@@ -139,16 +153,21 @@ class Module {
 		return null;
 	}
 
+	public function setGlobalsOffsets( offsets : Array<Int> ) {
+		globalsOffsets = offsets;
+	}
+
 	public function init( align : Align ) {
 		this.align = align;
 
-		// init globals
-		var globalsPos = 0;
-		globalsOffsets = [];
-		for( g in code.globals ) {
-			globalsPos += align.padSize(globalsPos, g);
-			globalsOffsets.push(globalsPos);
-			globalsPos += align.typeSize(g);
+		if( globalsOffsets == null ) {
+			var globalsPos = 0;
+			globalsOffsets = [];
+			for( g in code.globals ) {
+				globalsPos += align.padSize(globalsPos, g);
+				globalsOffsets.push(globalsPos);
+				globalsPos += align.typeSize(g);
+			}
 		}
 
 		globalTable = {
@@ -343,7 +362,7 @@ class Module {
 		var functions = functionsByFile.get(ifile);
 		if( functions == null )
 			return null;
-		return { functions : functions, fidx : ifile };
+		return { functions : [for( f in functions ) { f : f.f, ifun : f.ifun + base, lmin : f.lmin, lmax : f.lmax }], fidx : ifile };
 	}
 
 	public function getBreaks( file : String, line : Int ) {
@@ -407,19 +426,20 @@ class Module {
 	}
 
 	public function isValid( fidx : Int, fpos : Int ) {
-		var f = code.functions[fidx];
+		var f = code.functions[fidx - base];
 		var fid = f.debug[fpos << 1];
 		return code.debugFiles[fid] != "?";
 	}
 
 	public function resolveSymbol( fidx : Int, fpos : Int ) {
-		var f = code.functions[fidx];
+		var f = code.functions[fidx - base];
 		var fid = f.debug[fpos << 1];
 		var fline = f.debug[(fpos << 1) + 1];
 		return { file : code.debugFiles[fid], line : fline };
 	}
 
 	public function getFunctionRegs( fidx : Int ) {
+		fidx -= base;
 		var regs = functionRegsCache[fidx];
 		if( regs != null )
 			return regs;
@@ -465,6 +485,7 @@ class Module {
 	}
 
 	public function getGraph( fidx : Int ) {
+		fidx -= base;
 		var g = graphCache.get(fidx);
 		if( g != null )
 			return g;

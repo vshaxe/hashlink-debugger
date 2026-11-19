@@ -67,6 +67,13 @@ class RunCi {
 			}
 			trace("run haxe with " + compileargs);
 			Sys.command("haxe", compileargs);
+			// next versions of the program, one per line, for the tests that hot reload it
+			var reloads = try StringTools.trim(sys.io.File.getContent(fullPath + "/compile-reload.txt")).split("\n") catch( e ) [];
+			for( i in 0...reloads.length ) {
+				var reloadArgs = compileargs.concat(StringTools.trim(reloads[i]).split(" "));
+				reloadArgs[reloadArgs.indexOf("test.hl")] = "test-reload" + (i + 1) + ".hl";
+				Sys.command("haxe", reloadArgs);
+			}
 			// --cmd : the debuggee must run on the VM under test, not the `hl` on PATH
 			var process = new sys.io.Process(hlBin, [debuggerHL].concat(debuggerArgs).concat(["--cmd", hlBin, "--input", "input.txt"]));
 			var outputFile = "output-" + Sys.systemName() + ".txt";

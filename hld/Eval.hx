@@ -42,7 +42,7 @@ class Eval {
 	var align : Align;
 	var api : Api;
 	var jit : JitInfo;
-	var module : Module;
+	var module(get, never) : Module;
 	var sizeofVArray : Int;
 	var parser : hscript.Parser;
 
@@ -58,6 +58,7 @@ class Eval {
 	var opOffsets : Map<Int, Array<Int>>;
 	var guidNames : Int64Map<String>;
 	var typesByAddr : Int64Map<HLType>;
+	var typesModules : Int;
 
 	public static inline var TRAMPOLINE_FIDX = -1;
 
@@ -73,15 +74,14 @@ class Eval {
 
 	static var HASH_PREFIX = "$_h$";
 
-	public function new(module,api,jit) {
-		this.module = module;
+	public function new(api,jit) {
 		this.api = api;
 		this.jit = jit;
 		this.align = jit.align;
 		parser = new hscript.Parser();
 		parser.identChars += "$";
 		sizeofVArray = align.ptr * 2 + align.typeSize(HI32) * 2;
-		for( t in module.code.types )
+		for( t in jit.modules[0].module.code.types )
 			switch( t ) {
 			case HObj(o):
 				switch( o.name ) {
@@ -91,6 +91,10 @@ class Eval {
 				}
 			default:
 			}
+	}
+
+	inline function get_module() {
+		return jit.getModule(funIndex);
 	}
 
 	public function setContext( funIndex : Int, codePos : Int, nativeCodePos : Int, ebp : Pointer, ?children : Array<Debugger.StackRawInfo> ) {
@@ -851,10 +855,10 @@ class Eval {
 					return AOverwritten(loc.t);
 				case AAddr(ptr, t):
 					var ptr = readPointer(ptr);
-					return AAddr(ptr.offset(module.getEnumProto(loc.container)[0].params[loc.index].offset), loc.t);
+					return AAddr(ptr.offset(jit.getProtoModule(loc.container).getEnumProto(loc.container)[0].params[loc.index].offset), loc.t);
 				case ANative(r, t):
 					var ptr = readNatReg(r);
-					return AAddr(ptr.offset(module.getEnumProto(loc.container)[0].params[loc.index].offset), loc.t);
+					return AAddr(ptr.offset(jit.getProtoModule(loc.container).getEnumProto(loc.container)[0].params[loc.index].offset), loc.t);
 				default:
 					throw "assert";
 				}
@@ -950,7 +954,7 @@ class Eval {
 	}
 
 	function getGlobalAddress( path : Array<String> ) : VarAddress {
-		var g = module.resolveGlobal(path);
+		var g = jit.lastModule.resolveGlobal(path);
 		if( g == null )
 			return ANone;
 		var addr = AAddr(jit.globals.offset(g.offset), g.type);
@@ -1003,12 +1007,12 @@ class Eval {
 			case HBin: Value.intStr(i, 2);
 			case HGuid: Value.int64GuidStr(i);
 			case HEnumFlags(t):
-				var eproto = module.resolveEnum(t);
+				var eproto = jit.lastModule.resolveEnum(t);
 				if( eproto == null )
 					throw "Can't resolve enum " + t;
 				Value.intEnumFlags(i, eproto);
 			case HEnumIndex(t):
-				var eproto = module.resolveEnum(t);
+				var eproto = jit.lastModule.resolveEnum(t);
 				if( eproto == null )
 					throw "Can't resolve enum " + t;
 				Value.intEnumIndex(i, eproto);
@@ -1162,7 +1166,7 @@ class Eval {
 	}
 
 	function getFunctionName( idx : Int ) {
-		var s = module.resolveSymbol(idx, 0);
+		var s = jit.getModule(idx).resolveSymbol(idx, 0);
 		return s.file+":" + s.line;
 	}
 
@@ -1194,14 +1198,14 @@ class Eval {
 		if( offs != null )
 			return offs;
 		var start = jit.getFunctionPos(fidx);
-		offs = [for( i in 0...module.code.functions[fidx].ops.length ) jit.getCodePos(fidx, i).sub(start)];
+		offs = [for( i in 0...jit.getModule(fidx).getFunction(fidx).ops.length ) jit.getCodePos(fidx, i).sub(start)];
 		opOffsets.set(fidx, offs);
 		return offs;
 	}
 
 	function getRecordBlock( fidx : Int, start : Int ) : Int {
 		var offs = getOpOffsets(fidx);
-		var starts = module.getGraph(fidx).getBlockStarts();
+		var starts = jit.getModule(fidx).getGraph(fidx).getBlockStarts();
 		var min = 0, max = starts.length;
 		while( min < max ) {
 			var mid = (min + max) >> 1;
@@ -1306,14 +1310,14 @@ class Eval {
 	}
 
 	public function getContextStr() {
-		var f = module.code.functions[funIndex];
+		var f = module.getFunction(funIndex);
 		var s = module.resolveSymbol(funIndex, codePos);
 		return 'fun@${f.findex} ${s.file}:${s.line} (fidx=$funIndex, op=$codePos)';
 	}
 
 	public function getHLRegs() : Array<String> {
 		var out = [];
-		var f = module.code.functions[funIndex];
+		var f = module.getFunction(funIndex);
 
 		out.push("-- register types --");
 		for( i in 0...f.regs.length )
@@ -1365,7 +1369,7 @@ class Eval {
 			out.push("<empty>");
 			return out;
 		}
-		var f = module.code.functions[fidx];
+		var f = jit.getModule(fidx).getFunction(fidx);
 		for( i in 0...recs.length ) {
 			var rec = recs[i];
 			var over = getRegOverwritePos(recs, i, rec.end - 1);
@@ -1535,7 +1539,7 @@ class Eval {
 			v = VBytes(-1, function(i) return readByte(p.offset(i)), p);
 		case HEnum(e):
 			var index = readI32(p.offset(align.ptr));
-			var c = module.getEnumProto(e)[index];
+			var c = jit.getProtoModule(e).getEnumProto(e)[index];
 			v = VEnum(c.name,[for( a in c.params ) readVal(p.offset(a.offset),a.t)], p);
 		case HAbstract("hl_int64_map"):
 			v = makeMap(p, HI64);
@@ -1643,10 +1647,10 @@ class Eval {
 		switch( [v.v, v.t, v.hint] ) {
 		case [VPointer(p), HAbstract("hl_carray"), HCArray(t, size, pos)]:
 			// hl.CArray
-			var at = module.resolveType(t);
+			var at = jit.lastModule.resolveType(t);
 			var mproto = switch( at ) {
-			case HObj(o): module.getObjectProto(o, false);
-			case HStruct(o): module.getObjectProto(o, true);
+			case HObj(o): jit.getProtoModule(o).getObjectProto(o, false);
+			case HStruct(o): jit.getProtoModule(o).getObjectProto(o, true);
 			default: throw "assert: invalid CArray t";
 			}
 			if( pos != null ) {
@@ -1720,7 +1724,7 @@ class Eval {
 				var index = readI32(l.offset(align.ptr+4)) >>> 17;
 				if( index > 0 )
 					hasIndex = true;
-				var name = module.reverseHash(h);
+				var name = jit.lastModule.reverseHash(h);
 				if( name == null ) name = HASH_PREFIX + h;
 				if( hasIndex )
 					fields[index] = name;
@@ -1811,7 +1815,7 @@ class Eval {
 		}
 		switch( v.t ) {
 		case HObj(o), HStruct(o):
-			var p = module.getObjectProto(o,v.t.match(HStruct(_)));
+			var p = jit.getProtoModule(o).getObjectProto(o,v.t.match(HStruct(_)));
 			var f = p.fields.get(name);
 			if( f != null ) {
 				var offset = f.offset;
@@ -1844,7 +1848,7 @@ class Eval {
 				}
 			}
 			// Construct VEnum if try access with class.name and no params
-			var ep = module.resolveEnum(o.name.split("$").join(""));
+			var ep = jit.lastModule.resolveEnum(o.name.split("$").join(""));
 			if( ep != null )
 				for( c in ep.constructs ) {
 					if( c.name == name ) {
@@ -2040,16 +2044,21 @@ class Eval {
 	function typeFromAddr( p : Pointer ) : HLType {
 		if( jit.hasTypesArray() ) {
 			if( typesByAddr == null ) {
-				var types = module.code.types;
-				var mem = readMem(@:privateAccess jit.allTypes, types.length * align.ptr);
 				typesByAddr = new Int64Map();
+				typesModules = 0;
+			}
+			while( typesModules < jit.modules.length ) {
+				var m = jit.modules[typesModules++];
+				var types = m.module.code.types;
+				var mem = readMem(m.types, types.length * align.ptr);
 				for( i in 0...types.length )
 					typesByAddr.set(mem.getPointer(i * align.ptr, align).i64, types[i]);
 			}
 			return typesByAddr.get(p.i64);
 		}
-		var tid = Std.int( p.sub(@:privateAccess jit.allTypes) / typeStructSize() );
-		return module.code.types[tid];
+		var m = jit.modules[0];
+		var tid = Std.int( p.sub(m.types) / typeStructSize() );
+		return m.module.code.types[tid];
 	}
 
 	function getGuidName( i64 : haxe.Int64 ) : Null<String> {

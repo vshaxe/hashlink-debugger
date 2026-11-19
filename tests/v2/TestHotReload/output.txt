@@ -1,0 +1,30 @@
+> b Test.hx:4
+Breakpoint set line 4
+> r
+Thread paused Test.hx:4 ($Test::compute)
+> p y
+2 : Int
+> bt
+Test.hx:4 ($Test::compute)
+Test.hx:8 ($Test::main)
+> r
+Thread paused Test.hx:4 ($Test::compute)
+> p y
+20 : Int
+> bt
+Test.hx:4 ($Test::compute)
+Test.hx:12 ($Test::main)
+> n
+Thread paused Test.hx:12 ($Test::main)
+> n
+Thread paused Test.hx:13 ($Test::main)
+> p b
+21 : Int
+> r
+Thread paused Test.hx:4 ($Test::compute)
+> p y
+300 : Int
+> bt
+Test.hx:4 ($Test::compute)
+Test.hx:15 ($Test::main)
+> q
