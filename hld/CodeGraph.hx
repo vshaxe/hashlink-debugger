@@ -77,7 +77,10 @@ class CodeGraph {
 				allBlocks.set(i + 1 + d, true);
 			default:
 			}
-		makeBlock(0, []);
+		var todo = [];
+		makeBlock(0, [], todo);
+		while( todo.length > 0 )
+			scanBlock(todo.pop(), todo);
 
 		// init assign args (slightly complicated, let's handle complex logic here)
 		args = [];
@@ -125,9 +128,10 @@ class CodeGraph {
 		for( b in blockPos )
 			checkWrites(b);
 		// absolutes
+		var blocks = [for( p in getBlockStarts() ) blockPos.get(p)];
 		while( true ) {
 			var changed = false;
-			for( b in blockPos )
+			for( b in blocks )
 				for( b2 in b.prev ) {
 					for( rid in b2.writtenRegs.keys() ) {
 						var pos = b2.writtenRegs.get(rid);
@@ -283,9 +287,28 @@ class CodeGraph {
 	}
 
 	function lookupLocal( b : CodeBlock, name : String, pos : Int ) : LocalAccess {
-		if( b.visitTag == currentTag )
-			return b.visitResult;
+		var pending = [];
+		var todo = [b];
 		b.visitTag = currentTag;
+		while( todo.length > 0 ) {
+			var cur = todo.pop();
+			cur.visitResult = lookupWrite(cur, name, pos);
+			if( cur.visitResult != null )
+				continue;
+			pending.push(cur);
+			for( b2 in cur.prev )
+				if( b2.start < cur.start && b2.visitTag != currentTag ) {
+					b2.visitTag = currentTag;
+					todo.push(b2);
+				}
+		}
+		pending.sort((b1, b2) -> b1.start - b2.start);
+		for( cur in pending )
+			cur.visitResult = mergePrev(cur, pos);
+		return b.visitResult;
+	}
+
+	function lookupWrite( b : CodeBlock, name : String, pos : Int ) : LocalAccess {
 		var v = b.writtenVars.get(name);
 		if( v != null ) {
 			var last = -1;
@@ -297,14 +320,18 @@ class CodeGraph {
 			if( last >= 0 ) {
 				var rid = -1;
 				opFx(fun.ops[last], function(_) {}, function(w) rid = w);
-				return b.visitResult = { rid : rid, vid : nargs + last, t : fun.regs[rid] };
+				return { rid : rid, vid : nargs + last, t : fun.regs[rid] };
 			}
 		}
+		return null;
+	}
+
+	function mergePrev( b : CodeBlock, pos : Int ) : LocalAccess {
 		var cands = [];
 		var partial = false;
 		for( b2 in b.prev )
 			if( b2.start < b.start ) {
-				var l = lookupLocal(b2, name, pos);
+				var l = b2.visitResult;
 				if( l == null )
 					partial = true;
 				else
@@ -328,7 +355,7 @@ class CodeGraph {
 				if( dominates(l.vid - nargs, pos) && (found == null || l.vid > found.vid) )
 					found = l;
 		}
-		return b.visitResult = found;
+		return found;
 	}
 
 	function checkWrites( b : CodeBlock ) {
@@ -347,16 +374,22 @@ class CodeGraph {
 		}
 	}
 
-	function makeBlock( pos : Int, trapl : Array<Int> ) {
+	function makeBlock( pos : Int, trapl : Array<Int>, todo : Array<CodeBlock> ) {
 		var b = blockPos.get(pos);
 		if( b != null )
 			return b;
 		var b = new CodeBlock(pos, trapl);
 		blockPos.set(pos, b);
+		todo.push(b);
+		return b;
+	}
+
+	function scanBlock( b : CodeBlock, todo : Array<CodeBlock> ) {
+		var pos = b.start;
 		var i = pos;
 		while( true ) {
 			inline function goto(d, ?tl : Array<Int>) {
-				var b2 = makeBlock(i + 1 + d, tl == null ? b.trap : tl);
+				var b2 = makeBlock(i + 1 + d, tl == null ? b.trap : tl, todo);
 				b2.prev.push(b);
 				return b2;
 			}
@@ -410,7 +443,6 @@ class CodeGraph {
 			}
 			break;
 		}
-		return b;
 	}
 
 	public function control( i ) {

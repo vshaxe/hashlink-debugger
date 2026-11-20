@@ -82,8 +82,9 @@ that decodes it, then in the VM sources.
 
 ### Stepping
 
-- **Keep the CFG walk iterative.** Code: `Debugger.step`. Why: recursion overflows the debugger's own
-  stack on large functions. Test: none, the limit depends on the host stack.
+- **Keep every CFG walk iterative.** Code: `Debugger.step`, `CodeGraph.scanBlock`,
+  `CodeGraph.lookupLocal`. Why: recursion overflows the debugger's own stack on large functions, such
+  as a big program's static init. Test: none, the limit depends on the host stack.
 - **Restore an INT3 hit while single-stepping past a `CRet`/`CCall`; never take it for the
   single-step trap.** Code: `Debugger.wait`. Why: resuming mid-instruction corrupts `rsp`. Tests:
   `TestReturnBreakpoint`, `TestStepMultiReturn` (guards only a VM without the `--debug` epilogue
