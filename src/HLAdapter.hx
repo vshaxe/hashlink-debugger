@@ -217,26 +217,37 @@ class HLAdapter extends DebugSession {
 		return null;
 	}
 
+	function sendOutput( msg : String, out : OutputEventCategory, ?file : String, ?path : String, ?line : Int ) {
+		var e = new OutputEvent(msg, out);
+		if( path != null ) {
+			e.body.source = {
+				name : file,
+				path : path,
+			}
+			e.body.line = line;
+			e.body.column = 0;
+		}
+		sendEvent(e);
+	}
+
 	static final r_trace = ~/^([A-Za-z0-9_.\/]+):([0-9]+): /;
 	static final r_call = ~/^Called from [^(]+\(([A-Za-z0-9_.\/\\:]+) line ([0-9]+)\)/;
 
-	function processLine( str : String, ?out : OutputEventCategory ) {
-		var e = new OutputEvent(str+"\n", out);
-		var reg = null;
-		if( r_trace.match(str) ) reg = r_trace else if( r_call.match(str) ) reg = r_call;
-		if( reg != null ) {
-			var file = reg.matched(1);
-			var path = getFilePath(file);
-			if( path != null ) {
-				e.body.source = {
-					name : file,
-					path : path,
-				}
-				e.body.line = Std.parseInt(reg.matched(2));
-				e.body.column = 0;
+	function processLines( lines : Array<String>, out : OutputEventCategory ) {
+		var plain = [];
+		for( str in lines ) {
+			var reg = null;
+			if( r_trace.match(str) ) reg = r_trace else if( r_call.match(str) ) reg = r_call;
+			var path = reg == null ? null : getFilePath(reg.matched(1));
+			if( path == null ) {
+				plain.push(str);
+				continue;
 			}
+			if( plain.length > 0 ) sendOutput(plain.join("\n") + "\n", out);
+			plain.resize(0);
+			sendOutput(str + "\n", out, reg.matched(1), path, Std.parseInt(reg.matched(2)));
 		}
-		sendEvent(e);
+		if( plain.length > 0 ) sendOutput(plain.join("\n") + "\n", out);
 	}
 
 	function launch( args : Arguments, response : LaunchResponse ) {
@@ -293,15 +304,11 @@ class HLAdapter extends DebugSession {
 		proc.stdout.setEncoding('utf8');
 		var prev = "";
 		proc.stdout.on('data', function(buf) {
-			prev += (buf:Buffer).toString().split("\r\n").join("\n");
+			var text = (prev + (buf:Buffer).toString()).split("\r\n").join("\n");
 			// buffer might be sent incrementaly, only process until newline is sent
-			while( true ) {
-				var index = prev.indexOf("\n");
-				if( index < 0 ) break;
-				var str = prev.substr(0, index);
-				prev = prev.substr(index + 1);
-				processLine(str, Stdout);
-			}
+			var lines = text.split("\n");
+			prev = lines.pop();
+			if( lines.length > 0 ) processLines(lines, Stdout);
 			// remaining data ?, wait a little before sending -- if it's really a progressive trace
 			if( prev != "" ) {
 				var cur = prev;
