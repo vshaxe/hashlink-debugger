@@ -11,7 +11,7 @@ class Test {
 		Sys.println(hl.Api.checkReload());
 		var b = compute(2);
 		Sys.println(b);
-		Sys.println(hl.Api.checkReload(@:privateAccess "test-reload2.hl".bytes));
+		Sys.println(hl.Api.checkReload(@:privateAccess Sys.getPath("test-reload2.hl")));
 		var c = compute(3);
 		Sys.println(c);
 	}
