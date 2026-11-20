@@ -305,13 +305,12 @@ class HLAdapter extends DebugSession {
 			// remaining data ?, wait a little before sending -- if it's really a progressive trace
 			if( prev != "" ) {
 				var cur = prev;
-				var t = new haxe.Timer(200);
-				t.run = function() {
+				haxe.Timer.delay(function() {
 					if( prev == cur ) {
 						sendEvent(new OutputEvent(prev, Stdout));
 						prev = "";
 					}
-				};
+				}, 200);
 			}
 		} );
 		proc.stderr.setEncoding('utf8');
