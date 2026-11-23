@@ -1,3 +1,10 @@
+## 2.0.2 (November 23, 2026)
+* fixed false segfault on first-chance non-error exceptions on Windows
+* fixed step hang on false conditional breakpoint
+* fixed debug console freeze on large output
+* added support for hot reload and multiple modules (hl 2.0)
+* fixed stack overflow on very large functions
+
 ## 2.0.1 (November 12, 2026)
 * fixed missing breakpoints during startup
 * added support for new types array format (hl 2.0)
