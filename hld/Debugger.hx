@@ -239,17 +239,12 @@ class Debugger {
 		#if hxnodejs
 		var inputData = haxe.io.Bytes.alloc(0);
 		var dumpRead = false;
-		sock = new js.node.net.Socket();
-		sock.on("data", function(buf:js.node.Buffer) {
-			if( dumpRead ) {
-				onSocketData(buf.hxToBytes());
+		var pending : js.node.Timers.Immediate = null;
+		var s = sock = new js.node.net.Socket();
+		function tryRead() {
+			pending = null;
+			if( sock != s )
 				return;
-			}
-			var data = buf.hxToBytes();
-			var all = haxe.io.Bytes.alloc(inputData.length + data.length);
-			all.blit(0, inputData, 0, inputData.length);
-			all.blit(inputData.length, data, 0, data.length);
-			inputData = all;
 			var input = new haxe.io.BytesInput(inputData);
 			var mods = try {
 				jit = new JitInfo();
@@ -260,7 +255,21 @@ class Debugger {
 			dumpRead = true;
 			if( input.position < inputData.length )
 				onSocketData(inputData.sub(input.position, inputData.length - input.position));
+			inputData = null;
 			done(mods);
+		}
+		sock.on("data", function(buf:js.node.Buffer) {
+			if( dumpRead ) {
+				onSocketData(buf.hxToBytes());
+				return;
+			}
+			var data = buf.hxToBytes();
+			var all = haxe.io.Bytes.alloc(inputData.length + data.length);
+			all.blit(0, inputData, 0, inputData.length);
+			all.blit(inputData.length, data, 0, data.length);
+			inputData = all;
+			if( pending == null )
+				pending = js.Node.setImmediate(tryRead);
 		});
 		js.node.Dns.lookup(host, {family: 4}, function(err, address:String, family) {
 			if( err != null ) {
