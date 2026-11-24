@@ -391,7 +391,7 @@ class HLAdapter extends DebugSession {
 			dbg.eval.allowEvalGetters = allowEvalGetters;
 			dbg.eval.printEvalCall = DEBUG;
 			syncThreads();
-			debug("Connected");
+			debug("Connected in " + Std.int((haxe.Timer.stamp() - connectStart) * 100) / 100 + "s");
 			onError(null);
 		}, function() {
 			if( procExited )

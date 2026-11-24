@@ -145,12 +145,15 @@ class Main {
 			#end
 		}
 
+		var connectStart = haxe.Timer.stamp();
 		dbg.connectTries("127.0.0.1", debugPort, 10, function(b) {
 			if( !b || !dbg.init(getAPI()) ) {
 				dumpProcessOut();
 				error("Failed to access process #" + pid + " on port " + debugPort + " for debugging");
 				return;
 			}
+			if( Debugger.DEBUG )
+				Sys.println("Connected in " + Std.int((haxe.Timer.stamp() - connectStart) * 100) / 100 + "s");
 			while( command() ) {
 			}
 			Sys.exit(0);
