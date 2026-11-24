@@ -1,8 +1,17 @@
 > catch throw
+> b Test.hx:15
+Breakpoint set line 15
 > r
 Thread paused Test.hx:9 ($Test::main)
 Exception: Failed(42)
 > c
-Thread paused Test.hx:12 ($Test::main)
+Thread paused Test.hx:13 ($Test::main)
+Exception: "Null access .x"
+> c
+Thread paused Test.hx:15 ($Test::main)
+> p e
+"Null access .x" : hl.Bytes
+> c
+Thread paused Test.hx:17 ($Test::main)
 Exception: "Null access .x"
 > q

@@ -9,6 +9,11 @@ class Test {
 			throw Failed(42);
 		} catch( e : MyError ) {
 		}
+		try {
+			trace(obj.x);
+		} catch( e : Dynamic ) {
+			trace(e);
+		}
 		trace(obj.x);
 	}
 }

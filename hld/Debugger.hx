@@ -514,12 +514,6 @@ class Debugger {
 			} catch( e : Dynamic ) {}
 		default:
 		}
-		switch( v.v ) {
-		case VBytes(_, _, p) if( v.t.match(HBytes) ):
-			var str = try eval.readUCSBytes(p) catch( e : Dynamic ) "";
-			v = { v : VString(str, p), t : v.t };
-		default:
-		}
 		return v;
 	}
 

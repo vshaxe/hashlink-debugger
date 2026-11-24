@@ -1,6 +1,10 @@
 --ci
 test.hl
 "catch throw"
+"b Test.hx:15"
 r
+c
+c
+"p e"
 c
 q

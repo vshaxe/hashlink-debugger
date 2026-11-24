@@ -108,8 +108,8 @@ that decodes it, then in the VM sources.
 
 ### Exception value
 
-- **Normalise the thrown value only in `Debugger.getException`.** Why: decoding it per caller goes
-  stale when one of its shapes changes. Test: `TestExceptionValue`.
+- **Show `hl.Bytes` as bytes, not as a string, except a Dynamic holding it.** Why: the VM throws its
+  native errors as one. Test: `TestExceptionValue`.
 
 ## HL V1 / V2 compatibility
 

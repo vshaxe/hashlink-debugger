@@ -1519,6 +1519,11 @@ class Eval {
 			if( t.isDynamic() )
 				return valueCast(p, t);
 			v = readVal(p.offset(8), t).v;
+			switch( v ) {
+			case VBytes(_, _, bp) if( t.match(HBytes) ):
+				try v = VString(readUCSBytes(bp), bp) catch( e : Dynamic ) {}
+			default:
+			}
 		case HNull(t):
 			v = readVal(p.offset(8), t).v;
 		case HRef(t):
@@ -2074,8 +2079,8 @@ class Eval {
 							var k = readKey(n);
 							var v = readValue(n);
 							switch( [k.v, v.v] ) {
-							case [VInt64(ki64), VBytes(_, _, vp)] if( v.t.match(HBytes) ):
-								guidNames.set(ki64, readUCSBytes(vp));
+							case [VInt64(ki64), VString(name, _)]:
+								guidNames.set(ki64, name);
 							default:
 							}
 						}
