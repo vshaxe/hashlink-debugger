@@ -110,6 +110,7 @@ class Debugger {
 	public var currentThread(default,set) : Null<Int>;
 
 	public var customTimeout : Null<Float>;
+	public var printHotReload = false;
 
 	public var watchBreak : Address; // set if breakpoint occur on watch expression
 
@@ -404,13 +405,21 @@ class Debugger {
 			var md = p != null && p.module != null ? p.module : findModule(m.buildId);
 			if( md == null ) {
 				var raw = eval.readPointer(e.offset(ptr));
-				if( raw.isNull() )
+				if( raw.isNull() ) {
+					if( DEBUG || printHotReload )
+						trace("Hot reload: module " + i + " not loaded: bytecode not found");
 					break;
+				}
 				md = decodeModule(readBytes(raw, eval.readI32(e.offset(ptr * 2 + 4))));
 			}
-			if( !jit.addModule(m, md) )
+			if( !jit.addModule(m, md) ) {
+				if( DEBUG || printHotReload )
+					trace("Hot reload: module " + i + " not loaded: bytecode does not match");
 				break;
+			}
 			md.init(jit.align);
+			if( DEBUG || printHotReload )
+				trace("Hot reload: module " + i + " loaded");
 			prefetched.remove(i);
 			added = true;
 		}
