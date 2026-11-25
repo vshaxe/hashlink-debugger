@@ -1,3 +1,8 @@
+## 2.0.3 (November 25, 2026)
+* fixed VM native errors showing as bytes instead of a string
+* reduced connection time on large programs
+* fixed ObjectMap display (hl 2.0)
+
 ## 2.0.2 (November 23, 2026)
 * fixed false segfault on first-chance non-error exceptions on Windows
 * fixed step hang on false conditional breakpoint
