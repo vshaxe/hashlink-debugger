@@ -1,0 +1,15 @@
+> b Test.hx:16
+Breakpoint set line 16
+> r
+Thread paused Test.hx:16 ($Test::main)
+> p byName
+["a"=>Node] : Map<String,Dynamic>
+> p refs
+[Node=>Node] : Map<{},Dynamic>
+> p refs.$0.$key
+Node : Node
+  id = 1 : Int
+> p refs.$0.$value
+Node : Node
+  id = 2 : Int
+> q

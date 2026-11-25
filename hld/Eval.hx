@@ -1567,6 +1567,8 @@ class Eval {
 	}
 
 	function makeMap( p : Pointer, tkey : HLType ) {
+		if( tkey == HDyn && jit.hlVersion >= 2 )
+			p = p.offset(align.ptr);
 		var isV13 = jit.hlVersion >= 1.13;
 		var cells = readPointer(p);
 		var nexts = isV13 ? readPointer(p.offset(align.ptr)) : null;

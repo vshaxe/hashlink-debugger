@@ -1,0 +1,9 @@
+--ci
+test.hl
+"b Test.hx:16"
+r
+"p byName"
+"p refs"
+"p refs.$0.$key"
+"p refs.$0.$value"
+q
