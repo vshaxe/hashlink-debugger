@@ -715,14 +715,14 @@ class Debugger {
 				resume();
 			case Exit:
 				processExit = true;
-				break;
+				stoppedThread = tid;
+				return Exit;
 			case Error, Watchbreak, StackOverflow:
 				break;
 			}
 		}
 		stoppedThread = cmd.tid;
-		if( cmd.r != Exit )
-			syncModules();
+		syncModules();
 
 		// Do not overwrite stack on evalCall
 		if( onEvalCall )
