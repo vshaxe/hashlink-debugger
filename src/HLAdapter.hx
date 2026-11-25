@@ -1023,7 +1023,7 @@ class HLAdapter extends DebugSession {
 		debug("Disconnect request");
 		if( proc != null ) proc.kill();
 		sendResponse(response);
-		if( dbg.stoppedThread != null ) {
+		if( dbg != null && dbg.stoppedThread != null ) {
 			var ev = new ContinuedEvent(dbg.stoppedThread, true);
 			sendEvent(ev);
 		}
