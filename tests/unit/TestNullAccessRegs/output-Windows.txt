@@ -1,0 +1,25 @@
+> r
+Thread paused Test.hx:40 ($Test::boom)
+Exception: "Null access .id"
+> bt
+Test.hx:40 ($Test::boom)
+Test.hx:31 ($Test::deep3)
+Test.hx:27 ($Test::deep2)
+Test.hx:23 ($Test::deep1)
+Test.hx:15 ($Test::main)
+> p n
+Node : Node
+  id = 1 : Int
+  next = null : Node
+  name = "first" : String
+> p s
+"first" : String
+> p a
+12 : Int
+> p b
+23 : Int
+> p o
+null : Node
+> p f
+1.5 : Float
+> q
