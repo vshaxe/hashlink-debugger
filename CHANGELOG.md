@@ -1,3 +1,8 @@
+## 2.0.4 (November 26, 2026)
+* fixed slow stops/exit on large programs
+* fixed map display missing brackets
+* fixed memory read failures being ignored
+
 ## 2.0.3 (November 25, 2026)
 * fixed VM native errors showing as bytes instead of a string
 * reduced connection time on large programs
