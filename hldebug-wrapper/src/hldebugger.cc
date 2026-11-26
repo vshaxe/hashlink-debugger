@@ -94,7 +94,7 @@ Napi::Buffer<int> debugWait(const Napi::CallbackInfo& info) {
 	int pid = info[0].As<Napi::Number>().Int32Value();
 	int size = info[1].As<Napi::Number>().Int32Value();
 	
-	int threadId;
+	int threadId = 0;
 	int r = hl_debug_wait(pid, &threadId, size);
 	
 	Napi::Buffer<int> buffer = Napi::Buffer<int>::New(env, 2);
