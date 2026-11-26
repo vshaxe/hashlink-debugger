@@ -225,15 +225,22 @@ class Debugger {
 	}
 
 	public function connect( host : String, port : Int, onResult : Bool -> Void ) {
+		var onResultCalled = false;
+		function report( b : Bool ) {
+			if( onResultCalled )
+				return;
+			onResultCalled = true;
+			onResult(b);
+		}
 		function done(mods) {
 			if( mods == null ) {
 				close();
-				onResult(false);
+				report(false);
 				return;
 			}
 			bindModules(mods, function(b) {
 				if( !b ) close();
-				onResult(b);
+				report(b);
 			});
 		}
 
@@ -272,18 +279,20 @@ class Debugger {
 			if( pending == null )
 				pending = js.Node.setImmediate(tryRead);
 		});
+		function onLost() {
+			if( sock != s )
+				return;
+			close();
+			report(false);
+		}
+		sock.on("end", onLost);
+		sock.on("close", onLost);
+		sock.on("error", onLost);
 		js.node.Dns.lookup(host, {family: 4}, function(err, address:String, family) {
 			if( err != null ) {
-				onResult(false);
+				report(false);
 				return;
 			}
-			sock.on("error", function(err) {
-				if( onResult != null ) {
-					close();
-					onResult(false);
-					return;
-				}
-			});
 			sock.connect(port, address, function() {
 				// wait data
 			});

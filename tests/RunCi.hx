@@ -96,20 +96,22 @@ class RunCi {
 			if( exitCode == null )
 				killDebuggerAndDebuggee(process);
 			var output = normalize(process.stdout.readAll().toString());
+			var errOutput = process.stderr.readAll().toString();
 			process.close();
+			if( exitCode == 0 && output == expectedOutput ) {
+				log('[SUCCESS] $test');
+				continue;
+			}
+			errorCount ++;
 			if( exitCode == null ) {
-				errorCount ++;
 				log('[ERROR] $test: not terminated in $MAX_TIME_PER_TEST seconds, output:\n$output');
 			} else if( exitCode != 0 ) {
-				errorCount ++;
 				log('[ERROR] $test: exitCode:$exitCode');
 				log('[STDOUT] $output');
-			} else if( output != expectedOutput ) {
-				errorCount ++;
-				log('[ERROR] $test: output (expected $outputFile):\n$output');
 			} else {
-				log('[SUCCESS] $test');
+				log('[ERROR] $test: output (expected $outputFile):\n$output');
 			}
+			log('[STDERR] $errOutput');
 		}
 		return errorCount;
 	}
