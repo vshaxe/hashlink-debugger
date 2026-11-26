@@ -1111,9 +1111,9 @@ class Eval {
 			var content = [for( i in 0...max ) { var k = readKey(i); valueStr(k,maxStringRec) + "=>" + valueStr(readValue(i),maxStringRec); }];
 			if( max != nkeys ) {
 				content.push("...");
-				content.toString() + ":" + nkeys;
+				"[" + content.join(",") + "]:" + nkeys;
 			} else
-				content.toString();
+				"[" + content.join(",") + "]";
 		case VMapPair(key, value):
 			valueStr(key, maxStringRec) + "=>" + valueStr(value, maxStringRec);
 		case VType(t):
