@@ -67,6 +67,10 @@ jobs:
         path: haxe-hl-dev.vsix
 
   build_and_test_nightly:
+    strategy:
+      fail-fast: false
+      matrix:
+        runtime: [hl, node]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -86,9 +90,21 @@ jobs:
     - name: Build extension
       run: make build
     - name: Build CLI hl
+      if: matrix.runtime == 'hl'
       run: |
         cd debugger
         haxe debugger.hxml
+        cd ..
+    - uses: actions/setup-node@v7
+      if: matrix.runtime == 'node'
+      with:
+        node-version: '22.x'
+    - name: Build CLI node
+      if: matrix.runtime == 'node'
+      run: |
+        cd debugger
+        npm install --ignore-scripts
+        haxe node_debug.hxml
         cd ..
     - name: Install hl
       run: |
@@ -104,4 +120,5 @@ jobs:
       run: |
         cd tests
         haxe RunCi.hxml
+        hl RunCi.hl ${{ matrix.runtime == 'node' && '--node' || '' }}
         cd ..

@@ -160,9 +160,10 @@ v6 records a scope end per assign, and the VM keeps the register reserved until 
 ## Building / running
 
 - Command-line debugger: `haxe debugger.hxml` in [debugger/](debugger/) → `debug.hl`, run with
-  `hl debug.hl`.
-- Tests: `haxe RunCi.hxml` in [tests/](tests/), with the `hl` on PATH and the **prebuilt**
-  `debugger/debug.hl` — rebuild it after a debugger change, or the suite tests the old one.
+  `hl debug.hl`; or `npm install` then `haxe node_debug.hxml` → `debugger.js`, run with `node`.
+- Tests: `haxe RunCi.hxml` then `hl RunCi.hl` in [tests/](tests/), with the `hl` on PATH and the
+  **prebuilt** `debugger/debug.hl` — rebuild it after a debugger change, or the suite tests the old
+  one.
 - **Never delete or loosen an existing test to make a change pass; change its expected output only
   when the old one was wrong.** Why: tests are what lets a fix go without an entry here, so a failing
   one is a regression until shown otherwise.
@@ -174,9 +175,10 @@ v6 records a scope end per assign, and the VM keeps the register reserved until 
 - `platform.txt` lists the `Sys.systemName()` values a test runs on — only when the *behaviour* is
   platform-specific, never to hide a bug. `output-<Sys.systemName()>.txt` replaces `output.txt` where
   the correct output differs (usually the ABI); `output.txt` is SysV, and `Mac` falls back to it.
-- `--hl` sets the VM for **both** the debugger and the debuggee. `--hl-ver` adds `-D hl-ver=` to
-  `tests/unit/` and rebuilds the debugger as `debugger/debug-<version>.hl`. `--port` replaces the
-  default port. Rebuild `RunCi.hl` with `haxe RunCi.hxml` first.
+- `--hl` sets the VM. `--hl-ver` adds `-D hl-ver=` to `tests/unit/` and rebuilds the debugger as
+  `debugger/debug-<version>.hl`. `--port` replaces the default port.
+- `--node` runs the prebuilt `debugger/debugger.js` on Node instead of `debug.hl`, with the
+  committed `hldebug-wrapper/lib/<os>/hldebug.node`.
 
 ### The three configurations
 
@@ -185,7 +187,7 @@ A change is tested only once all three are green:
 | command | VM | `tests/unit/` | `tests/v2/` |
 | --- | --- | --- | --- |
 | `hl RunCi.hl --hl-ver 1.16.0 --hl <v1>/x64/Release/hl.exe` | V1 | **v4** | skipped |
-| `haxe RunCi.hxml` | V2 on PATH | **v4** | **v6** |
+| `hl RunCi.hl` | V2 on PATH | **v4** | **v6** |
 | `hl RunCi.hl --hl-ver 2.0.0` | V2 on PATH | **v6** | **v6** |
 
 The middle row compiles `tests/unit/` at v4 even on a V2 VM; only the third runs it at v6.

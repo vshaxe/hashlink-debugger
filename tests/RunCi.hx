@@ -5,6 +5,7 @@ class RunCi {
 		var basePath = Sys.getCwd();
 		var hlBin = "hl";
 		var hlVer : String = null;
+		var useNode = false;
 		var debuggerArgs = [];
 		var args = Sys.args();
 		while( args.length > 0 ) {
@@ -13,17 +14,21 @@ class RunCi {
 			case "--hl": hlBin = args.shift();
 			case "--hl-ver": hlVer = args.shift();
 			case "--port": debuggerArgs = ["-port", args.shift()];
+			case "--node": useNode = true;
 			default:
 				log('[ERROR] unknown argument $a');
-				log("usage: hl RunCi.hl [--hl-ver <version>] [--hl <path to hl>] [--port <debug port>]");
+				log("usage: hl RunCi.hl [--hl-ver <version>] [--hl <path to hl>] [--port <debug port>] [--node]");
 				Sys.exit(1);
 			}
 		}
 		// targeting an older VM requires compiling everything, debugger included, against it
 		var versionFlags = hlVer == null ? [] : ["-D", "hl-ver=" + hlVer];
 		var debuggerHL = sys.FileSystem.absolutePath(basePath + "../debugger/debug" + (hlVer == null ? "" : "-" + hlVer) + ".hl");
-		if( hlVer != null )
+		var debuggerNode = sys.FileSystem.absolutePath(basePath + "../debugger/debugger.js");
+		if( hlVer != null && !useNode )
 			buildDebugger(basePath, debuggerHL, versionFlags);
+		var debuggerBin = useNode ? "node" : hlBin;
+		var debuggerFile = useNode ? debuggerNode : debuggerHL;
 		// the v2 gate follows the VM that will run the tests, which without --hl-ver is whatever is on PATH
 		var vmVer = hlVer != null ? hlVer : getVMVersion(hlBin);
 		var errorCount = 0;
@@ -37,7 +42,7 @@ class RunCi {
 				}
 				dirFlags = ["-D", "hl-ver=2.0.0"];
 			}
-			errorCount += runTests(basePath, dir, dirFlags, hlBin, debuggerHL, debuggerArgs);
+			errorCount += runTests(basePath, dir, dirFlags, hlBin, debuggerBin, debuggerFile, debuggerArgs);
 		}
 
 		changeDirectory(basePath);
@@ -47,7 +52,7 @@ class RunCi {
 		}
 	}
 
-	static function runTests( basePath : String, dir : String, dirFlags : Array<String>, hlBin : String, debuggerHL : String, debuggerArgs : Array<String> ) {
+	static function runTests( basePath : String, dir : String, dirFlags : Array<String>, hlBin : String, debuggerBin : String, debuggerFile : String, debuggerArgs : Array<String> ) {
 		var errorCount = 0;
 		var tests = sys.FileSystem.readDirectory(basePath + dir);
 		for( test in tests ) {
@@ -75,7 +80,7 @@ class RunCi {
 				Sys.command("haxe", reloadArgs);
 			}
 			// --cmd : the debuggee must run on the VM under test, not the `hl` on PATH
-			var process = new sys.io.Process(hlBin, [debuggerHL].concat(debuggerArgs).concat(["--cmd", hlBin, "--input", "input.txt"]));
+			var process = new sys.io.Process(debuggerBin, [debuggerFile].concat(debuggerArgs).concat(["--cmd", hlBin, "--input", "input.txt"]));
 			var outputFile = "output-" + Sys.systemName() + ".txt";
 			if( !sys.FileSystem.exists(fullPath + "/" + outputFile) )
 				outputFile = "output.txt";
