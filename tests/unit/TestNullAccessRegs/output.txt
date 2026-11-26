@@ -1,0 +1,22 @@
+> r
+Thread paused Test.hx:40 ($Test::boom)
+Exception: "Null access .id"
+> bt
+Test.hx:40 ($Test::boom)
+Test.hx:31 ($Test::deep3)
+Test.hx:27 ($Test::deep2)
+Test.hx:23 ($Test::deep1)
+Test.hx:15 ($Test::main)
+> p n
+overwritten : Node
+> p s
+overwritten : String
+> p a
+overwritten : Int
+> p b
+overwritten : Int
+> p o
+overwritten : Node
+> p f
+overwritten : Float
+> q

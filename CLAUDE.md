@@ -63,7 +63,8 @@ that decodes it, then in the VM sources.
   Why: a large JIT frame leaves uncommitted pages under `esp`, and one read of the whole range fails.
 - **A break raised from C takes the innermost frame and its registers from the break context.** Code:
   `Debugger.readBreakContext`, `Eval.readNatReg`. Why: only Win64 captures one; elsewhere
-  `Eval.nativeBreak` must report `<overwritten>`, not what C left. Test: `TestThrowRegs` (Windows).
+  `Eval.nativeBreak` must report `<overwritten>`, not what C left. Tests: `TestThrowRegs` (Windows),
+  `TestNullAccessRegs`.
 - **Treat a trampoline frame (native tagged `HL_CALLB`) as a normal frame with
   `Eval.TRAMPOLINE_FIDX`, its layout matching the VM's persist registers.** Code:
   `JitInfo.makeTrampoline`. Test: `v2/TestNativeCallback`.
