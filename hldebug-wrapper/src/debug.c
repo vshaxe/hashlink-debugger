@@ -112,7 +112,10 @@ HL_API bool hl_debug_read( int pid, vbyte *addr, vbyte *buffer, int size ) {
 	return mdbg_read_memory(pid, addr, buffer, size);
 #	elif defined(USE_PTRACE)
 	while( size ) {
+		errno = 0;
 		long v = ptrace(PTRACE_PEEKDATA,pid,addr,0);
+		if( v == -1 && errno )
+			return false;
 		if( size >= sizeof(long) )
 			*(long*)buffer = v;
 		else {
