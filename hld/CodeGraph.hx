@@ -59,6 +59,8 @@ class CodeGraph {
 
 	var localsRawCache : Array<String> = [];
 	var localsRawCachePos : Int = -1;
+	var writtenCache : Map<Int,Bool>;
+	var writtenCachePos : Int = -1;
 
 	public function new(md, f) {
 		this.module = md;
@@ -127,23 +129,6 @@ class CodeGraph {
 		// calculate written registers
 		for( b in blockPos )
 			checkWrites(b);
-		// absolutes
-		var blocks = [for( p in getBlockStarts() ) blockPos.get(p)];
-		while( true ) {
-			var changed = false;
-			for( b in blocks )
-				for( b2 in b.prev ) {
-					for( rid in b2.writtenRegs.keys() ) {
-						var pos = b2.writtenRegs.get(rid);
-						var cur = b.writtenRegs.get(rid);
-						if( cur == null || cur > pos ) {
-							b.writtenRegs.set(rid, pos);
-							changed = true;
-						}
-					}
-				}
-			if( !changed ) break;
-		}
 	}
 
 	function getBlock( pos : Int ) {
@@ -201,9 +186,26 @@ class CodeGraph {
 	public function isRegisterWritten( rid : Int, pos : Int ) {
 		if( rid < nargs )
 			return true;
-		var b = getBlock(pos);
-		var rpos = b.writtenRegs.get(rid);
-		return rpos != null && rpos < pos;
+		if( pos != writtenCachePos ) {
+			writtenCache = new Map();
+			writtenCachePos = pos;
+			var b = getBlock(pos);
+			currentTag++;
+			b.visitTag = currentTag;
+			var todo = [b];
+			while( todo.length > 0 ) {
+				var cur = todo.pop();
+				for( r => w in cur.writtenRegs )
+					if( w < pos )
+						writtenCache.set(r, true);
+				for( b2 in cur.prev )
+					if( b2.visitTag != currentTag ) {
+						b2.visitTag = currentTag;
+						todo.push(b2);
+					}
+			}
+		}
+		return writtenCache.exists(rid);
 	}
 
 	public function getArgs() : Array<String> {
