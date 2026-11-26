@@ -86,10 +86,6 @@ class NodeDebugApiNative implements Api {
 
 	public function readRegister( tid : Int, register : Register ) : Pointer {
 		var buf = Buffer.fromBinaryString(Native.debugReadRegister(pid, tid, register, is64));
-		if(buf == null)
-			return null;
-		if( register == EFlags )
-			return Pointer.make(buf.getUI16(0), 0);
 		if( !is64 )
 			return Pointer.make(buf.getI32(0), 0);
 		return Pointer.make(buf.getI32(0), buf.getI32(4));

@@ -117,12 +117,7 @@ Napi::String debugReadRegister(const Napi::CallbackInfo& info) {
 	int reg = info[2].As<Napi::Number>().Int32Value();
 	bool is64 = info[3].As<Napi::Boolean>().Value();
 	void* r = hl_debug_read_register(pid, tid, reg, is64);
-	Napi::String ostr;
-	if(reg == 3)
-		ostr = data_to_napi_string(env, &r, 2);
-	else
-		ostr = data_to_napi_string(env, &r, 8);
-	return ostr;
+	return data_to_napi_string(env, &r, 8);
 }
 
 Napi::Boolean debugWriteRegister(const Napi::CallbackInfo& info) {
