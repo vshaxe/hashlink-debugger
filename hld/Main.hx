@@ -242,6 +242,8 @@ class Main {
 		case "q", "quit":
 			if( !isCi )
 				dumpProcessOut();
+			else if( process != null )
+				process.kill();
 			return false;
 		case "r", "run", "c", "continue":
 			var time = args.shift();
