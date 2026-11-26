@@ -1,11 +1,11 @@
 class RunCi {
 	static var MAX_TIME_PER_TEST : Float = 10;
+	static var useNode = false;
 
 	static function main() {
 		var basePath = Sys.getCwd();
 		var hlBin = "hl";
 		var hlVer : String = null;
-		var useNode = false;
 		var debuggerArgs = [];
 		var args = Sys.args();
 		while( args.length > 0 ) {
@@ -163,8 +163,17 @@ class RunCi {
 	}
 
 	// the debugger prints CRLF on windows, and output.txt files have mixed line endings
+	// with --node, JS prints floats with up to 17 significant digits where HL prints 15
 	static function normalize(str : String) {
-		return StringTools.replace(str, "\r\n", "\n");
+		str = StringTools.replace(str, "\r\n", "\n");
+		if( useNode ) {
+			str = ~/-?[0-9]+\.[0-9]+(e[+-]?[0-9]+)?/g.map(str, r -> {
+				var f = r.matched(0);
+				var digits = ~/^0+/.replace(~/[^0-9]/g.replace(f.split("e")[0], ""), "");
+				digits.length > 15 ? Std.string(Std.parseFloat(f)) : f;
+			});
+		}
+		return str;
 	}
 
 	static public function changeDirectory(path : String) {
