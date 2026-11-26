@@ -282,6 +282,12 @@ class Debugger {
 		function onLost() {
 			if( sock != s )
 				return;
+			if( pending != null ) {
+				js.Node.clearImmediate(pending);
+				tryRead();
+				if( sock != s )
+					return;
+			}
 			close();
 			report(false);
 		}
