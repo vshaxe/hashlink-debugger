@@ -49,23 +49,18 @@ Napi::Boolean debugBreakpoint(const Napi::CallbackInfo& info) {
 	return Napi::Boolean::New(env, hl_debug_breakpoint(pid));
 }
 
-Napi::String debugRead(const Napi::CallbackInfo& info) {
+Napi::Boolean debugRead(const Napi::CallbackInfo& info) {
 	Napi::Env env = info.Env();
 
 	int pid = info[0].As<Napi::Number>().Int32Value();
 	std::u16string ptr = data_from_napi_string(info[1].ToString());
-	int size = info[2].As<Napi::Number>().Int32Value();
+	Napi::Buffer<vbyte> buffer = info[2].As<Napi::Buffer<vbyte>>();
+	int size = info[3].As<Napi::Number>().Int32Value();
 
-	int bufsize = size;
-	if (bufsize % 2 == 1)
-		bufsize++;
-	vbyte* rbuf = (vbyte*) malloc(bufsize);
-	rbuf[bufsize-1] = 0;
-	Napi::Boolean r = Napi::Boolean::New(env, hl_debug_read(pid, *(vbyte**)ptr.c_str(), rbuf, size));
-	Napi::String ostr = data_to_napi_string(env, rbuf, bufsize);
-	free(rbuf);
-
-	return ostr;
+	if( size < 0 || buffer.Length() < (size_t)size )
+		return Napi::Boolean::New(env, false);
+	bool r = hl_debug_read(pid, *(vbyte**)ptr.c_str(), buffer.Data(), size);
+	return Napi::Boolean::New(env, r);
 }
 
 Napi::Boolean debugWrite(const Napi::CallbackInfo& info) {
@@ -73,10 +68,12 @@ Napi::Boolean debugWrite(const Napi::CallbackInfo& info) {
 
 	int pid = info[0].As<Napi::Number>().Int32Value();
 	std::u16string ptr = data_from_napi_string(info[1].ToString());
-	std::u16string buffer = data_from_napi_string(info[2].ToString());
+	Napi::Buffer<vbyte> buffer = info[2].As<Napi::Buffer<vbyte>>();
 	int size = info[3].As<Napi::Number>().Int32Value();
 
-	bool r = hl_debug_write(pid, *(vbyte**)ptr.c_str(), (vbyte*) buffer.c_str(), size);
+	if( size < 0 || buffer.Length() < (size_t)size )
+		return Napi::Boolean::New(env, false);
+	bool r = hl_debug_write(pid, *(vbyte**)ptr.c_str(), buffer.Data(), size);
 	return Napi::Boolean::New(env, r);
 }
 
@@ -97,7 +94,7 @@ Napi::Buffer<int> debugWait(const Napi::CallbackInfo& info) {
 	int pid = info[0].As<Napi::Number>().Int32Value();
 	int size = info[1].As<Napi::Number>().Int32Value();
 	
-	int threadId;
+	int threadId = 0;
 	int r = hl_debug_wait(pid, &threadId, size);
 	
 	Napi::Buffer<int> buffer = Napi::Buffer<int>::New(env, 2);
@@ -120,12 +117,7 @@ Napi::String debugReadRegister(const Napi::CallbackInfo& info) {
 	int reg = info[2].As<Napi::Number>().Int32Value();
 	bool is64 = info[3].As<Napi::Boolean>().Value();
 	void* r = hl_debug_read_register(pid, tid, reg, is64);
-	Napi::String ostr;
-	if(reg == 3)
-		ostr = data_to_napi_string(env, &r, 2);
-	else
-		ostr = data_to_napi_string(env, &r, 8);
-	return ostr;
+	return data_to_napi_string(env, &r, 8);
 }
 
 Napi::Boolean debugWriteRegister(const Napi::CallbackInfo& info) {

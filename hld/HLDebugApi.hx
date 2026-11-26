@@ -46,7 +46,7 @@ class HLDebugApi implements Api {
 
 	public function readByte( ptr : Pointer, pos : Int ) : Int {
 		if( !read(ptr.offset(pos), cast tmp, 1) )
-			throw "Failed to read @" + ptr.toString();
+			throw "Failed to read @" + ptr.offset(pos).toString();
 		return tmp.getUI8(0);
 	}
 

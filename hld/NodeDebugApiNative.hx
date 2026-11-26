@@ -7,8 +7,8 @@ extern class Native {
 	static function debugStart( pid : Int ) : Bool;
 	static function debugStop( pid : Int ) : Void;
 	static function debugBreakpoint( pid : Int ) : Bool;
-	static function debugRead( pid : Int, ptr : String, size : Int ) : String;
-	static function debugWrite( pid : Int, ptr : String, buffer : String, size : Int ) : Bool;
+	static function debugRead( pid : Int, ptr : String, buffer : js.node.Buffer, size : Int ) : Bool;
+	static function debugWrite( pid : Int, ptr : String, buffer : js.node.Buffer, size : Int ) : Bool;
 	static function debugFlush( pid : Int, ptr : String, size : Int ) : Bool;
 	static function debugWait( pid : Int, timeout : Int ) : js.node.Buffer;
 	static function debugResume( pid : Int, tid : Int ) : Bool;
@@ -28,7 +28,7 @@ class NodeDebugApiNative implements Api {
 		this.pid = pid;
 		this.is64 = is64;
 		tmp = new Buffer(8);
-		tmpByte = new Buffer(4);
+		tmpByte = new Buffer(1);
 	}
 
 	function makePointer( ptr : Pointer ) : hld.Buffer {
@@ -50,22 +50,17 @@ class NodeDebugApiNative implements Api {
 	}
 
 	public function read( ptr : Pointer, buffer : Buffer, size : Int ) : Bool {
-		var b = Buffer.fromBinaryString(Native.debugRead(pid, makePointer(ptr).toBinaryString(), size));
-		@:privateAccess buffer.buf = b.buf;
-		return true;
-	}
-
-	function internalRead( ptr : Pointer, size : Int ) : Buffer {
-		return Buffer.fromBinaryString(Native.debugRead(pid, makePointer(ptr).toBinaryString(), size));
+		return Native.debugRead(pid, makePointer(ptr).toBinaryString(), buffer.toNodeBuffer(), size);
 	}
 
 	public function readByte( ptr : Pointer, pos : Int ) : Int {
-		var b = internalRead(ptr.offset(pos), 1);
-		return b.getUI8(0);
+		if( !read(ptr.offset(pos), tmpByte, 1) )
+			throw "Failed to read @" + ptr.offset(pos).toString();
+		return tmpByte.getUI8(0);
 	}
 
 	public function write( ptr : Pointer, buffer : Buffer, size : Int ) : Bool {
-		return Native.debugWrite(pid, makePointer(ptr).toBinaryString(), buffer.toBinaryString(), size);
+		return Native.debugWrite(pid, makePointer(ptr).toBinaryString(), buffer.toNodeBuffer(), size);
 	}
 
 	public function writeByte( ptr : Pointer, pos : Int, value : Int ) : Void {
@@ -91,10 +86,6 @@ class NodeDebugApiNative implements Api {
 
 	public function readRegister( tid : Int, register : Register ) : Pointer {
 		var buf = Buffer.fromBinaryString(Native.debugReadRegister(pid, tid, register, is64));
-		if(buf == null)
-			return null;
-		if( register == EFlags )
-			return Pointer.make(buf.getUI16(0), 0);
 		if( !is64 )
 			return Pointer.make(buf.getI32(0), 0);
 		return Pointer.make(buf.getI32(0), buf.getI32(4));
