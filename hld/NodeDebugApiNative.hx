@@ -55,7 +55,7 @@ class NodeDebugApiNative implements Api {
 
 	public function readByte( ptr : Pointer, pos : Int ) : Int {
 		if( !read(ptr.offset(pos), tmpByte, 1) )
-			throw "Failed to read @" + ptr.toString();
+			throw "Failed to read @" + ptr.offset(pos).toString();
 		return tmpByte.getUI8(0);
 	}
 
