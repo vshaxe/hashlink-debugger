@@ -110,9 +110,9 @@ jobs:
       run: |
         git clone https://github.com/HaxeFoundation/hashlink.git hashlink
         sudo apt-get update
-        sudo apt-get install -qqy libpng-dev libturbojpeg-dev libvorbis-dev libopenal-dev libmbedtls-dev libuv1-dev libsqlite3-dev
+        sudo apt-get install -qqy libpng-dev libturbojpeg-dev libvorbis-dev
         cd hashlink
-        make hl libhl.so fmt.hdll ssl.hdll ui.hdll uv.hdll
+        make hl libhl.so fmt.hdll
         sudo make install
         hl --version
         cd ..
