@@ -1038,11 +1038,10 @@ class Debugger {
 		var f = mod(caller.fidx).getFunction(caller.fidx);
 		if( f == null )
 			return true;
-		var graph = mod(caller.fidx).getGraph(caller.fidx);
 		for( pos in [caller.fpos, caller.fpos - 1] ) {
 			if( pos < 0 || pos >= f.ops.length )
 				continue;
-			switch( graph.control(pos) ) {
+			switch( CodeGraph.opControl(f.ops[pos]) ) {
 			case CCall(-1):
 				return true;
 			case CCall(findex):

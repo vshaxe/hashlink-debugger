@@ -446,7 +446,11 @@ class CodeGraph {
 	}
 
 	public function control( i ) {
-		return switch( fun.ops[i] ) {
+		return opControl(fun.ops[i]);
+	}
+
+	public static function opControl( op : format.hl.Data.Opcode ) {
+		return switch( op ) {
 		case OJTrue (_,d), OJFalse (_,d), OJNull (_,d), OJNotNull (_,d),
 			OJSLt (_, _, d), OJSGte (_, _, d), OJSGt (_, _, d), OJSLte (_, _, d),
 			OJULt (_, _, d), OJUGte (_, _, d), OJEq (_, _, d), OJNotEq (_, _, d),
